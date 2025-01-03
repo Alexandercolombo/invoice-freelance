@@ -146,14 +146,26 @@ export async function GET(
     
     // Table headers
     const tableHeaders = ['Description', 'Hours', 'Rate', 'Amount'];
-    const colWidths = [pageWidth - 140, 25, 35, 35];
+    // Adjust column widths (total should be pageWidth - 2*margin)
+    const colWidths = [
+      pageWidth - 180, // Description (wider)
+      30,             // Hours
+      50,             // Rate
+      50              // Amount
+    ];
     const startX = margin;
     
     doc.setFontSize(10);
     doc.setTextColor(107, 114, 128);
+    
+    // Draw table headers with proper alignment
     tableHeaders.forEach((header, i) => {
       const x = startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0);
-      doc.text(header, x, y, { align: i === 0 ? 'left' : 'right' });
+      if (i === 0) {
+        doc.text(header, x, y); // Left align description
+      } else {
+        doc.text(header, x + colWidths[i], y, { align: 'right' }); // Right align numbers
+      }
     });
 
     // Table rows
@@ -170,12 +182,20 @@ export async function GET(
       }
 
       let x = startX;
+      
+      // Description (left-aligned)
       doc.text(task.description, x, y);
       x += colWidths[0];
+      
+      // Hours (right-aligned)
       doc.text(task.hours.toString(), x + colWidths[1], y, { align: 'right' });
       x += colWidths[1];
+      
+      // Rate (right-aligned)
       doc.text(formatCurrency(hourlyRate), x + colWidths[2], y, { align: 'right' });
       x += colWidths[2];
+      
+      // Amount (right-aligned)
       doc.text(formatCurrency(amount), x + colWidths[3], y, { align: 'right' });
       
       y += 12;

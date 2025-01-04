@@ -67,7 +67,7 @@ export const getUnbilledTasksByClient = query({
         q.and(
           q.eq(q.field("userId"), identity.subject),
           q.eq(q.field("clientId"), args.clientId),
-          q.eq(q.field("invoiced"), false)
+          q.eq(q.field("invoiceId"), undefined)
         )
       )
       .collect();
@@ -88,66 +88,60 @@ export const createInvoice = mutation({
     if (!identity) {
       throw new ConvexError("Not authenticated");
     }
+
     const userId = identity.subject;
 
-    // Verify client belongs to user
-    const client = await ctx.db.get(args.clientId);
-    if (!client || client.userId !== userId) {
-      throw new ConvexError("Invalid client");
+    // Verify all tasks belong to the user and are not already invoiced
+    for (const taskId of args.taskIds) {
+      const task = await ctx.db.get(taskId);
+      if (!task || task.userId !== userId || task.invoiceId !== undefined) {
+        throw new ConvexError("Invalid task selection");
+      }
     }
 
-    // Get all tasks and calculate totals
-    const tasks = await Promise.all(
-      args.taskIds.map(async (id) => {
-        const task = await ctx.db.get(id);
-        if (!task || task.userId !== userId || task.invoiced) {
-          throw new ConvexError("Invalid or already invoiced task");
-        }
-        return task;
-      })
-    );
-
-    const subtotal = tasks.reduce((sum, task) => sum + (task.hours * client.hourlyRate), 0);
+    // Calculate totals
+    const tasks = await Promise.all(args.taskIds.map(id => ctx.db.get(id)));
+    const validTasks = tasks.filter((task): task is NonNullable<typeof task> => task !== null);
+    const subtotal = validTasks.reduce((sum, task) => sum + task.amount, 0);
     const total = subtotal + args.tax;
 
-    // Generate invoice number (format: INV-YYYYMMDD-XXX)
-    const today = new Date();
-    const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
-    const existingInvoices = await ctx.db
+    // Get the next invoice number
+    const lastInvoice = await ctx.db
       .query("invoices")
-      .filter((q) => q.eq(q.field("userId"), userId))
-      .collect();
-    const invoiceNumber = `INV-${dateStr}-${(existingInvoices.length + 1).toString().padStart(3, '0')}`;
+      .filter(q => q.eq(q.field("userId"), userId))
+      .order("desc")
+      .first();
 
-    // Create invoice
-    const invoice = await ctx.db.insert("invoices", {
-      number: invoiceNumber,
-      clientId: args.clientId,
-      userId,
+    const nextNumber = lastInvoice 
+      ? String(Number(lastInvoice.number) + 1).padStart(3, '0')
+      : '001';
+
+    // Create the invoice
+    const invoiceId = await ctx.db.insert("invoices", {
+      number: nextNumber,
       date: args.date,
       dueDate: args.dueDate,
+      clientId: args.clientId,
       status: "draft",
+      tasks: args.taskIds,
       subtotal,
       tax: args.tax,
       total,
       notes: args.notes,
-      tasks: args.taskIds,
+      userId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
 
-    // Update tasks with invoice ID
-    await Promise.all(
-      tasks.map(async (task) => {
-        await ctx.db.patch(task._id, {
-          invoiced: true,
-          invoiceId: invoice,
-          updatedAt: new Date().toISOString(),
-        });
-      })
-    );
+    // Update tasks with invoice reference
+    for (const taskId of args.taskIds) {
+      await ctx.db.patch(taskId, {
+        invoiceId,
+        updatedAt: new Date().toISOString(),
+      });
+    }
 
-    return invoice;
+    return invoiceId;
   },
 });
 
@@ -181,33 +175,28 @@ export const deleteInvoice = mutation({
     if (!identity) {
       throw new ConvexError("Not authenticated");
     }
-    
+
     const invoice = await ctx.db.get(args.id);
     if (!invoice || invoice.userId !== identity.subject) {
-      throw new ConvexError("Invoice not found or access denied");
+      throw new ConvexError("Invoice not found");
     }
 
-    if (invoice.status !== "draft") {
-      throw new ConvexError("Can only delete draft invoices");
-    }
-
-    // Un-invoice all associated tasks
+    // Remove invoice reference from tasks
     const tasks = await ctx.db
       .query("tasks")
       .filter((q) => q.eq(q.field("invoiceId"), args.id))
       .collect();
 
-    await Promise.all(
-      tasks.map(async (task) => {
-        await ctx.db.patch(task._id, {
-          invoiced: false,
-          invoiceId: undefined,
-          updatedAt: new Date().toISOString(),
-        });
-      })
-    );
+    for (const task of tasks) {
+      await ctx.db.patch(task._id, {
+        invoiceId: undefined,
+        updatedAt: new Date().toISOString(),
+      });
+    }
 
+    // Delete the invoice
     await ctx.db.delete(args.id);
+    return true;
   },
 });
 

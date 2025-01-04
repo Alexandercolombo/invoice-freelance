@@ -3,6 +3,7 @@ import { mutation, query, action } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { Resend } from "resend";
 import { ConvexError } from "convex/values";
+import { getUser } from "./auth";
 
 export const getInvoices = query({
   args: {
@@ -245,13 +246,13 @@ export const getInvoice = query({
   },
 });
 
-export const sendInvoiceEmail = action({
+export const sendInvoice = mutation({
   args: {
     invoiceId: v.id("invoices"),
     recipientEmail: v.string(),
     recipientName: v.string(),
   },
-  handler: async (ctx, args) => {
+  async handler(ctx, args) {
     const { RESEND_API_KEY, NEXT_PUBLIC_BASE_URL } = process.env;
     if (!RESEND_API_KEY) {
       throw new ConvexError("Missing RESEND_API_KEY in environment variables");
@@ -264,7 +265,7 @@ export const sendInvoiceEmail = action({
 
     try {
       await resend.emails.send({
-        from: "invoices@example.com", // Update with your verified domain
+        from: "invoices@example.com",
         to: args.recipientEmail,
         subject: "New Invoice",
         html: `<p>Dear ${args.recipientName},</p>
@@ -274,16 +275,14 @@ export const sendInvoiceEmail = action({
       });
 
       // Update invoice status
-      await ctx.runMutation(async ({ db }) => {
-        const invoice = await db.get(args.invoiceId);
-        if (!invoice) {
-          throw new ConvexError("Invoice not found");
-        }
+      const invoice = await ctx.db.get(args.invoiceId);
+      if (!invoice) {
+        throw new ConvexError("Invoice not found");
+      }
 
-        await db.patch(args.invoiceId, {
-          status: "sent" as const,
-          updatedAt: new Date().toISOString(),
-        });
+      await ctx.db.patch(args.invoiceId, {
+        status: "sent",
+        updatedAt: new Date().toISOString(),
       });
 
       return { success: true };
@@ -310,6 +309,7 @@ export const markAsPaid = mutation({
     await ctx.db.patch(args.id, {
       status: "paid",
       paidAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
 
     // Update associated tasks
@@ -319,7 +319,10 @@ export const markAsPaid = mutation({
       .collect();
 
     for (const task of tasks) {
-      await ctx.db.patch(task._id, { status: "completed" });
+      await ctx.db.patch(task._id, { 
+        status: "completed",
+        updatedAt: new Date().toISOString(),
+      });
     }
 
     return true;

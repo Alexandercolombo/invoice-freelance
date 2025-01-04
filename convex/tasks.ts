@@ -43,4 +43,24 @@ export const create = mutation({
       updatedAt: new Date().toISOString(),
     });
   },
+});
+
+export const getTasksByIds = query({
+  args: { ids: v.array(v.id("tasks")) },
+  async handler(ctx, args) {
+    const identity = await getUser(ctx);
+    const tasks = await Promise.all(
+      args.ids.map(id => ctx.db.get(id))
+    );
+    
+    // Filter out any null values and verify user access
+    return tasks
+      .filter((task): task is NonNullable<typeof task> => 
+        task !== null && task.userId === identity.subject
+      )
+      .map(task => ({
+        ...task,
+        amount: task.hours * task.hourlyRate
+      }));
+  },
 }); 

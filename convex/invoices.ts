@@ -292,4 +292,36 @@ export const sendInvoiceEmail = action({
       throw new ConvexError("Failed to send invoice email");
     }
   },
+});
+
+export const markAsPaid = mutation({
+  args: {
+    id: v.id("invoices"),
+  },
+  async handler(ctx, args) {
+    const identity = await getUser(ctx);
+    const invoice = await ctx.db.get(args.id);
+    
+    if (!invoice || invoice.userId !== identity.subject) {
+      throw new Error("Invoice not found or access denied");
+    }
+
+    // Update invoice status
+    await ctx.db.patch(args.id, {
+      status: "paid",
+      paidAt: new Date().toISOString(),
+    });
+
+    // Update associated tasks
+    const tasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_invoice", (q) => q.eq("invoiceId", args.id))
+      .collect();
+
+    for (const task of tasks) {
+      await ctx.db.patch(task._id, { status: "completed" });
+    }
+
+    return true;
+  },
 }); 

@@ -141,25 +141,27 @@ export const create = mutation({
 export const update = mutation({
   args: {
     id: v.id("tasks"),
-    client: v.string(),
-    description: v.string(),
-    hours: v.number(),
-    date: v.string(),
-    status: v.union(v.literal("pending"), v.literal("in-progress"), v.literal("completed")),
+    description: v.optional(v.string()),
+    hours: v.optional(v.number()),
+    date: v.optional(v.string()),
+    clientId: v.optional(v.id("clients")),
+    hourlyRate: v.optional(v.number()),
+    status: v.optional(v.union(v.literal("pending"), v.literal("completed"))),
   },
-  handler: async (ctx, args) => {
-    const identity = await getUser(ctx);
+  async handler(ctx, args) {
     const { id, ...updates } = args;
-
-    const existingTask = await ctx.db.get(id);
-    if (!existingTask || existingTask.userId !== identity.subject) {
-      throw new Error("Task not found or access denied");
+    
+    // Calculate amount if hours or hourlyRate is provided
+    if (updates.hours !== undefined || updates.hourlyRate !== undefined) {
+      const task = await ctx.db.get(args.id);
+      if (!task) throw new Error("Task not found");
+      
+      const hours = updates.hours ?? task.hours;
+      const hourlyRate = updates.hourlyRate ?? task.hourlyRate ?? 0;
+      updates.amount = hourlyRate * hours;
     }
 
-    return await ctx.db.patch(id, {
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    });
+    return await ctx.db.patch(args.id, updates);
   },
 });
 

@@ -24,6 +24,7 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
+      "@/convex/*": ["./convex/*"],
       "convex/_generated/*": ["./convex/_generated/*"]
     }
   },
@@ -31,7 +32,8 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "convex/**/*.ts"
   ],
   "exclude": [
     "node_modules"

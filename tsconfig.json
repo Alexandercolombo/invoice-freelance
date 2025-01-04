@@ -22,10 +22,10 @@
         "name": "next"
       }
     ],
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@/convex/*": ["./convex/*"],
-      "convex/_generated/*": ["./convex/_generated/*"]
+      "@/*": ["src/*"],
+      "@/convex/*": ["convex/*"]
     }
   },
   "include": [

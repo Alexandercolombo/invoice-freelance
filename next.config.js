@@ -1,6 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['convex'],
-}
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@/convex': `${__dirname}/convex`
+    };
+    return config;
+  },
+  transpilePackages: ['convex']
+};
 
-module.exports = nextConfig 
+module.exports = nextConfig; 

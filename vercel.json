@@ -1,4 +1,0 @@
-{
-  "buildCommand": "npx convex codegen && npx convex deploy --cmd 'npm run build'",
-  "installCommand": "npm install"
-} 

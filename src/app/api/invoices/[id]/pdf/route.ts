@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
-import { api } from "../../../../../convex/_generated/api";
+import { api } from "convex/_generated/api";
 import { formatCurrency } from "@/lib/utils";
 import { jsPDF } from "jspdf";
-import { Id } from "../../../../../convex/_generated/dataModel";
+import { Id } from "convex/_generated/dataModel";
 import { auth } from "@clerk/nextjs";
 
 interface Task {

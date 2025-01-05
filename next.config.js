@@ -3,8 +3,7 @@ const nextConfig = {
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,
-      'convex/_generated/api': `${__dirname}/convex/_generated/api`,
-      'convex/_generated/dataModel': `${__dirname}/convex/_generated/dataModel`
+      'convex': `${__dirname}/convex`
     };
     return config;
   },

@@ -1,4 +1,4 @@
 {
-  "buildCommand": "npx convex dev --url-to-source-map --once && npx convex deploy --cmd 'npm run build'",
+  "buildCommand": "npx convex dev --once && npx convex deploy --cmd 'npm run build'",
   "installCommand": "npm install"
 } 

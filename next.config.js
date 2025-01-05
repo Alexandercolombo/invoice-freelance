@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['convex']
+  transpilePackages: ['convex'],
+  experimental: {
+    externalDir: true
+  }
 };
 
 module.exports = nextConfig; 

@@ -5,7 +5,8 @@ const nextConfig = {
     externalDir: true,
   },
   webpack: (config, { isServer }) => {
-    // Add the convex directory to be processed by webpack
+    // Add the convex directory to module resolution
+    config.resolve.modules.push('convex');
     config.watchOptions = {
       ...config.watchOptions,
       ignored: /node_modules/,

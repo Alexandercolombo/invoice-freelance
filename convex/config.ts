@@ -1,6 +1,6 @@
-import { defineFunctions } from "convex/server";
+import defineConfig from "convex/config";
 
-export default defineFunctions({
+export default defineConfig({
   actions: {
     runtime: "node",
   },

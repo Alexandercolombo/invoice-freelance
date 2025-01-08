@@ -1,13 +1,13 @@
 "use client";
 
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { useEffect } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { Id } from "../../../convex/_generated/dataModel";
+import { Id } from "@convex/_generated/dataModel";
 import { useState } from "react";
 import { TaskModal } from "@/components/tasks/task-modal";
 import { NewTaskModal } from "@/components/tasks/new-task-modal";

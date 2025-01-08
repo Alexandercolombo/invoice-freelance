@@ -1,6 +1,6 @@
-import defineConfig from "convex/config";
+import { Config } from "convex/config";
 
-export default defineConfig({
+export default Config({
   actions: {
     runtime: "node",
   },

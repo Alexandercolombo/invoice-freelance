@@ -1,3 +1,7 @@
 export default {
-  provider: "nodejs",
+  functions: {
+    codegen: {
+      provider: "nodejs",
+    },
+  },
 }; 

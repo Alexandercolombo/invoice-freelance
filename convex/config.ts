@@ -1,7 +1,7 @@
-import { v } from "convex/values";
+import { defineConfig } from "convex/server";
 
-export default {
+export default defineConfig({
   actions: {
     runtime: "nodejs",
   },
-}; 
+}); 

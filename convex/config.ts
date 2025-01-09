@@ -1,7 +1,7 @@
+import { v } from "convex/values";
+
 export default {
-  functions: {
-    codegen: {
-      provider: "nodejs",
-    },
+  actions: {
+    runtime: "nodejs",
   },
 }; 

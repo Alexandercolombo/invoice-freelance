@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npx convex codegen && mkdir -p node_modules/convex/_generated && cp -r convex/_generated/* node_modules/convex/_generated/ && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
@@ -28,7 +28,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.4",
-    "convex": "^1.7.1",
+    "convex": "^1.17.4",
     "framer-motion": "^11.15.0",
     "jspdf": "^2.5.2",
     "lucide-react": "^0.469.0",

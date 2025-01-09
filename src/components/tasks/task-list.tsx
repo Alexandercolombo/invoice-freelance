@@ -1,6 +1,6 @@
 "use client";
 
-import { Id } from "@/convex/_generated/dataModel";
+import { Id } from "convex/_generated/dataModel";
 import { formatCurrency } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -10,7 +10,7 @@ interface Task {
   hours: number;
   date: string;
   amount: number;
-  hourlyRate: number;
+  hourlyRate?: number;
 }
 
 interface TaskListProps {
@@ -33,22 +33,21 @@ export function TaskList({ tasks, selectedIds, onSelect }: TaskListProps) {
       {tasks.map((task) => (
         <div
           key={task._id}
-          className="flex items-center space-x-4 rounded-lg border p-4"
+          className="flex items-center space-x-4 p-4 border rounded-lg"
         >
           <Checkbox
             checked={selectedIds.includes(task._id)}
             onCheckedChange={() => onSelect(task._id)}
           />
-          <div className="flex-1 space-y-1">
-            <p className="text-sm font-medium leading-none">
-              {task.description}
+          <div className="flex-1">
+            <p className="font-medium">{task.description}</p>
+            <p className="text-sm text-gray-500">
+              {task.hours} hours at {formatCurrency(task.hourlyRate ?? 0)}/hr
             </p>
-            <p className="text-sm text-muted-foreground">
-              {new Date(task.date).toLocaleDateString()} · {task.hours} hours · {formatCurrency(task.hourlyRate)}/hr
-            </p>
+            <p className="text-sm text-gray-500">Date: {task.date}</p>
           </div>
-          <div className="text-sm font-medium">
-            {formatCurrency(task.amount)}
+          <div className="text-right">
+            <p className="font-medium">{formatCurrency(task.amount)}</p>
           </div>
         </div>
       ))}

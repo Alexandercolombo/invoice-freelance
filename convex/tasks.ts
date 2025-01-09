@@ -60,7 +60,7 @@ export const getTasksByIds = query({
       )
       .map(task => ({
         ...task,
-        amount: task.hours * task.hourlyRate
+        amount: task.hours * (task.hourlyRate ?? 0)
       }));
   },
 }); 

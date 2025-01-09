@@ -102,7 +102,7 @@ export const createInvoice = mutation({
     // Calculate totals
     const tasks = await Promise.all(args.taskIds.map(id => ctx.db.get(id)));
     const validTasks = tasks.filter((task): task is NonNullable<typeof task> => task !== null);
-    const subtotal = validTasks.reduce((sum, task) => sum + task.amount, 0);
+    const subtotal = validTasks.reduce((sum, task) => sum + (task.amount ?? 0), 0);
     const total = subtotal + args.tax;
 
     // Get the next invoice number

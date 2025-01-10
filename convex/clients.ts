@@ -75,6 +75,7 @@ export const create = mutation({
     return await ctx.db.insert("clients", {
       ...args,
       userId: identity.subject,
+      status: "active",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });

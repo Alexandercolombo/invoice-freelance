@@ -132,15 +132,16 @@ export const deleteInvoice = mutation({
       throw new ConvexError("Invoice not found");
     }
 
-    // Remove invoice reference from tasks
+    // Mark tasks as not invoiced
     const tasks = await ctx.db
       .query("tasks")
-      .filter((q) => q.eq(q.field("invoiceId"), args.id))
+      .withIndex("by_client", (q) => q.eq("clientId", invoice.clientId))
+      .filter((q) => invoice.tasks.includes(q.field("_id")))
       .collect();
 
     for (const task of tasks) {
       await ctx.db.patch(task._id, {
-        invoiceId: undefined,
+        invoiced: false,
         updatedAt: new Date().toISOString(),
       });
     }

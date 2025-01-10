@@ -8,6 +8,12 @@ const nextConfig = {
     return config;
   },
   transpilePackages: ['convex'],
+  experimental: {
+    externalDir: true,
+    serverActions: {
+      allowedOrigins: ['localhost:3000', 'invoice-freelance.vercel.app'],
+    },
+  },
 }
 
 export default nextConfig; 

@@ -7,15 +7,14 @@ import { formatCurrency } from "@/lib/utils";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, DollarSign, ExternalLink } from "lucide-react";
-import Link from "next/link";
+import { Calendar, Clock, DollarSign } from "lucide-react";
 
 type TaskFormData = {
   description: string;
   date: string;
   hours: number;
   clientId: Id<"clients"> | null;
-  status: "pending" | "in-progress" | "completed";
+  status: "pending" | "completed";
 };
 
 const defaultFormData: TaskFormData = {
@@ -28,18 +27,16 @@ const defaultFormData: TaskFormData = {
 
 const statusColors = {
   pending: "bg-yellow-100 text-yellow-800",
-  "in-progress": "bg-blue-100 text-blue-800",
   completed: "bg-green-100 text-green-800",
   invoiced: "bg-purple-100 text-purple-800",
 } as const;
 
 export default function TasksPage() {
-  const tasks = useQuery(api.tasks.getAllTasks);
+  const tasks = useQuery(api.tasks.list);
   const clientsResponse = useQuery(api.clients.getAll, {});
   const clients = clientsResponse?.clients;
-  const createTask = useMutation(api.tasks.createTask);
-  const updateTask = useMutation(api.tasks.updateTask);
-  const deleteTask = useMutation(api.tasks.deleteTask);
+  const createTask = useMutation(api.tasks.create);
+  const updateTask = useMutation(api.tasks.update);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<Id<"tasks"> | null>(null);
@@ -58,15 +55,20 @@ export default function TasksPage() {
       if (editingId) {
         await updateTask({
           id: editingId,
-          ...formData,
-          clientId: formData.clientId,
-          status: "pending",
+          description: formData.description,
+          hours: formData.hours,
+          date: formData.date,
+          status: formData.status,
         });
       } else {
+        const client = clients?.find(c => c._id === formData.clientId);
         await createTask({
-          ...formData,
+          description: formData.description,
+          hours: formData.hours,
+          date: formData.date,
           clientId: formData.clientId,
-          status: "pending",
+          hourlyRate: client?.hourlyRate || 0,
+          status: formData.status,
         });
       }
       setFormData(defaultFormData);
@@ -87,16 +89,6 @@ export default function TasksPage() {
     });
     setEditingId(task._id);
     setIsEditing(true);
-  };
-
-  const handleDelete = async (id: Id<"tasks">) => {
-    if (confirm("Are you sure you want to delete this task?")) {
-      try {
-        await deleteTask({ id });
-      } catch (error: any) {
-        alert(error.message);
-      }
-    }
   };
 
   const filteredTasks = tasks?.filter((task) => {
@@ -122,9 +114,7 @@ export default function TasksPage() {
     return (
       <Badge
         variant={
-          status === "completed" ? "success" : 
-          status === "in-progress" ? "default" : 
-          "secondary"
+          status === "completed" ? "success" : "secondary"
         }
       >
         {status}
@@ -166,7 +156,6 @@ export default function TasksPage() {
               >
                 <option value="all">All Statuses</option>
                 <option value="pending">Pending</option>
-                <option value="in-progress">In Progress</option>
                 <option value="completed">Completed</option>
                 <option value="invoiced">Invoiced</option>
               </select>
@@ -252,7 +241,7 @@ export default function TasksPage() {
                           name="hours"
                           required
                           min="0"
-                          step="0.25"
+                          step="0.5"
                           value={formData.hours}
                           onChange={(e) => setFormData({ ...formData, hours: parseFloat(e.target.value) })}
                           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
@@ -266,34 +255,35 @@ export default function TasksPage() {
                         <select
                           id="status"
                           name="status"
+                          required
                           value={formData.status}
-                          onChange={(e) => setFormData({ ...formData, status: e.target.value as TaskFormData["status"] })}
+                          onChange={(e) => setFormData({ ...formData, status: e.target.value as "pending" | "completed" })}
                           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                         >
                           <option value="pending">Pending</option>
-                          <option value="in-progress">In Progress</option>
                           <option value="completed">Completed</option>
                         </select>
                       </div>
                     </div>
                     <div className="bg-gray-50 px-4 py-3 text-right sm:px-6">
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
                         onClick={() => {
                           setIsEditing(false);
                           setEditingId(null);
                           setFormData(defaultFormData);
                         }}
-                        className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 mr-3"
+                        className="mr-3"
                       >
                         Cancel
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         type="submit"
-                        className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white"
                       >
-                        Save
-                      </button>
+                        {editingId ? "Update" : "Create"} Task
+                      </Button>
                     </div>
                   </div>
                 </form>
@@ -301,95 +291,81 @@ export default function TasksPage() {
             </div>
           )}
 
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Client
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Description
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Hours
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Amount
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th scope="col" className="relative px-6 py-3">
-                    <span className="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredTasks?.map((task) => (
-                  <tr key={task._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(task.date).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div className="flex items-center gap-2">
-                        <span>{getClientName(task.clientId)}</span>
-                        {task.clientId && (
-                          <Link
-                            href={`/dashboard/clients?id=${task.clientId}`}
-                            className="text-gray-400 hover:text-gray-600 transition-colors"
-                            title="View client details"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Link>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {task.description}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4 text-gray-400" />
-                        {task.hours.toFixed(2)}h
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div className="flex items-center gap-1">
-                        <DollarSign className="h-4 w-4 text-gray-400" />
-                        {formatCurrency(task.hours * getClientRate(task.clientId))}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {getStatusBadge(task.status, task.invoiced || false)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {!task.invoiced && (
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            onClick={() => handleEdit(task)}
-                            className="text-indigo-600 hover:text-indigo-900"
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            onClick={() => handleDelete(task._id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="mt-8 flow-root">
+            <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+              <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+                  <table className="min-w-full divide-y divide-gray-300">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
+                          Description
+                        </th>
+                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                          Client
+                        </th>
+                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                          Date
+                        </th>
+                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                          Hours
+                        </th>
+                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                          Amount
+                        </th>
+                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                          Status
+                        </th>
+                        <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                          <span className="sr-only">Actions</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 bg-white">
+                      {filteredTasks?.map((task) => (
+                        <tr key={task._id}>
+                          <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                            {task.description}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                            {getClientName(task.clientId)}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                            {new Date(task.date).toLocaleDateString()}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                            {task.hours}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                            {formatCurrency(task.amount || (task.hours * getClientRate(task.clientId)))}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                            {getStatusBadge(task.status, task.invoiced || false)}
+                          </td>
+                          <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                            {!task.invoiced && (
+                              <Button
+                                variant="ghost"
+                                onClick={() => handleEdit(task)}
+                                className="text-indigo-600 hover:text-indigo-900"
+                              >
+                                Edit
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {!filteredTasks?.length && (
+                    <div className="text-center py-8 text-gray-500">
+                      <p className="text-lg font-medium">No tasks found</p>
+                      <p className="mt-1">Create a new task to get started!</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

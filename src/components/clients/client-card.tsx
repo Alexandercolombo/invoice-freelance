@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Edit, Trash, Mail, MapPin, DollarSign, ExternalLink } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-import { Doc } from "../../../convex/_generated/dataModel";
+import type { Doc } from "convex/_generated/dataModel";
 import { useState } from "react";
 import { ClientDetails } from "./client-details";
 import {

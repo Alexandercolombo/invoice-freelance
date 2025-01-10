@@ -26,6 +26,7 @@ export default defineSchema({
     userId: v.string(),
     createdAt: v.string(),
     updatedAt: v.string(),
+    status: v.union(v.literal("active"), v.literal("inactive")),
   }).index("by_user", ["userId"])
     .index("by_email", ["email"]),
   users: defineTable({

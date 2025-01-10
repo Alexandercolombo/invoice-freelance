@@ -29,11 +29,11 @@ export const getUnbilledTasksByClient = query({
     
     return await ctx.db
       .query("tasks")
+      .withIndex("by_client", (q) => q.eq("clientId", args.clientId))
       .filter((q) => 
         q.and(
           q.eq(q.field("userId"), identity.subject),
-          q.eq(q.field("clientId"), args.clientId),
-          q.eq(q.field("invoiceId"), undefined)
+          q.eq(q.field("invoiced"), false)
         )
       )
       .collect();
@@ -46,7 +46,6 @@ export const createInvoice = mutation({
     taskIds: v.array(v.id("tasks")),
     date: v.string(),
     dueDate: v.string(),
-    notes: v.optional(v.string()),
     tax: v.number(),
   },
   handler: async (ctx, args) => {
@@ -55,57 +54,41 @@ export const createInvoice = mutation({
       throw new ConvexError("Not authenticated");
     }
 
-    const userId = identity.subject;
+    // Get tasks and calculate totals
+    const tasks = await Promise.all(
+      args.taskIds.map(id => ctx.db.get(id))
+    );
 
-    // Verify all tasks belong to the user and are not already invoiced
-    for (const taskId of args.taskIds) {
-      const task = await ctx.db.get(taskId);
-      if (!task || task.userId !== userId || task.invoiceId !== undefined) {
-        throw new ConvexError("Invalid task selection");
-      }
+    // Verify all tasks exist and belong to this user
+    if (tasks.some(task => !task || task.userId !== identity.subject)) {
+      throw new ConvexError("One or more tasks not found or access denied");
     }
 
-    // Calculate totals
-    const tasks = await Promise.all(args.taskIds.map(id => ctx.db.get(id)));
-    const validTasks = tasks.filter((task): task is NonNullable<typeof task> => task !== null);
-    const subtotal = validTasks.reduce((sum, task) => sum + (task.amount ?? 0), 0);
-    const total = subtotal + args.tax;
+    const subtotal = tasks.reduce((sum, task) => sum + (task.amount ?? 0), 0);
+    const total = subtotal + (subtotal * args.tax / 100);
 
-    // Get the next invoice number
-    const lastInvoice = await ctx.db
-      .query("invoices")
-      .filter(q => q.eq(q.field("userId"), userId))
-      .order("desc")
-      .first();
-
-    const nextNumber = lastInvoice 
-      ? String(Number(lastInvoice.number) + 1).padStart(3, '0')
-      : '001';
-
-    // Create the invoice
+    // Create invoice
     const invoiceId = await ctx.db.insert("invoices", {
-      number: nextNumber,
+      number: new Date().getTime().toString(), // Simple number generation
       date: args.date,
       dueDate: args.dueDate,
       clientId: args.clientId,
-      status: "draft",
       tasks: args.taskIds,
       subtotal,
       tax: args.tax,
       total,
-      notes: args.notes,
-      userId,
+      status: "draft",
+      userId: identity.subject,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
 
-    // Update tasks with invoice reference
-    for (const taskId of args.taskIds) {
-      await ctx.db.patch(taskId, {
-        invoiceId,
-        updatedAt: new Date().toISOString(),
-      });
-    }
+    // Mark tasks as invoiced
+    await Promise.all(
+      args.taskIds.map(taskId =>
+        ctx.db.patch(taskId, { invoiced: true })
+      )
+    );
 
     return invoiceId;
   },
@@ -131,6 +114,8 @@ export const updateInvoiceStatus = mutation({
       status: args.status,
       updatedAt: new Date().toISOString(),
     });
+
+    return await ctx.db.get(args.id);
   },
 });
 

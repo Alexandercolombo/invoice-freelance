@@ -92,4 +92,57 @@ export const update = mutation({
 
     return await ctx.db.get(id);
   },
+});
+
+export const getRecentTasks = query({
+  args: {},
+  async handler(ctx) {
+    const identity = await getUser(ctx);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    return await ctx.db
+      .query("tasks")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .filter((q) => 
+        q.gte(q.field("createdAt"), thirtyDaysAgo.toISOString())
+      )
+      .order("desc")
+      .collect();
+  },
+});
+
+export const getDashboardStats = query({
+  args: {},
+  async handler(ctx) {
+    const identity = await getUser(ctx);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // Get all tasks for the user
+    const tasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+
+    // Calculate unbilled tasks
+    const unbilledTasks = tasks.filter(task => !task.invoiced);
+    const unbilledAmount = unbilledTasks.reduce((sum, task) => sum + (task.amount ?? 0), 0);
+    const unbilledHours = unbilledTasks.reduce((sum, task) => sum + task.hours, 0);
+
+    // Get recent tasks count
+    const recentTasks = tasks.filter(task => 
+      new Date(task.createdAt) >= thirtyDaysAgo
+    );
+
+    // Get active clients (clients with unbilled tasks)
+    const activeClientIds = new Set(unbilledTasks.map(task => task.clientId.toString()));
+
+    return {
+      unbilledAmount,
+      unbilledHours,
+      recentTasksCount: recentTasks.length,
+      activeClients: activeClientIds.size,
+    };
+  },
 }); 

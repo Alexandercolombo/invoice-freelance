@@ -6,48 +6,14 @@ import { ConvexError } from "convex/values";
 import { getUser } from "./auth";
 
 export const getInvoices = query({
-  args: {
-    clientId: v.optional(v.id("clients")),
-    status: v.optional(v.union(v.literal("draft"), v.literal("sent"), v.literal("paid"))),
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError("Not authenticated");
-    }
-
-    let query = ctx.db
+  args: { clientId: v.id("clients") },
+  async handler(ctx, args) {
+    const identity = await getUser(ctx);
+    return await ctx.db
       .query("invoices")
-      .filter((q) => q.eq(q.field("userId"), identity.subject));
-
-    if (args.clientId) {
-      query = query.filter((q) => q.eq(q.field("clientId"), args.clientId));
-    }
-
-    if (args.status) {
-      query = query.filter((q) => q.eq(q.field("status"), args.status));
-    }
-
-    const invoices = await query.order("desc").collect();
-
-    // Get client details and tasks for each invoice
-    const invoicesWithDetails = await Promise.all(
-      invoices.map(async (invoice) => {
-        const client = await ctx.db.get(invoice.clientId);
-        const tasks = await ctx.db
-          .query("tasks")
-          .filter((q) => q.eq(q.field("invoiceId"), invoice._id))
-          .collect();
-
-        return {
-          ...invoice,
-          client,
-          tasks,
-        };
-      })
-    );
-
-    return invoicesWithDetails;
+      .withIndex("by_client", (q) => q.eq("clientId", args.clientId))
+      .filter((q) => q.eq(q.field("userId"), identity.subject))
+      .collect();
   },
 });
 

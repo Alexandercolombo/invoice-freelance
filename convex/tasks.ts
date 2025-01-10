@@ -9,7 +9,6 @@ export const list = query({
     const tasks = await ctx.db
       .query("tasks")
       .withIndex("by_user", (q) => q.eq("userId", identity.subject))
-      .filter((q) => q.eq(q.field("status"), "pending"))
       .collect();
 
     return tasks;
@@ -144,5 +143,17 @@ export const getDashboardStats = query({
       recentTasksCount: recentTasks.length,
       activeClients: activeClientIds.size,
     };
+  },
+});
+
+export const getByClient = query({
+  args: { clientId: v.id("clients") },
+  async handler(ctx, args) {
+    const identity = await getUser(ctx);
+    return await ctx.db
+      .query("tasks")
+      .withIndex("by_client", (q) => q.eq("clientId", args.clientId))
+      .filter((q) => q.eq(q.field("userId"), identity.subject))
+      .collect();
   },
 }); 

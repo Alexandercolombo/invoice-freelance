@@ -5,24 +5,7 @@ import { formatCurrency } from "@/lib/utils";
 import { jsPDF } from "jspdf";
 import { Id } from "convex/_generated/dataModel";
 import { auth } from "@clerk/nextjs";
-
-interface Task {
-  _id: Id<"tasks">;
-  _creationTime: number;
-  description: string;
-  hours: number;
-  date: string;
-  client?: string;
-  clientId?: Id<"clients">;
-  status: "pending" | "in-progress" | "completed";
-  hourlyRate?: number;
-  amount?: number;
-  invoiced?: boolean;
-  invoiceId?: Id<"invoices">;
-  userId: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { Task } from "@/types";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 

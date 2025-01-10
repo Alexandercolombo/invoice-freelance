@@ -2,7 +2,7 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Id } from "../../../convex/_generated/dataModel";
+import { Id } from "convex/_generated/dataModel";
 import { formatCurrency } from "@/lib/utils";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -18,24 +18,7 @@ import { useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useToast } from "@/hooks/use-toast";
 import { useClerk } from "@clerk/nextjs";
-
-interface Task {
-  _id: Id<"tasks">;
-  _creationTime: number;
-  description: string;
-  hours: number;
-  date: string;
-  client?: string;
-  clientId?: Id<"clients">;
-  status: "pending" | "in-progress" | "completed";
-  hourlyRate?: number;
-  amount?: number;
-  invoiced?: boolean;
-  invoiceId?: Id<"invoices">;
-  userId: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { Task } from "@/types";
 
 interface InvoicePreviewModalProps {
   invoiceId: Id<"invoices">;
@@ -123,7 +106,7 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
   }
 
   const validTasks = (invoice.tasks || []).filter((task): task is NonNullable<typeof task> => task !== null);
-  const dueDate = new Date(invoice.dueDate);
+  const dueDate = new Date(invoice.dueDate || new Date());
   const isPastDue = dueDate < new Date();
 
   return (

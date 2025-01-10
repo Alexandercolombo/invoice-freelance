@@ -3,9 +3,10 @@ import { Fragment } from "react";
 import { EditTaskForm } from "./edit-task-form";
 import { Id } from "../../../convex/_generated/dataModel";
 import { formatCurrency } from "@/lib/utils";
+import { Task } from "@/types";
 
 type TaskModalProps = {
-  task: any;
+  task: Task;
   isOpen: boolean;
   mode: 'view' | 'edit';
   onClose: () => void;
@@ -80,7 +81,7 @@ export function TaskModal({ task, isOpen, mode, onClose }: TaskModalProps) {
                           Amount
                         </label>
                         <p className="mt-1 text-sm text-gray-900 dark:text-white">
-                          {formatCurrency(task.amount)}
+                          {formatCurrency(task.amount ?? 0)}
                         </p>
                       </div>
                     </div>

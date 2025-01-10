@@ -63,4 +63,33 @@ export const getTasksByIds = query({
         amount: task.hours * (task.hourlyRate ?? 0)
       }));
   },
+});
+
+export const update = mutation({
+  args: {
+    id: v.id("tasks"),
+    description: v.string(),
+    hours: v.number(),
+    date: v.string(),
+    status: v.union(v.literal("pending"), v.literal("completed")),
+  },
+  async handler(ctx, args) {
+    const identity = await getUser(ctx);
+    
+    const task = await ctx.db.get(args.id);
+    if (!task || task.userId !== identity.subject) {
+      throw new Error("Task not found or access denied");
+    }
+
+    const { id, ...updates } = args;
+    const amount = (task.hourlyRate ?? 0) * updates.hours;
+
+    await ctx.db.patch(id, {
+      ...updates,
+      amount,
+      updatedAt: new Date().toISOString(),
+    });
+
+    return await ctx.db.get(id);
+  },
 }); 

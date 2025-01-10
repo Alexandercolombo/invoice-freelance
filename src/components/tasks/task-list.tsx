@@ -3,15 +3,7 @@
 import { Id } from "convex/_generated/dataModel";
 import { formatCurrency } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
-
-interface Task {
-  _id: Id<"tasks">;
-  description: string;
-  hours: number;
-  date: string;
-  amount: number;
-  hourlyRate?: number;
-}
+import { Task } from "@/types";
 
 interface TaskListProps {
   tasks: Task[];
@@ -47,7 +39,7 @@ export function TaskList({ tasks, selectedIds, onSelect }: TaskListProps) {
             <p className="text-sm text-gray-500">Date: {task.date}</p>
           </div>
           <div className="text-right">
-            <p className="font-medium">{formatCurrency(task.amount)}</p>
+            <p className="font-medium">{formatCurrency(task.amount ?? 0)}</p>
           </div>
         </div>
       ))}

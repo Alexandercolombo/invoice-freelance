@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Id } from "@/convex/_generated/dataModel";
+import { Id } from "convex/_generated/dataModel";
 import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,21 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-interface Task {
-  _id: Id<"tasks">;
-  description: string;
-  hours: number;
-  date: string;
-  amount: number;
-  hourlyRate: number;
-}
-
-interface Client {
-  _id: Id<"clients">;
-  name: string;
-  email: string;
-}
+import { Task, Client } from "@/types";
 
 interface InvoiceFormProps {
   tasks: Task[];

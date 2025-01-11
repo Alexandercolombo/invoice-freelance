@@ -20,7 +20,7 @@ export default function DashboardPage() {
   const { isSignedIn } = useAuth();
   const { user } = useUser();
   const createUser = useMutation(api.users.create);
-  const existingUser = useQuery(api.users.getUser);
+  const existingUser = useQuery(api.users.get);
   const tasks = useQuery(api.tasks.getRecentTasks) || [];
   const stats = useQuery(api.tasks.getDashboardStats);
   const clientsResponse = useQuery(api.clients.getAll, {

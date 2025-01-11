@@ -1,25 +1,18 @@
-import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
+import { v } from "convex/values";
+import { ConvexError } from "convex/values";
+import { getUser } from "./auth";
 
-export const getUser = query({
+export const get = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      return null;
-    }
-
+    const identity = await getUser(ctx);
     const user = await ctx.db
       .query("users")
-      .withIndex("by_token", (q) =>
+      .withIndex("by_token", (q) => 
         q.eq("tokenIdentifier", identity.tokenIdentifier)
       )
       .first();
-
-    if (!user) {
-      return null;
-    }
 
     return user;
   },
@@ -31,60 +24,61 @@ export const create = mutation({
     email: v.string(),
     businessName: v.string(),
     paymentInstructions: v.string(),
+    phone: v.optional(v.string()),
+    address: v.optional(v.string()),
+    website: v.optional(v.string()),
+    logoUrl: v.optional(v.string()),
+    invoiceNotes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
+    const identity = await getUser(ctx);
+
+    // Check if user already exists
+    const existingUser = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => 
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .first();
+
+    if (existingUser) {
+      throw new ConvexError("User already exists");
     }
 
-    const user = await ctx.db.insert("users", {
-      name: args.name,
-      email: args.email,
-      businessName: args.businessName,
-      paymentInstructions: args.paymentInstructions,
+    return await ctx.db.insert("users", {
+      ...args,
       tokenIdentifier: identity.tokenIdentifier,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     });
-
-    return user;
   },
 });
 
 export const update = mutation({
   args: {
-    businessName: v.string(),
-    email: v.string(),
+    name: v.optional(v.string()),
+    email: v.optional(v.string()),
+    businessName: v.optional(v.string()),
+    paymentInstructions: v.optional(v.string()),
     phone: v.optional(v.string()),
     address: v.optional(v.string()),
     website: v.optional(v.string()),
     logoUrl: v.optional(v.string()),
-    paymentInstructions: v.string(),
     invoiceNotes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    const identity = await getUser(ctx);
 
     const user = await ctx.db
       .query("users")
-      .withIndex("by_token", (q) =>
+      .withIndex("by_token", (q) => 
         q.eq("tokenIdentifier", identity.tokenIdentifier)
       )
       .first();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new ConvexError("User not found");
     }
 
-    const updatedUser = await ctx.db.patch(user._id, {
-      ...args,
-      updatedAt: new Date().toISOString(),
-    });
-
-    return updatedUser;
+    await ctx.db.patch(user._id, args);
+    return await ctx.db.get(user._id);
   },
 }); 

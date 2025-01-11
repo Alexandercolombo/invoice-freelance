@@ -11,16 +11,11 @@ const DEFAULT_PAGE_SIZE = 10;
 export const get = query({
   args: { id: v.id("clients") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError("Not authenticated");
-    }
-
+    const identity = await getUser(ctx);
     const client = await ctx.db.get(args.id);
     if (!client || client.userId !== identity.subject) {
       throw new ConvexError("Client not found or access denied");
     }
-
     return client;
   },
 });
@@ -32,7 +27,6 @@ export const getAll = query({
   },
   async handler(ctx, args) {
     const identity = await getUser(ctx);
-
     const clients = await ctx.db
       .query("clients")
       .withIndex("by_user", (q) => q.eq("userId", identity.subject))
@@ -93,11 +87,7 @@ export const update = mutation({
     status: v.optional(v.union(v.literal("active"), v.literal("inactive"))),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError("Not authenticated");
-    }
-
+    const identity = await getUser(ctx);
     const { id, ...updates } = args;
 
     // Validate email format
@@ -120,11 +110,10 @@ export const update = mutation({
     if (updates.email !== existingClient.email) {
       const emailInUse = await ctx.db
         .query("clients")
-        .withIndex("by_email")
+        .withIndex("by_email", (q) => q.eq("email", updates.email))
         .filter(q => 
           q.and(
             q.eq(q.field("userId"), identity.subject),
-            q.eq(q.field("email"), updates.email),
             q.neq(q.field("_id"), id)
           )
         )
@@ -152,11 +141,7 @@ export const update = mutation({
 export const archive = mutation({
   args: { id: v.id("clients") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError("Not authenticated");
-    }
-
+    const identity = await getUser(ctx);
     const existingClient = await ctx.db.get(args.id);
     if (!existingClient || existingClient.userId !== identity.subject) {
       throw new ConvexError("Client not found or access denied");
@@ -173,11 +158,7 @@ export const archive = mutation({
 export const remove = mutation({
   args: { id: v.id("clients") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError("Not authenticated");
-    }
-
+    const identity = await getUser(ctx);
     const existingClient = await ctx.db.get(args.id);
     if (!existingClient || existingClient.userId !== identity.subject) {
       throw new ConvexError("Client not found or access denied");
@@ -186,12 +167,12 @@ export const remove = mutation({
     // Check for related records
     const tasks = await ctx.db
       .query("tasks")
-      .filter(q => q.eq(q.field("clientId"), args.id))
+      .withIndex("by_client", (q) => q.eq("clientId", args.id))
       .collect();
 
     const invoices = await ctx.db
       .query("invoices")
-      .filter(q => q.eq(q.field("clientId"), args.id))
+      .withIndex("by_client", (q) => q.eq("clientId", args.id))
       .collect();
 
     if (tasks.length > 0 || invoices.length > 0) {
@@ -208,14 +189,10 @@ export const remove = mutation({
 export const migrateExistingClientsStatus = mutation({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError("Not authenticated");
-    }
-
+    const identity = await getUser(ctx);
     const clients = await ctx.db
       .query("clients")
-      .filter((q) => q.eq(q.field("userId"), identity.subject))
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
       .collect();
 
     for (const client of clients) {

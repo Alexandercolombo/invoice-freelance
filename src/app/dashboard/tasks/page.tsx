@@ -33,7 +33,12 @@ const statusColors = {
 
 export default function TasksPage() {
   const tasks = useQuery(api.tasks.list);
-  const clientsResponse = useQuery(api.clients.getAll, {});
+  const clientsResponse = useQuery(api.clients.getAll, {
+    paginationOpts: {
+      numToSkip: 0,
+      numToTake: 100
+    }
+  });
   const clients = clientsResponse?.clients;
   const createTask = useMutation(api.tasks.create);
   const updateTask = useMutation(api.tasks.update);

@@ -183,4 +183,45 @@ export const getInvoice = query({
       tasks: validTasks,
     };
   },
+});
+
+export const getAllInvoices = query({
+  args: {
+    paginationOpts: v.object({
+      numToSkip: v.number(),
+      numToTake: v.number(),
+    }),
+  },
+  async handler(ctx, args) {
+    const identity = await getUser(ctx);
+
+    const invoices = await ctx.db
+      .query("invoices")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+
+    // Get client details for each invoice
+    const invoicesWithDetails = await Promise.all(
+      invoices.map(async (invoice) => {
+        const client = await ctx.db.get(invoice.clientId);
+        const tasks = await Promise.all(
+          invoice.tasks.map(async (taskId) => {
+            const task = await ctx.db.get(taskId);
+            return task;
+          })
+        );
+
+        // Filter out any null tasks
+        const validTasks = tasks.filter((task): task is NonNullable<typeof task> => task !== null);
+
+        return {
+          ...invoice,
+          client,
+          tasks: validTasks,
+        };
+      })
+    );
+
+    return invoicesWithDetails;
+  },
 }); 

@@ -45,7 +45,12 @@ const item = {
 export default function InvoicesPage() {
   const router = useRouter();
   const { isLoaded, isSignedIn } = useAuth();
-  const invoices = useQuery(api.invoices.getInvoices, isSignedIn ? {} : "skip") as Invoice[] | undefined;
+  const invoices = useQuery(api.invoices.getAllInvoices, isSignedIn ? {
+    paginationOpts: {
+      numToSkip: 0,
+      numToTake: 100
+    }
+  } : "skip") as Invoice[] | undefined;
 
   const [filters, setFilters] = useState({
     search: "",

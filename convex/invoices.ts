@@ -43,6 +43,7 @@ export const createInvoice = mutation({
     date: v.string(),
     dueDate: v.string(),
     tax: v.number(),
+    notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await getUser(ctx);
@@ -72,6 +73,7 @@ export const createInvoice = mutation({
       subtotal,
       tax: args.tax,
       total,
+      notes: args.notes,
       status: "draft",
       userId: identity.subject,
       createdAt: new Date().toISOString(),

@@ -9,6 +9,8 @@ import { Task } from "@/types";
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
+export const runtime = 'nodejs';
+
 // Helper functions for styling
 function drawLine(doc: jsPDF, startX: number, startY: number, endX: number, endY: number, color: string = "#E5E7EB") {
   doc.setDrawColor(color);
@@ -50,7 +52,7 @@ export async function GET(
     }
 
     // Get user data from Convex
-    const convexUser = await client.query(api.users.getUser);
+    const convexUser = await client.query(api.users.get);
     if (!convexUser) {
       return new NextResponse("User not found", { status: 404 });
     }

@@ -53,6 +53,7 @@ export default defineSchema({
     subtotal: v.number(),
     tax: v.optional(v.number()),
     total: v.number(),
+    notes: v.optional(v.string()),
     status: v.union(v.literal("draft"), v.literal("sent"), v.literal("paid")),
     userId: v.string(),
     createdAt: v.string(),

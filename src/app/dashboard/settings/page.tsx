@@ -27,7 +27,7 @@ interface BusinessSettings {
 export default function SettingsPage() {
   const router = useRouter();
   const { isLoaded, isSignedIn } = useAuth();
-  const user = useQuery(api.users.getUser, isSignedIn ? undefined : "skip");
+  const user = useQuery(api.users.get, isSignedIn ? undefined : "skip");
   const updateUser = useMutation(api.users.update);
 
   const [settings, setSettings] = useState<BusinessSettings>({

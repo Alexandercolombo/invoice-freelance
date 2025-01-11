@@ -11,7 +11,12 @@ import { ClientDetails } from "@/components/clients/client-details";
 
 export default function ClientsPage() {
   const searchParams = useSearchParams();
-  const clientsResponse = useQuery(api.clients.getAll, {});
+  const clientsResponse = useQuery(api.clients.getAll, {
+    paginationOpts: {
+      numToSkip: 0,
+      numToTake: 100
+    }
+  });
   const clients = clientsResponse?.clients || [];
 
   const [isOpen, setIsOpen] = useState(false);

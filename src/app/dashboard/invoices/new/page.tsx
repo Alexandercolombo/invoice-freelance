@@ -22,7 +22,12 @@ export default function NewInvoicePage() {
     ids: selectedTaskIds 
   }) || [];
   
-  const clientsData = useQuery(api.clients.getAll, {});
+  const clientsData = useQuery(api.clients.getAll, {
+    paginationOpts: {
+      numToSkip: 0,
+      numToTake: 100
+    }
+  });
   const clients = clientsData?.clients || [];
   const createInvoice = useMutation(api.invoices.createInvoice);
 

@@ -31,7 +31,7 @@ export default function InvoicePreviewPage({
     id: invoiceId,
   });
 
-  const user = useQuery(api.users.getUser);
+  const user = useQuery(api.users.get);
 
   if (!userId) {
     router.push("/sign-in");

@@ -100,7 +100,6 @@ export function CreateInvoiceModal({
         notes: result.notes,
         status: result.status,
       });
-      onClose();
     } catch (error) {
       console.error("Failed to create invoice:", error);
     } finally {
@@ -309,48 +308,83 @@ export function CreateInvoiceModal({
                     </div>
                   </motion.div>
                 )}
+
+                {createdInvoice && (
+                  <motion.div
+                    key="success"
+                    custom={1}
+                    variants={slideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  >
+                    <div className="text-center py-8">
+                      <div className="w-12 h-12 rounded-full bg-green-100 text-green-600 mx-auto mb-4 flex items-center justify-center">
+                        <Check className="w-6 h-6" />
+                      </div>
+                      <h2 className="text-lg font-semibold mb-2">Invoice Created Successfully!</h2>
+                      <p className="text-gray-600 mb-6">Your invoice has been created and is ready for review.</p>
+                      <div className="flex justify-center gap-3">
+                        <Button variant="outline" onClick={onClose}>
+                          Close
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            onClose();
+                            setCreatedInvoice(null);
+                          }}
+                        >
+                          View Invoice
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
               </AnimatePresence>
             </div>
 
-            <div className="flex justify-between mt-8">
-              {step !== "summary" ? (
-                <Button
-                  variant="ghost"
-                  onClick={() => setStep(step === "preview" ? "details" : "summary")}
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back
-                </Button>
-              ) : (
-                <Button variant="ghost" onClick={onClose}>
-                  <X className="w-4 h-4 mr-2" />
-                  Cancel
-                </Button>
-              )}
-              
-              <Button
-                onClick={() => {
-                  if (step === "summary") setStep("details");
-                  else if (step === "details") setStep("preview");
-                  else handleSubmit();
-                }}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  "Creating..."
-                ) : step === "preview" ? (
-                  <>
-                    <Check className="w-4 h-4 mr-2" />
-                    Create Invoice
-                  </>
+            {!createdInvoice && (
+              <div className="flex justify-between mt-8">
+                {step !== "summary" ? (
+                  <Button
+                    variant="ghost"
+                    onClick={() => setStep(step === "preview" ? "details" : "summary")}
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back
+                  </Button>
                 ) : (
-                  <>
-                    Next
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </>
+                  <Button variant="ghost" onClick={onClose}>
+                    <X className="w-4 h-4 mr-2" />
+                    Cancel
+                  </Button>
                 )}
-              </Button>
-            </div>
+                
+                <Button
+                  onClick={() => {
+                    if (step === "summary") setStep("details");
+                    else if (step === "details") setStep("preview");
+                    else handleSubmit();
+                  }}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    "Creating..."
+                  ) : step === "preview" ? (
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      Create Invoice
+                    </>
+                  ) : (
+                    <>
+                      Next
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

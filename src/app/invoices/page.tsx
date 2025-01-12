@@ -84,9 +84,9 @@ export default function InvoicesPage() {
                 </span>
                 <div className="flex gap-1">
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1"
                     onClick={() => setEditingInvoice({
                       _id: invoice._id,
                       dueDate: invoice.dueDate,
@@ -95,16 +95,18 @@ export default function InvoicesPage() {
                       status: invoice.status,
                     })}
                   >
-                    <Pencil className="h-4 w-4" />
+                    <Pencil className="h-3 w-3" />
+                    Edit
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-red-100 hover:text-red-600"
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-1 text-red-600 hover:bg-red-50"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3 w-3" />
+                        Delete
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>

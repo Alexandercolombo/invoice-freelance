@@ -12,6 +12,8 @@ import { Loader2 } from "lucide-react";
 import { TaskList } from "@/components/tasks/task-list";
 import { NewTaskModal } from "@/components/tasks/new-task-modal";
 import { EditTaskForm } from "@/components/tasks/edit-task-form";
+import { TaskModal } from "@/components/tasks/task-modal";
+import { Task, Client } from "@/types";
 
 interface FormData {
   description: string;
@@ -20,44 +22,12 @@ interface FormData {
   status: "pending" | "completed";
 }
 
-interface Task {
-  _id: Id<"tasks_v2">;
-  _creationTime: number;
-  description?: string;
-  hours: number;
-  date?: string;
-  clientId: Id<"clients">;
-  status: "pending" | "completed";
-  amount?: number;
-  client?: string;
-  createdAt?: string;
-  hourlyRate?: number;
-  invoiceId?: Id<"invoices">;
-  invoiced: boolean;
-  userId: string;
-  updatedAt: string;
-}
-
-interface Client {
-  _id: Id<"clients">;
-  _creationTime: number;
-  name: string;
-  email: string;
-  phone?: string;
-  address?: string;
-  website?: string;
-  hourlyRate: number;
-  userId: string;
-  createdAt: string;
-  updatedAt: string;
-  status?: "active" | "inactive";
-}
-
 export default function TasksPage() {
   const router = useRouter();
   const [selectedTasks, setSelectedTasks] = useState<Set<Id<"tasks_v2">>>(new Set());
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<Id<"tasks_v2"> | null>(null);
+  const [viewingTask, setViewingTask] = useState<Task | null>(null);
   const [formData, setFormData] = useState<FormData>({
     description: "",
     hours: 0,
@@ -72,6 +42,15 @@ export default function TasksPage() {
   const [selectedClient, setSelectedClient] = useState<Id<"clients"> | null>(null);
   const updateTask = useMutation(api.tasks.update);
   const createTask = useMutation(api.tasks.create);
+  const deleteTask = useMutation(api.tasks.deleteTask);
+
+  const handleDelete = async (taskId: Id<"tasks_v2">) => {
+    try {
+      await deleteTask({ id: taskId });
+    } catch (error) {
+      console.error("Failed to delete task:", error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,7 +151,14 @@ export default function TasksPage() {
                     {formatCurrency(amount)}
                   </p>
                   <Button
-                    variant="outline"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setViewingTask(task)}
+                  >
+                    View
+                  </Button>
+                  <Button
+                    variant="ghost"
                     size="sm"
                     onClick={() => {
                       setFormData({
@@ -185,6 +171,13 @@ export default function TasksPage() {
                     }}
                   >
                     Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(task._id)}
+                  >
+                    Delete
                   </Button>
                 </div>
               </div>
@@ -208,6 +201,14 @@ export default function TasksPage() {
         <NewTaskModal
           isOpen={isCreating}
           onClose={() => setIsCreating(false)}
+        />
+      )}
+
+      {viewingTask && (
+        <TaskModal
+          task={viewingTask}
+          isOpen={!!viewingTask}
+          onClose={() => setViewingTask(null)}
         />
       )}
     </div>

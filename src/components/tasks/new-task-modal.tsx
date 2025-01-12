@@ -274,7 +274,7 @@ export function NewTaskModal({ isOpen, onClose }: NewTaskModalProps) {
                   value={hours}
                   onChange={(e) => setHours(e.target.value)}
                   placeholder="0.0"
-                  step="0.1"
+                  step="0.01"
                   min="0"
                   required
                 />

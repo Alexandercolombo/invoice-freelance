@@ -63,7 +63,7 @@ export function EditTaskForm({ task, onClose }: EditTaskFormProps) {
           value={hours}
           onChange={(e) => setHours(e.target.value)}
           min="0"
-          step="0.5"
+          step="0.01"
           required
         />
       </div>

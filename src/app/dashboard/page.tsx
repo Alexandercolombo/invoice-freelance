@@ -10,37 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatCurrency } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
-
-interface Task {
-  _id: Id<"tasks_v2">;
-  _creationTime: number;
-  description?: string;
-  hours?: number;
-  clientId?: Id<"clients">;
-  status?: "pending" | "completed";
-  amount?: number;
-  client?: string;
-  createdAt?: string;
-  date?: string;
-  hourlyRate?: number;
-  invoiceId?: Id<"invoices">;
-  invoiced?: boolean;
-  userId: string;
-}
-
-interface Client {
-  _id: Id<"clients">;
-  _creationTime: number;
-  name?: string;
-  hourlyRate?: number;
-  status?: "active" | "inactive";
-  phone?: string;
-  address?: string;
-  website?: string;
-  notes?: string;
-  userId: string;
-  email: string;
-}
+import { Task, Client } from "@/types";
 
 export default function DashboardPage() {
   const router = useRouter();

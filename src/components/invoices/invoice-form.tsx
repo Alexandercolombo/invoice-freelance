@@ -23,7 +23,7 @@ interface InvoiceFormProps {
   warnings: string[];
   onSubmit: (data: {
     clientId: Id<"clients">;
-    taskIds: Id<"tasks">[];
+    taskIds: Id<"tasks_v2">[];
     date: string;
     dueDate: string;
     notes: string;
@@ -55,7 +55,7 @@ export function InvoiceForm({
 
     onSubmit({
       clientId: selectedClientId,
-      taskIds: tasks.map(task => task._id),
+      taskIds: tasks.map(task => task._id as Id<"tasks_v2">),
       date: today.toISOString(),
       dueDate: dueDate.toISOString(),
       notes,

@@ -41,7 +41,7 @@ export const createInvoice = mutation({
     clientId: v.id("clients"),
     taskIds: v.array(v.id("tasks_v2")),
     date: v.string(),
-    dueDate: v.string(),
+    dueDate: v.optional(v.string()),
     tax: v.number(),
     notes: v.optional(v.string()),
   },

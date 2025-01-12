@@ -72,7 +72,7 @@ export default defineSchema({
   invoices: defineTable({
     number: v.string(),
     date: v.string(),
-    dueDate: v.string(),
+    dueDate: v.optional(v.string()),
     clientId: v.id("clients"),
     tasks: v.array(v.id("tasks_v2")),
     subtotal: v.float64(),

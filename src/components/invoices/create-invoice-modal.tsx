@@ -35,6 +35,7 @@ export function CreateInvoiceModal({
   clients,
 }: CreateInvoiceModalProps) {
   const [step, setStep] = useState<Step>("summary");
+  const [showDueDate, setShowDueDate] = useState(false);
   const [dueDate, setDueDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState("");
   const [showTax, setShowTax] = useState(false);
@@ -78,7 +79,7 @@ export function CreateInvoiceModal({
         taskIds: Array.from(selectedTasks),
         clientId,
         date: new Date().toISOString(),
-        dueDate: dueDate.toISOString(),
+        dueDate: showDueDate ? dueDate.toISOString() : undefined,
         tax: showTax ? tax : 0,
         notes,
       });
@@ -172,26 +173,43 @@ export function CreateInvoiceModal({
                   <h2 className="text-lg font-semibold mb-4">Invoice Details</h2>
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label>Due Date</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start text-left font-normal"
-                          >
-                            <Calendar className="mr-2 h-4 w-4" />
-                            {format(dueDate, "PPP")}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <CalendarComponent
-                            mode="single"
-                            selected={dueDate}
-                            onSelect={(date) => date && setDueDate(date)}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="showDueDate" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                          Include Due Date
+                        </Label>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowDueDate(!showDueDate)}
+                          className={showDueDate ? "text-primary" : "text-gray-500"}
+                        >
+                          {showDueDate ? "Hide Due Date" : "Show Due Date"}
+                        </Button>
+                      </div>
+                      {showDueDate && (
+                        <div className="space-y-2 mt-2">
+                          <Label>Due Date</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className="w-full justify-start text-left font-normal"
+                              >
+                                <Calendar className="mr-2 h-4 w-4" />
+                                {format(dueDate, "PPP")}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                              <CalendarComponent
+                                mode="single"
+                                selected={dueDate}
+                                onSelect={(date) => date && setDueDate(date)}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
@@ -246,14 +264,22 @@ export function CreateInvoiceModal({
                   <div className="space-y-4">
                     <div className="bg-gray-50 rounded-lg p-4">
                       <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Due Date</span>
-                          <span>{format(dueDate, "PPP")}</span>
-                        </div>
+                        {showDueDate && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Due Date</span>
+                            <span>{format(dueDate, "PPP")}</span>
+                          </div>
+                        )}
                         <div className="flex justify-between">
                           <span className="text-gray-600">Total Amount</span>
                           <span className="font-bold">{formatCurrency(totalAmount)}</span>
                         </div>
+                        {showTax && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Tax ({tax}%)</span>
+                            <span>{formatCurrency(totalAmount * (tax / 100))}</span>
+                          </div>
+                        )}
                         {notes && (
                           <div className="pt-2 border-t mt-2">
                             <span className="text-gray-600 block mb-1">Notes</span>

@@ -125,13 +125,13 @@ export const deleteInvoice = mutation({
 
     // Mark tasks as not invoiced
     const tasks = await ctx.db
-      .query("tasks")
+      .query("tasks_v2")
       .withIndex("by_client", (q) => q.eq("clientId", invoice.clientId))
       .collect();
 
     // Filter tasks that belong to this invoice
     const invoiceTasks = tasks.filter(task => 
-      task && invoice.tasks.includes(task._id)
+      task && invoice.tasks.includes(task._id as any)
     );
 
     // Update tasks

@@ -241,7 +241,7 @@ export default function InvoicePreviewPage({
                     Subtotal
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-right font-medium">
-                    {formatCurrency(invoice.subtotal)}
+                    {formatCurrency(invoice.subtotal || 0)}
                   </td>
                 </tr>
                 <tr className="bg-gray-50">
@@ -263,7 +263,7 @@ export default function InvoicePreviewPage({
                     Total
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-right font-medium">
-                    {formatCurrency(invoice.total)}
+                    {formatCurrency(invoice.total || 0)}
                   </td>
                 </tr>
               </tbody>

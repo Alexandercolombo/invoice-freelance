@@ -37,6 +37,7 @@ export function CreateInvoiceModal({
   const [step, setStep] = useState<Step>("summary");
   const [dueDate, setDueDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState("");
+  const [showTax, setShowTax] = useState(false);
   const [tax, setTax] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const createInvoice = useMutation(api.invoices.createInvoice);
@@ -78,7 +79,7 @@ export function CreateInvoiceModal({
         clientId,
         date: new Date().toISOString(),
         dueDate: dueDate.toISOString(),
-        tax,
+        tax: showTax ? tax : 0,
         notes,
       });
       onClose();
@@ -193,13 +194,30 @@ export function CreateInvoiceModal({
                       </Popover>
                     </div>
                     <div className="space-y-2">
-                      <Label>Tax (%)</Label>
-                      <Input
-                        type="number"
-                        value={tax}
-                        onChange={(e) => setTax(Number(e.target.value))}
-                        placeholder="Enter tax percentage..."
-                      />
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="showTax" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                          Include Tax
+                        </Label>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowTax(!showTax)}
+                          className={showTax ? "text-primary" : "text-gray-500"}
+                        >
+                          {showTax ? "Hide Tax" : "Show Tax"}
+                        </Button>
+                      </div>
+                      {showTax && (
+                        <div className="space-y-2 mt-2">
+                          <Label>Tax (%)</Label>
+                          <Input
+                            type="number"
+                            value={tax}
+                            onChange={(e) => setTax(Number(e.target.value))}
+                            placeholder="Enter tax percentage..."
+                          />
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label>Notes (Optional)</Label>

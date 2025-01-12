@@ -9,9 +9,12 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus } from "lucide-react";
 import { CreateInvoiceModal } from "@/components/invoices/create-invoice-modal";
+import { Id } from "../../../convex/_generated/dataModel";
 
 export default function InvoicesPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedTasks, setSelectedTasks] = useState<Set<Id<"tasks_v2">>>(new Set());
+  
   const invoices = useQuery(api.invoices.getAllInvoices, {
     paginationOpts: {
       numToSkip: 0,
@@ -19,7 +22,12 @@ export default function InvoicesPage() {
     }
   });
 
-  if (!invoices) {
+  const tasks = useQuery(api.tasks.getRecentTasks) ?? [];
+  const clients = useQuery(api.clients.getAll, {
+    paginationOpts: { numToSkip: 0, numToTake: 100 }
+  }) ?? { clients: [], totalCount: 0 };
+
+  if (!invoices || !tasks || !clients.clients) {
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
@@ -82,8 +90,14 @@ export default function InvoicesPage() {
       </div>
 
       <CreateInvoiceModal 
-        open={isCreateModalOpen} 
-        onClose={() => setIsCreateModalOpen(false)} 
+        isOpen={isCreateModalOpen}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setSelectedTasks(new Set());
+        }}
+        selectedTasks={selectedTasks}
+        tasks={tasks}
+        clients={clients.clients}
       />
     </div>
   );

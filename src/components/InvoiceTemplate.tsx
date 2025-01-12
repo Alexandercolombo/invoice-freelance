@@ -93,7 +93,7 @@ export default function InvoiceTemplate({
             <tr key={index} className="border-b border-gray-200">
               <td className="py-3 px-4 text-gray-900">{task.description}</td>
               <td className="py-3 px-4 text-gray-900">
-                {new Date(task.date).toLocaleDateString()}
+                {task.date ? new Date(task.date).toLocaleDateString() : new Date().toLocaleDateString()}
               </td>
               <td className="py-3 px-4 text-gray-900 text-right">{task.hours}</td>
               <td className="py-3 px-4 text-gray-900 text-right">

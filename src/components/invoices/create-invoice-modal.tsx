@@ -40,7 +40,7 @@ export function CreateInvoiceModal({ open, onClose }: CreateInvoiceModalProps) {
     selectedClientId ? { clientId: selectedClientId } : "skip"
   );
 
-  const [selectedTaskIds, setSelectedTaskIds] = useState<Id<"tasks">[]>([]);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Id<"tasks_v2">[]>([]);
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
 

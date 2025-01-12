@@ -131,7 +131,7 @@ export const deleteInvoice = mutation({
 
     // Filter tasks that belong to this invoice
     const invoiceTasks = tasks.filter(task => 
-      task && invoice.tasks.includes(task._id as any)
+      task && invoice.tasks.includes(task._id as Id<"tasks_v2">)
     );
 
     // Update tasks

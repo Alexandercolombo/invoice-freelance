@@ -87,7 +87,22 @@ export const createInvoice = mutation({
       )
     );
 
-    return invoiceId;
+    // Get the created invoice with client details
+    const invoice = await ctx.db.get(invoiceId);
+    if (!invoice) {
+      throw new ConvexError("Failed to create invoice");
+    }
+
+    const client = await ctx.db.get(invoice.clientId);
+    if (!client) {
+      throw new ConvexError("Client not found");
+    }
+
+    return {
+      ...invoice,
+      client,
+      tasks: validTasks,
+    };
   },
 });
 

@@ -252,7 +252,7 @@ export default function InvoicePreviewPage({
                     Tax
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-right font-medium">
-                    {formatCurrency(invoice.tax)}
+                    {formatCurrency(invoice.tax || 0)}
                   </td>
                 </tr>
                 <tr className="bg-gray-50">

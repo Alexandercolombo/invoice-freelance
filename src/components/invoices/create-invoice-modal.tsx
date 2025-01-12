@@ -3,181 +3,276 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatCurrency } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
 import { Id } from "../../../convex/_generated/dataModel";
+import { Task, Client } from "@/types";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { formatCurrency } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
+import { Calendar, Receipt, ArrowRight, ArrowLeft, Check, X } from "lucide-react";
+import { format } from "date-fns";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type CreateInvoiceModalProps = {
-  open: boolean;
+  isOpen: boolean;
   onClose: () => void;
+  selectedTasks: Set<Id<"tasks_v2">>;
+  tasks: Task[];
+  clients: Client[];
 };
 
-interface Client {
-  _id: Id<"clients">;
-  _creationTime: number;
-  name: string;
-  email: string;
-  hourlyRate: number;
-  address?: string;
-  userId: string;
-  createdAt: string;
-  updatedAt: string;
-}
+type Step = "summary" | "details" | "preview";
 
-export function CreateInvoiceModal({ open, onClose }: CreateInvoiceModalProps) {
-  const clients = useQuery(api.clients.getAll, { paginationOpts: { numToSkip: 0, numToTake: 100 } }) || { clients: [], total: 0, hasMore: false };
-  const [selectedClientId, setSelectedClientId] = useState<Id<"clients"> | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const createInvoice = useMutation(api.invoices.createInvoice);
+export function CreateInvoiceModal({
+  isOpen,
+  onClose,
+  selectedTasks,
+  tasks,
+  clients,
+}: CreateInvoiceModalProps) {
+  const [step, setStep] = useState<Step>("summary");
+  const [dueDate, setDueDate] = useState<Date>(new Date());
+  const [notes, setNotes] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const createInvoice = useMutation(api.invoices.create);
 
-  const unbilledTasks = useQuery(
-    api.invoices.getUnbilledTasksByClient,
-    selectedClientId ? { clientId: selectedClientId } : "skip"
+  const selectedTasksArray = tasks.filter((task) => selectedTasks.has(task._id));
+  const groupedTasks = selectedTasksArray.reduce((acc, task) => {
+    const client = clients.find((c) => c._id === task.clientId);
+    if (!client) return acc;
+    
+    if (!acc[client._id.toString()]) {
+      acc[client._id.toString()] = {
+        client,
+        tasks: [],
+        total: 0,
+      };
+    }
+    
+    acc[client._id.toString()].tasks.push(task);
+    acc[client._id.toString()].total += task.hours * client.hourlyRate;
+    
+    return acc;
+  }, {} as Record<string, { client: Client; tasks: Task[]; total: number }>);
+
+  const totalAmount = Object.values(groupedTasks).reduce(
+    (sum, group) => sum + group.total,
+    0
   );
 
-  const [selectedTaskIds, setSelectedTaskIds] = useState<Id<"tasks_v2">[]>([]);
-  const [dueDate, setDueDate] = useState("");
-  const [notes, setNotes] = useState("");
-
-  const selectedClient = clients.clients.find((c: Client) => c._id === selectedClientId);
-  const totalHours = unbilledTasks
-    ?.filter((t) => selectedTaskIds.includes(t._id))
-    .reduce((sum, task) => sum + task.hours, 0) || 0;
-  const total = selectedClient ? totalHours * selectedClient.hourlyRate : 0;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedClientId || selectedTaskIds.length === 0) return;
-
-    setIsLoading(true);
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
     try {
       await createInvoice({
-        clientId: selectedClientId,
-        taskIds: selectedTaskIds,
+        taskIds: Array.from(selectedTasks),
         date: new Date().toISOString(),
-        dueDate: dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        notes: notes || undefined,
-        tax: 0,
+        dueDate: dueDate.toISOString(),
+        notes,
       });
       onClose();
     } catch (error) {
       console.error("Failed to create invoice:", error);
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>Create New Invoice</DialogTitle>
-        </DialogHeader>
+  const slideVariants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? 100 : -100,
+      opacity: 0,
+    }),
+    center: {
+      zIndex: 1,
+      x: 0,
+      opacity: 1,
+    },
+    exit: (direction: number) => ({
+      zIndex: 0,
+      x: direction < 0 ? 100 : -100,
+      opacity: 0,
+    }),
+  };
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Client Selection */}
-          <div className="space-y-2">
-            <Label>Client</Label>
-            <Select
-              value={selectedClientId || ""}
-              onValueChange={(value) => setSelectedClientId(value as Id<"clients">)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a client" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.clients.map((client: Client) => (
-                  <SelectItem key={client._id} value={client._id}>
-                    {client.name} ({formatCurrency(client.hourlyRate)}/hr)
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[600px]">
+        <div className="relative">
+          {/* Progress bar */}
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all duration-500 ease-out"
+              style={{
+                width: step === "summary" ? "33.33%" : step === "details" ? "66.66%" : "100%",
+              }}
+            />
           </div>
 
-          {/* Task Selection */}
-          {selectedClientId && unbilledTasks && (
-            <div className="space-y-2">
-              <Label>Tasks</Label>
-              <div className="border rounded-lg divide-y">
-                {unbilledTasks.map((task) => (
-                  <div key={task._id} className="p-3 flex items-center space-x-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedTaskIds.includes(task._id)}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                        if (e.target.checked) {
-                          setSelectedTaskIds([...selectedTaskIds, task._id]);
-                        } else {
-                          setSelectedTaskIds(selectedTaskIds.filter((id) => id !== task._id));
-                        }
-                      }}
-                      className="h-4 w-4 rounded border-gray-300"
-                    />
-                    <div className="flex-1">
-                      <p className="font-medium">{task.description}</p>
-                      <p className="text-sm text-gray-500">
-                        {task.hours} hours • {formatCurrency(task.hours * (selectedClient?.hourlyRate || 0))}
-                      </p>
+          <div className="mt-6">
+            <AnimatePresence initial={false} custom={step === "summary" ? -1 : 1}>
+              {step === "summary" && (
+                <motion.div
+                  key="summary"
+                  custom={-1}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                >
+                  <h2 className="text-lg font-semibold mb-4">Invoice Summary</h2>
+                  <div className="space-y-4">
+                    {Object.values(groupedTasks).map(({ client, tasks, total }) => (
+                      <div key={client._id} className="bg-gray-50 rounded-lg p-4">
+                        <div className="flex justify-between items-center mb-2">
+                          <h3 className="font-medium">{client.name}</h3>
+                          <p className="font-semibold">{formatCurrency(total)}</p>
+                        </div>
+                        <div className="space-y-2">
+                          {tasks.map((task) => (
+                            <div key={task._id} className="flex justify-between text-sm text-gray-600">
+                              <span>{task.description}</span>
+                              <span>{task.hours} hours</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    <div className="flex justify-between items-center pt-4 border-t">
+                      <span className="font-medium">Total Amount</span>
+                      <span className="text-lg font-bold">{formatCurrency(totalAmount)}</span>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
+                </motion.div>
+              )}
 
-          {/* Due Date */}
-          <div className="space-y-2">
-            <Label>Due Date</Label>
-            <Input
-              type="date"
-              value={dueDate}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDueDate(e.target.value)}
-              min={new Date().toISOString().split("T")[0]}
-            />
+              {step === "details" && (
+                <motion.div
+                  key="details"
+                  custom={1}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                >
+                  <h2 className="text-lg font-semibold mb-4">Invoice Details</h2>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Due Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start text-left font-normal"
+                          >
+                            <Calendar className="mr-2 h-4 w-4" />
+                            {format(dueDate, "PPP")}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <CalendarComponent
+                            mode="single"
+                            selected={dueDate}
+                            onSelect={(date) => date && setDueDate(date)}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Notes (Optional)</Label>
+                      <Textarea
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="Add any additional notes..."
+                        className="h-32"
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {step === "preview" && (
+                <motion.div
+                  key="preview"
+                  custom={1}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                >
+                  <h2 className="text-lg font-semibold mb-4">Preview Invoice</h2>
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Due Date</span>
+                          <span>{format(dueDate, "PPP")}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Total Amount</span>
+                          <span className="font-bold">{formatCurrency(totalAmount)}</span>
+                        </div>
+                        {notes && (
+                          <div className="pt-2 border-t mt-2">
+                            <span className="text-gray-600 block mb-1">Notes</span>
+                            <p className="text-sm">{notes}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label>Notes (Optional)</Label>
-            <textarea
-              value={notes}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNotes(e.target.value)}
-              className="w-full h-24 px-3 py-2 border rounded-lg resize-none"
-              placeholder="Enter any additional notes..."
-            />
-          </div>
-
-          {/* Summary */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <div className="flex justify-between font-medium">
-              <span>Total:</span>
-              <span>{formatCurrency(total)}</span>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex justify-end space-x-3">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading || !selectedClientId || selectedTaskIds.length === 0}>
-              {isLoading ? (
+          <div className="flex justify-between mt-8">
+            {step !== "summary" ? (
+              <Button
+                variant="ghost"
+                onClick={() => setStep(step === "preview" ? "details" : "summary")}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+            ) : (
+              <Button variant="ghost" onClick={onClose}>
+                <X className="w-4 h-4 mr-2" />
+                Cancel
+              </Button>
+            )}
+            
+            <Button
+              onClick={() => {
+                if (step === "summary") setStep("details");
+                else if (step === "details") setStep("preview");
+                else handleSubmit();
+              }}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                "Creating..."
+              ) : step === "preview" ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creating...
+                  <Check className="w-4 h-4 mr-2" />
+                  Create Invoice
                 </>
               ) : (
-                "Create Invoice"
+                <>
+                  Next
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </>
               )}
             </Button>
           </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

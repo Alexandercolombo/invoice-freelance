@@ -13,6 +13,7 @@ import { Loader2, Plus, Receipt, ArrowRight } from "lucide-react";
 import { Task, Client } from "@/types";
 import { DashboardStats } from "@/components/dashboard/stats";
 import { NewTaskModal } from "@/components/tasks/new-task-modal";
+import { CreateInvoiceModal } from "@/components/invoices/create-invoice-modal";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function DashboardPage() {
@@ -34,12 +35,6 @@ export default function DashboardPage() {
       newSelectedTasks.add(taskId);
     }
     setSelectedTasks(newSelectedTasks);
-  };
-
-  const handleCreateInvoice = () => {
-    setIsCreatingInvoice(true);
-    const taskIds = Array.from(selectedTasks).join(",");
-    router.push(`/dashboard/invoices/new?tasks=${taskIds}`);
   };
 
   const selectedTasksTotal = tasks
@@ -177,23 +172,13 @@ export default function DashboardPage() {
                         <p className="text-2xl font-bold">{formatCurrency(selectedTasksTotal)}</p>
                       </div>
                       <Button
-                        onClick={handleCreateInvoice}
-                        disabled={isCreatingInvoice}
+                        onClick={() => setIsCreatingInvoice(true)}
                         size="lg"
                         className="bg-background text-foreground hover:bg-background/90"
                       >
-                        {isCreatingInvoice ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Creating...
-                          </>
-                        ) : (
-                          <>
-                            <Receipt className="w-4 h-4 mr-2" />
-                            Create Invoice
-                            <ArrowRight className="w-4 h-4 ml-2" />
-                          </>
-                        )}
+                        <Receipt className="w-4 h-4 mr-2" />
+                        Create Invoice
+                        <ArrowRight className="w-4 h-4 ml-2" />
                       </Button>
                     </div>
                   </Card>
@@ -207,6 +192,17 @@ export default function DashboardPage() {
       <NewTaskModal
         isOpen={isNewTaskModalOpen}
         onClose={() => setIsNewTaskModalOpen(false)}
+      />
+
+      <CreateInvoiceModal
+        isOpen={isCreatingInvoice}
+        onClose={() => {
+          setIsCreatingInvoice(false);
+          setSelectedTasks(new Set());
+        }}
+        selectedTasks={selectedTasks}
+        tasks={tasks}
+        clients={clients.clients}
       />
     </div>
   );

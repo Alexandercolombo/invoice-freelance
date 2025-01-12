@@ -21,7 +21,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
             <Link
               href="/sign-in"
-              className="inline-flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary hover:bg-primary/90 md:py-4 md:text-lg md:px-10 transition-all duration-200 hover:scale-105 w-full sm:w-auto"
+              className="inline-flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 md:py-4 md:text-lg md:px-10 transition-all duration-200 hover:scale-105 w-full sm:w-auto"
             >
               Sign In
               <ArrowRight className="ml-2 -mr-1 w-5 h-5" />

@@ -47,16 +47,12 @@ export default function DashboardPage() {
   if (!tasks || !clients.clients) {
     return (
       <div className="space-y-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex justify-between items-center"
-        >
+        <div className="flex justify-between items-center opacity-0 animate-in fade-in duration-500">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
             Dashboard
           </h1>
           <div className="h-10 w-32 bg-gray-200 dark:bg-gray-800 rounded-lg animate-pulse" />
-        </motion.div>
+        </div>
         <DashboardStats />
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
@@ -72,35 +68,23 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <motion.nav
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400"
-      >
+      <nav className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 opacity-0 animate-in fade-in slide-in-from-top-4 duration-500">
         <Home className="w-4 h-4" />
         <span>/</span>
         <span className="text-gray-900 dark:text-white">Dashboard</span>
-      </motion.nav>
+      </nav>
 
       <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col space-y-1"
-        >
+        <div className="flex flex-col space-y-1 opacity-0 animate-in fade-in slide-in-from-left-4 duration-500">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
             Dashboard
           </h1>
           <p className="text-gray-500 dark:text-gray-400">
             Track your tasks and manage invoices
           </p>
-        </motion.div>
+        </div>
         
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="flex items-center space-x-3"
-        >
+        <div className="flex items-center space-x-3 opacity-0 animate-in fade-in slide-in-from-right-4 duration-500">
           <Button variant="outline" size="sm" className="group">
             <Filter className="w-4 h-4 mr-2 transition-transform group-hover:scale-110" />
             Filter
@@ -120,22 +104,14 @@ export default function DashboardPage() {
             <Plus className="w-4 h-4 mr-2 transition-transform group-hover:scale-110 group-hover:rotate-90" />
             New Task
           </Button>
-        </motion.div>
+        </div>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
+      <div className="opacity-0 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
         <DashboardStats />
-      </motion.div>
+      </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
+      <div className="opacity-0 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">Unbilled Tasks</h2>
           {tasks.length > 0 && selectedTasks.size === 0 && (
@@ -145,29 +121,23 @@ export default function DashboardPage() {
           )}
         </div>
         {tasks.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Card className="p-12">
-              <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Plus className="w-8 h-8 text-primary" />
-                </div>
-                <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">No unbilled tasks</h3>
-                <p className="text-gray-500 dark:text-gray-400 mb-6">Get started by creating your first task</p>
-                <Button
-                  onClick={() => setIsNewTaskModalOpen(true)}
-                  size="lg"
-                  className="group"
-                >
-                  <Plus className="w-4 h-4 mr-2 transition-transform group-hover:scale-110 group-hover:rotate-90" />
-                  New Task
-                </Button>
+          <Card className="p-12">
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+                <Plus className="w-8 h-8 text-primary" />
               </div>
-            </Card>
-          </motion.div>
+              <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">No unbilled tasks</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-6">Get started by creating your first task</p>
+              <Button
+                onClick={() => setIsNewTaskModalOpen(true)}
+                size="lg"
+                className="group"
+              >
+                <Plus className="w-4 h-4 mr-2 transition-transform group-hover:scale-110 group-hover:rotate-90" />
+                New Task
+              </Button>
+            </div>
+          </Card>
         ) : (
           <>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -179,11 +149,10 @@ export default function DashboardPage() {
                 const isSelected = selectedTasks.has(task._id);
 
                 return (
-                  <motion.div
+                  <div
                     key={task._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 * index }}
+                    className={`opacity-0 animate-in fade-in slide-in-from-bottom-4 duration-500`}
+                    style={{ animationDelay: `${index * 100}ms` }}
                   >
                     <Card 
                       className={`group p-6 transition-all duration-300 hover:shadow-lg ${
@@ -228,18 +197,15 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     </Card>
-                  </motion.div>
+                  </div>
                 );
               })}
             </div>
 
             <AnimatePresence>
               {selectedTasks.size > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 50 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 50 }}
-                  className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50"
+                <div
+                  className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 opacity-0 animate-in fade-in slide-in-from-bottom-8 duration-500"
                 >
                   <Card className="p-6 shadow-2xl bg-gradient-to-r from-primary to-primary/90 text-primary-foreground backdrop-blur-sm">
                     <div className="flex items-center space-x-8">
@@ -249,33 +215,30 @@ export default function DashboardPage() {
                       </div>
                       <Button
                         onClick={() => setIsCreatingInvoice(true)}
-                        size="lg"
-                        className="bg-white text-primary hover:bg-white/90 transition-all duration-200 hover:scale-105"
+                        variant="secondary"
+                        className="group"
                       >
-                        <Receipt className="w-4 h-4 mr-2" />
+                        <Receipt className="w-4 h-4 mr-2 transition-transform group-hover:scale-110" />
                         Create Invoice
                         <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
                       </Button>
                     </div>
                   </Card>
-                </motion.div>
+                </div>
               )}
             </AnimatePresence>
           </>
         )}
-      </motion.div>
+      </div>
 
       <NewTaskModal
-        isOpen={isNewTaskModalOpen}
+        open={isNewTaskModalOpen}
         onClose={() => setIsNewTaskModalOpen(false)}
       />
 
       <CreateInvoiceModal
         isOpen={isCreatingInvoice}
-        onClose={() => {
-          setIsCreatingInvoice(false);
-          setSelectedTasks(new Set());
-        }}
+        onClose={() => setIsCreatingInvoice(false)}
         selectedTasks={selectedTasks}
         tasks={tasks}
         clients={clients.clients}

@@ -36,7 +36,8 @@ export default defineSchema({
     userId: v.string(),
   }).index("by_user", ["userId"])
     .index("by_client", ["clientId"])
-    .index("by_user_and_date", ["userId", "createdAt"]),
+    .index("by_user_and_date", ["userId", "createdAt"])
+    .index("by_user_and_invoiced", ["userId", "invoiced"]),
 
   clients: defineTable({
     name: v.string(),

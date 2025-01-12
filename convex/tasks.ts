@@ -101,8 +101,10 @@ export const getRecentTasks = query({
 
     return await ctx.db
       .query("tasks_v2")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
-      .filter((q) => q.eq(q.field("invoiced"), false))
+      .withIndex("by_user_and_invoiced", (q) => 
+        q.eq("userId", identity.subject)
+         .eq("invoiced", false)
+      )
       .order("desc")
       .collect();
   },

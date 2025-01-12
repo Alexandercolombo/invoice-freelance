@@ -14,8 +14,8 @@ import { formatCurrency } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, Receipt, ArrowRight, ArrowLeft, Check, X } from "lucide-react";
 import { format } from "date-fns";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "../../components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
 
 type CreateInvoiceModalProps = {
   isOpen: boolean;
@@ -37,8 +37,9 @@ export function CreateInvoiceModal({
   const [step, setStep] = useState<Step>("summary");
   const [dueDate, setDueDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState("");
+  const [tax, setTax] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const createInvoice = useMutation(api.invoices.create);
+  const createInvoice = useMutation(api.invoices.createInvoice);
 
   const selectedTasksArray = tasks.filter((task) => selectedTasks.has(task._id));
   const groupedTasks = selectedTasksArray.reduce((acc, task) => {
@@ -67,10 +68,17 @@ export function CreateInvoiceModal({
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
+      const clientId = selectedTasksArray[0]?.clientId;
+      if (!clientId) {
+        throw new Error("No client found for selected tasks");
+      }
+
       await createInvoice({
         taskIds: Array.from(selectedTasks),
+        clientId,
         date: new Date().toISOString(),
         dueDate: dueDate.toISOString(),
+        tax,
         notes,
       });
       onClose();
@@ -183,6 +191,15 @@ export function CreateInvoiceModal({
                           />
                         </PopoverContent>
                       </Popover>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Tax (%)</Label>
+                      <Input
+                        type="number"
+                        value={tax}
+                        onChange={(e) => setTax(Number(e.target.value))}
+                        placeholder="Enter tax percentage..."
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label>Notes (Optional)</Label>

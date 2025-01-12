@@ -81,8 +81,7 @@ export function AddTaskForm({ onClose }: AddTaskFormProps) {
           date: formData.date,
           clientId: client as unknown as Id<"clients">,
           hourlyRate: rate,
-          status: formData.status,
-          invoiced: false
+          status: formData.status
         });
       } else {
         if (!formData.clientId) {
@@ -103,8 +102,7 @@ export function AddTaskForm({ onClose }: AddTaskFormProps) {
           date: formData.date,
           clientId: formData.clientId,
           hourlyRate: selectedClient.hourlyRate,
-          status: formData.status,
-          invoiced: false
+          status: formData.status
         });
       }
       onClose();

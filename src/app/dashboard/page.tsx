@@ -12,11 +12,13 @@ import { formatCurrency } from "@/lib/utils";
 import { Loader2, Plus } from "lucide-react";
 import { Task, Client } from "@/types";
 import { DashboardStats } from "@/components/dashboard/stats";
+import { NewTaskModal } from "@/components/tasks/new-task-modal";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [selectedTasks, setSelectedTasks] = useState<Set<Id<"tasks_v2">>>(new Set());
   const [isCreatingInvoice, setIsCreatingInvoice] = useState(false);
+  const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false);
 
   const tasks = useQuery(api.tasks.getRecentTasks) || [];
   const clients = useQuery(api.clients.getAll, {
@@ -65,7 +67,7 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <div className="flex items-center space-x-4">
           <Button
-            onClick={() => router.push('/dashboard/tasks/new')}
+            onClick={() => setIsNewTaskModalOpen(true)}
             variant="outline"
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -104,7 +106,7 @@ export default function DashboardPage() {
               <h3 className="text-lg font-medium text-gray-900 mb-1">No unbilled tasks</h3>
               <p className="text-gray-500 mb-4">Get started by creating your first task</p>
               <Button
-                onClick={() => router.push('/dashboard/tasks/new')}
+                onClick={() => setIsNewTaskModalOpen(true)}
                 variant="outline"
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -159,6 +161,11 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      <NewTaskModal
+        isOpen={isNewTaskModalOpen}
+        onClose={() => setIsNewTaskModalOpen(false)}
+      />
     </div>
   );
 } 

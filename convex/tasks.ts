@@ -171,4 +171,25 @@ export const updateAllTasks = mutation({
     
     return tasks.length;
   },
+});
+
+export const deleteTask = mutation({
+  args: { id: v.id("tasks_v2") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const task = await ctx.db.get(args.id);
+    if (!task) {
+      throw new Error("Task not found");
+    }
+
+    if (task.userId !== identity.subject) {
+      throw new Error("Not authorized");
+    }
+
+    await ctx.db.delete(args.id);
+  },
 }); 

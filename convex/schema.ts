@@ -12,7 +12,7 @@ export default defineSchema({
     hours: v.float64(),
     hourlyRate: v.optional(v.float64()),
     invoiceId: v.optional(v.id("invoices")),
-    invoiced: v.optional(v.boolean()),
+    invoiced: v.boolean(),
     status: v.union(v.literal("pending"), v.literal("completed")),
     updatedAt: v.string(),
     userId: v.string(),

@@ -29,7 +29,7 @@ export function ClientDetails({ clientId, open, onOpenChange }: ClientDetailsPro
   const tasks = useQuery(api.tasks.getByClient, { clientId });
   const invoices = useQuery(api.invoices.getInvoices, { clientId });
   const router = useRouter();
-  const [selectedTasks, setSelectedTasks] = useState(new Set<string>());
+  const [selectedTasks, setSelectedTasks] = useState<Set<Id<"tasks_v2">>>(new Set());
 
   if (!client || !tasks || !invoices) {
     return (

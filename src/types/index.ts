@@ -1,7 +1,7 @@
 import { Id } from "convex/_generated/dataModel";
 
 export interface Task {
-  _id: Id<"tasks">;
+  _id: Id<"tasks_v2">;
   _creationTime: number;
   description?: string;
   hours: number;
@@ -12,7 +12,7 @@ export interface Task {
   clientId: Id<"clients">;
   status: "pending" | "completed";
   userId: string;
-  invoiced?: boolean;
+  invoiced: boolean;
   invoiceId?: Id<"invoices">;
   createdAt?: string;
   updatedAt: string;

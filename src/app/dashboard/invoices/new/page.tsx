@@ -14,9 +14,24 @@ export default function NewInvoicePage() {
     .filter(Boolean)
     .map((id) => id as Id<"tasks_v2">);
 
-  if (!selectedTaskIds?.length) {
+  const tasks = useQuery(api.tasks.getTasksByIds, { ids: selectedTaskIds ?? [] }) ?? [];
+  const clients = useQuery(api.clients.getAll, {
+    paginationOpts: { numToSkip: 0, numToTake: 100 }
+  }) ?? { clients: [], totalCount: 0 };
+
+  if (!selectedTaskIds?.length || !tasks.length || !clients.clients) {
     return null;
   }
 
-  return <CreateInvoiceModal open={true} onClose={() => window.history.back()} />;
+  const selectedTasksSet = new Set(selectedTaskIds);
+
+  return (
+    <CreateInvoiceModal
+      isOpen={true}
+      onClose={() => window.history.back()}
+      selectedTasks={selectedTasksSet}
+      tasks={tasks}
+      clients={clients.clients}
+    />
+  );
 } 

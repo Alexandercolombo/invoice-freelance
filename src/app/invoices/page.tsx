@@ -12,7 +12,12 @@ import { CreateInvoiceModal } from "@/components/invoices/create-invoice-modal";
 
 export default function InvoicesPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const invoices = useQuery(api.invoices.getInvoices, {});
+  const invoices = useQuery(api.invoices.getAllInvoices, {
+    paginationOpts: {
+      numToSkip: 0,
+      numToTake: 100
+    }
+  });
 
   if (!invoices) {
     return (

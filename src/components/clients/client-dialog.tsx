@@ -31,7 +31,7 @@ export function ClientDialog({ open, onOpenChange, clientId }: ClientDialogProps
       setFormData({
         name: client.name,
         email: client.email,
-        address: client.address,
+        address: client.address ?? "",
         hourlyRate: client.hourlyRate,
       });
     } else {

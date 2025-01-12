@@ -30,7 +30,7 @@ interface Client {
 }
 
 export function CreateInvoiceModal({ open, onClose }: CreateInvoiceModalProps) {
-  const clients = useQuery(api.clients.getAll) || { clients: [], total: 0, hasMore: false };
+  const clients = useQuery(api.clients.getAll, { paginationOpts: { numToSkip: 0, numToTake: 100 } }) || { clients: [], total: 0, hasMore: false };
   const [selectedClientId, setSelectedClientId] = useState<Id<"clients"> | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const createInvoice = useMutation(api.invoices.createInvoice);

@@ -18,6 +18,7 @@ import type * as clients from "../clients.js";
 import type * as config from "../config.js";
 import type * as invoices from "../invoices.js";
 import type * as lib_validators from "../lib/validators.js";
+import type * as migrations_fix_user_schema from "../migrations/fix_user_schema.js";
 import type * as tasks from "../tasks.js";
 import type * as users from "../users.js";
 
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   config: typeof config;
   invoices: typeof invoices;
   "lib/validators": typeof lib_validators;
+  "migrations/fix_user_schema": typeof migrations_fix_user_schema;
   tasks: typeof tasks;
   users: typeof users;
 }>;

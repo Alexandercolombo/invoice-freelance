@@ -163,7 +163,7 @@ export function ClientDetails({ clientId, open, onOpenChange }: ClientDetailsPro
                 <div className="space-y-4">
                   {tasks
                     .filter(task => !task.invoiced)
-                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                    .sort((a, b) => new Date(b.date ?? new Date()).getTime() - new Date(a.date ?? new Date()).getTime())
                     .slice(0, 5)
                     .map((task) => (
                       <motion.div
@@ -191,14 +191,14 @@ export function ClientDetails({ clientId, open, onOpenChange }: ClientDetailsPro
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <p className="font-medium text-gray-900">{task.description}</p>
-                              <Badge variant={task.status === "completed" ? "success" : task.status === "in-progress" ? "default" : "secondary"}>
+                              <Badge variant={task.status === "completed" ? "success" : "secondary"}>
                                 {task.status}
                               </Badge>
                             </div>
                             <div className="flex items-center gap-4 text-sm text-gray-500">
                               <div className="flex items-center gap-1">
                                 <Calendar className="h-4 w-4" />
-                                <span>{formatDate(task.date)}</span>
+                                <span>{formatDate(task.date ?? new Date().toISOString())}</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <Clock className="h-4 w-4" />
@@ -206,7 +206,7 @@ export function ClientDetails({ clientId, open, onOpenChange }: ClientDetailsPro
                               </div>
                               <div className="flex items-center gap-1">
                                 <DollarSign className="h-4 w-4" />
-                                <span>{formatCurrency(task.amount)}</span>
+                                <span>{formatCurrency(task.amount ?? 0)}</span>
                               </div>
                             </div>
                           </div>
@@ -254,14 +254,14 @@ export function ClientDetails({ clientId, open, onOpenChange }: ClientDetailsPro
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <p className="font-medium text-gray-900">{task.description}</p>
-                          <Badge variant={task.status === "completed" ? "success" : task.status === "in-progress" ? "default" : "secondary"}>
+                          <Badge variant={task.status === "completed" ? "success" : "secondary"}>
                             {task.status}
                           </Badge>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-gray-500">
                           <div className="flex items-center gap-1">
                             <Calendar className="h-4 w-4" />
-                            <span>{formatDate(task.date)}</span>
+                            <span>{formatDate(task.date ?? new Date().toISOString())}</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <Clock className="h-4 w-4" />
@@ -269,7 +269,7 @@ export function ClientDetails({ clientId, open, onOpenChange }: ClientDetailsPro
                           </div>
                           <div className="flex items-center gap-1">
                             <DollarSign className="h-4 w-4" />
-                            <span>{formatCurrency(task.amount)}</span>
+                            <span>{formatCurrency(task.amount ?? 0)}</span>
                           </div>
                         </div>
                       </div>
@@ -322,7 +322,7 @@ export function ClientDetails({ clientId, open, onOpenChange }: ClientDetailsPro
                         <div className="flex items-center gap-4 text-sm text-gray-500">
                           <div className="flex items-center gap-1">
                             <Calendar className="h-4 w-4" />
-                            <span>{formatDate(invoice.date)}</span>
+                            <span>{formatDate(invoice.date ?? new Date().toISOString())}</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <DollarSign className="h-4 w-4" />

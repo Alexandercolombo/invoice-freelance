@@ -10,13 +10,13 @@ type AddTaskFormProps = {
   onClose: () => void;
 };
 
-type TaskStatus = "pending" | "in-progress" | "completed";
+type TaskStatus = "pending" | "completed";
 
 type FormData = {
   description: string;
   date: string;
   hours: string;
-  clientId: string;
+  clientId: Id<"clients"> | null;
   status: TaskStatus;
 };
 
@@ -27,7 +27,8 @@ type NewClientData = {
 };
 
 export function AddTaskForm({ onClose }: AddTaskFormProps) {
-  const clients = useQuery(api.clients.getAll);
+  const clientsResponse = useQuery(api.clients.getAll, { paginationOpts: { numToSkip: 0, numToTake: 100 } });
+  const clients = clientsResponse?.clients ?? [];
   const createTask = useMutation(api.tasks.create);
   const createClient = useMutation(api.clients.create);
 
@@ -36,7 +37,7 @@ export function AddTaskForm({ onClose }: AddTaskFormProps) {
     description: "",
     date: new Date().toISOString().split('T')[0],
     hours: "",
-    clientId: "",
+    clientId: null,
     status: "pending",
   });
   const [newClientData, setNewClientData] = useState<NewClientData>({
@@ -45,7 +46,7 @@ export function AddTaskForm({ onClose }: AddTaskFormProps) {
     hourlyRate: "",
   });
 
-  const selectedClient = clients?.find(client => client._id === formData.clientId);
+  const selectedClient = clients.find((client) => client._id === formData.clientId);
   const amount = isNewClient 
     ? parseFloat(formData.hours || "0") * parseFloat(newClientData.hourlyRate || "0")
     : selectedClient ? parseFloat(formData.hours || "0") * selectedClient.hourlyRate : 0;
@@ -69,16 +70,17 @@ export function AddTaskForm({ onClose }: AddTaskFormProps) {
         // Create new client first
         const client = await createClient({
           name: newClientData.name,
-          email: newClientData.email || undefined,
+          email: newClientData.email || "",
           hourlyRate: rate,
         });
 
         // Create task with new client
         await createTask({
-          client: newClientData.name,
           description: formData.description,
           hours: parseFloat(formData.hours || "0"),
           date: formData.date,
+          clientId: client as unknown as Id<"clients">,
+          hourlyRate: rate,
           status: formData.status,
         });
       } else {
@@ -87,12 +89,19 @@ export function AddTaskForm({ onClose }: AddTaskFormProps) {
           return;
         }
 
+        const selectedClient = clients.find((client) => client._id === formData.clientId);
+        if (!selectedClient) {
+          alert("Selected client not found");
+          return;
+        }
+
         // Create task with existing client
         await createTask({
-          client: selectedClient?.name || "",
           description: formData.description,
           hours: parseFloat(formData.hours || "0"),
           date: formData.date,
+          clientId: formData.clientId,
+          hourlyRate: selectedClient.hourlyRate,
           status: formData.status,
         });
       }
@@ -116,7 +125,7 @@ export function AddTaskForm({ onClose }: AddTaskFormProps) {
               type="button"
               onClick={() => {
                 setIsNewClient(!isNewClient);
-                setFormData(prev => ({ ...prev, clientId: "" }));
+                setFormData(prev => ({ ...prev, clientId: null }));
                 setNewClientData({ name: "", email: "", hourlyRate: "" });
               }}
               className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
@@ -180,13 +189,16 @@ export function AddTaskForm({ onClose }: AddTaskFormProps) {
           ) : (
             <select
               id="client"
-              value={formData.clientId}
-              onChange={(e) => setFormData(prev => ({ ...prev, clientId: e.target.value }))}
+              value={formData.clientId?.toString() ?? ""}
+              onChange={(e) => setFormData(prev => ({ 
+                ...prev, 
+                clientId: e.target.value ? e.target.value as Id<"clients"> : null 
+              }))}
               className="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-gray-500 focus:ring-gray-500 sm:text-sm"
               required={!isNewClient}
             >
               <option value="">Select a client</option>
-              {clients?.map((client) => (
+              {clients.map((client) => (
                 <option key={client._id} value={client._id}>
                   {client.name} ({formatCurrency(client.hourlyRate)}/hr)
                 </option>
@@ -254,7 +266,6 @@ export function AddTaskForm({ onClose }: AddTaskFormProps) {
             className="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-gray-500 focus:ring-gray-500 sm:text-sm"
           >
             <option value="pending">Pending</option>
-            <option value="in-progress">In Progress</option>
             <option value="completed">Completed</option>
           </select>
         </div>

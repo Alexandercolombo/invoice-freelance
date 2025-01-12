@@ -163,7 +163,7 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex items-center mt-1 text-sm text-gray-500 dark:text-gray-400">
                         <Calendar className="w-4 h-4 mr-1" />
-                        {new Date(task.date).toLocaleDateString()} • {task.hours}h
+                        {new Date(task.date ?? new Date()).toLocaleDateString()} • {task.hours}h
                       </div>
                     </div>
                     <div className="inline-flex items-center text-sm font-semibold text-gray-900 dark:text-white">

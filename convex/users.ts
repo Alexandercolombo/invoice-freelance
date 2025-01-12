@@ -48,6 +48,8 @@ export const create = mutation({
     return await ctx.db.insert("users", {
       ...args,
       tokenIdentifier: identity.tokenIdentifier,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
   },
 });

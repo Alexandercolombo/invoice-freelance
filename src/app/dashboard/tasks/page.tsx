@@ -336,7 +336,7 @@ export default function TasksPage() {
                             {getClientName(task.clientId)}
                           </td>
                           <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                            {new Date(task.date).toLocaleDateString()}
+                            {new Date(task.date ?? new Date()).toLocaleDateString()}
                           </td>
                           <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                             {task.hours}

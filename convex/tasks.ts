@@ -18,10 +18,10 @@ export const list = query({
 export const create = mutation({
   args: {
     description: v.string(),
-    hours: v.number(),
+    hours: v.float64(),
     date: v.string(),
     clientId: v.id("clients"),
-    hourlyRate: v.number(),
+    hourlyRate: v.float64(),
     status: v.union(v.literal("pending"), v.literal("completed")),
   },
   async handler(ctx, args) {
@@ -68,7 +68,7 @@ export const update = mutation({
   args: {
     id: v.id("tasks"),
     description: v.string(),
-    hours: v.number(),
+    hours: v.float64(),
     date: v.string(),
     status: v.union(v.literal("pending"), v.literal("completed")),
   },
@@ -131,7 +131,7 @@ export const getDashboardStats = query({
 
     // Get recent tasks count
     const recentTasks = tasks.filter(task => 
-      new Date(task.createdAt) >= thirtyDaysAgo
+      task.createdAt && new Date(task.createdAt) >= thirtyDaysAgo
     );
 
     // Get active clients (clients with unbilled tasks)

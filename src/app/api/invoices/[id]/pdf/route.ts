@@ -169,7 +169,7 @@ export async function GET(
       let x = startX;
       
       // Description (left-aligned)
-      doc.text(task.description, x, y);
+      doc.text(task.description ?? '', x, y);
       x += colWidths[0];
       
       // Hours (right-aligned)

@@ -42,7 +42,7 @@ export function InvoiceForm({
   const [tax, setTax] = useState(0);
   const [notes, setNotes] = useState("");
 
-  const subtotal = tasks.reduce((sum, task) => sum + task.amount, 0);
+  const subtotal = tasks.reduce((sum, task) => sum + (task.amount ?? 0), 0);
   const total = subtotal + tax;
 
   const handleSubmit = (e: React.FormEvent) => {

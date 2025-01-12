@@ -31,7 +31,7 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
   const { isSignedIn } = useAuth();
   const { toast } = useToast();
   const { session } = useClerk();
-  const user = useQuery(api.users.getUser);
+  const user = useQuery(api.users.get);
   const invoice = useQuery(api.invoices.getInvoice, { id: invoiceId });
 
   const handleDownload = async () => {

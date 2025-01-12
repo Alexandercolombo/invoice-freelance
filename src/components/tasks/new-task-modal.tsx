@@ -19,6 +19,7 @@ type NewTaskModalProps = {
 };
 
 type TabType = "existing" | "new";
+type TaskStatus = "pending" | "completed";
 
 export function NewTaskModal({ isOpen, onClose }: NewTaskModalProps) {
   const clientsResponse = useQuery(api.clients.getAll, {
@@ -34,7 +35,7 @@ export function NewTaskModal({ isOpen, onClose }: NewTaskModalProps) {
   const [description, setDescription] = useState("");
   const [hours, setHours] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [status, setStatus] = useState<"pending" | "in-progress" | "completed">("pending");
+  const [status, setStatus] = useState<TaskStatus>("pending");
   const [isLoading, setIsLoading] = useState(false);
   const [isEditingRate, setIsEditingRate] = useState(false);
   const [editedRate, setEditedRate] = useState<string>("");
@@ -59,7 +60,7 @@ export function NewTaskModal({ isOpen, onClose }: NewTaskModalProps) {
     try {
       if (activeTab === "new") {
         // Create new client first
-        const client = await createClient({
+        const newClient = await createClient({
           name: newClientName,
           email: newClientEmail,
           address: "",
@@ -72,17 +73,19 @@ export function NewTaskModal({ isOpen, onClose }: NewTaskModalProps) {
           hours: parseFloat(hours),
           date,
           status,
-          client: newClientName,
+          clientId: newClient as unknown as Id<"clients">,
+          hourlyRate: parseFloat(newClientRate),
         });
       } else {
         // Create task with existing client
-        if (!selectedClient) return;
+        if (!selectedClient || !selectedClientId) return;
         await createTask({
           description,
           hours: parseFloat(hours),
           date,
           status,
-          client: selectedClient.name,
+          clientId: selectedClientId,
+          hourlyRate: selectedClient.hourlyRate,
         });
       }
       onClose();

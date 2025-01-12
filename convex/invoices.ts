@@ -224,4 +224,36 @@ export const getAllInvoices = query({
 
     return invoicesWithDetails;
   },
+});
+
+export const updateInvoice = mutation({
+  args: {
+    id: v.id("invoices"),
+    dueDate: v.optional(v.string()),
+    tax: v.number(),
+    notes: v.optional(v.string()),
+    status: v.union(v.literal("draft"), v.literal("sent"), v.literal("paid")),
+  },
+  handler: async (ctx, args) => {
+    const identity = await getUser(ctx);
+
+    const invoice = await ctx.db.get(args.id);
+    if (!invoice || invoice.userId !== identity.subject) {
+      throw new ConvexError("Invoice not found or access denied");
+    }
+
+    // Recalculate total if tax has changed
+    const total = invoice.subtotal + (invoice.subtotal * args.tax / 100);
+
+    await ctx.db.patch(args.id, {
+      dueDate: args.dueDate,
+      tax: args.tax,
+      total,
+      notes: args.notes,
+      status: args.status,
+      updatedAt: new Date().toISOString(),
+    });
+
+    return await ctx.db.get(args.id);
+  },
 }); 

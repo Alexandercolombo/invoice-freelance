@@ -14,24 +14,6 @@ import { useClerk } from "@clerk/nextjs";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 
-interface Task {
-  _id: Id<"tasks_v2">;
-  _creationTime: number;
-  description?: string;
-  hours: number;
-  date?: string;
-  amount?: number;
-  hourlyRate?: number;
-  client?: string;
-  clientId: Id<"clients">;
-  status: "pending" | "completed";
-  userId: string;
-  invoiced: boolean;
-  invoiceId?: Id<"invoices">;
-  createdAt?: string;
-  updatedAt: string;
-}
-
 export default function InvoicePreviewPage({
   params,
 }: {

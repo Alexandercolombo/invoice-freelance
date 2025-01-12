@@ -12,7 +12,7 @@ export interface Task {
   clientId: Id<"clients">;
   status: "pending" | "completed";
   userId: string;
-  invoiced: boolean;
+  invoiced?: boolean;
   invoiceId?: Id<"invoices">;
   createdAt?: string;
   updatedAt: string;

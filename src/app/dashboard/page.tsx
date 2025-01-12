@@ -232,7 +232,7 @@ export default function DashboardPage() {
       </div>
 
       <NewTaskModal
-        open={isNewTaskModalOpen}
+        isOpen={isNewTaskModalOpen}
         onClose={() => setIsNewTaskModalOpen(false)}
       />
 

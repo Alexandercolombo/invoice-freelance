@@ -18,7 +18,10 @@ import type * as clients from "../clients.js";
 import type * as config from "../config.js";
 import type * as invoices from "../invoices.js";
 import type * as lib_validators from "../lib/validators.js";
+import type * as migrations_add_invoiced_field from "../migrations/add_invoiced_field.js";
 import type * as migrations_fix_user_schema from "../migrations/fix_user_schema.js";
+import type * as migrations_migrate_tasks from "../migrations/migrate_tasks.js";
+import type * as migrations_update_tasks from "../migrations/update_tasks.js";
 import type * as tasks from "../tasks.js";
 import type * as users from "../users.js";
 
@@ -36,7 +39,10 @@ declare const fullApi: ApiFromModules<{
   config: typeof config;
   invoices: typeof invoices;
   "lib/validators": typeof lib_validators;
+  "migrations/add_invoiced_field": typeof migrations_add_invoiced_field;
   "migrations/fix_user_schema": typeof migrations_fix_user_schema;
+  "migrations/migrate_tasks": typeof migrations_migrate_tasks;
+  "migrations/update_tasks": typeof migrations_update_tasks;
   tasks: typeof tasks;
   users: typeof users;
 }>;

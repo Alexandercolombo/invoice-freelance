@@ -24,7 +24,7 @@ export const getUnbilledTasksByClient = query({
     const identity = await getUser(ctx);
     
     return await ctx.db
-      .query("tasks")
+      .query("tasks_v2")
       .withIndex("by_client", (q) => q.eq("clientId", args.clientId))
       .filter((q) => 
         q.and(
@@ -39,7 +39,7 @@ export const getUnbilledTasksByClient = query({
 export const createInvoice = mutation({
   args: {
     clientId: v.id("clients"),
-    taskIds: v.array(v.id("tasks")),
+    taskIds: v.array(v.id("tasks_v2")),
     date: v.string(),
     dueDate: v.string(),
     tax: v.number(),

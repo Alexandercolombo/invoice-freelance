@@ -12,6 +12,24 @@ export default defineSchema({
     hours: v.float64(),
     hourlyRate: v.optional(v.float64()),
     invoiceId: v.optional(v.id("invoices")),
+    invoiced: v.optional(v.boolean()),
+    status: v.union(v.literal("pending"), v.literal("completed")),
+    updatedAt: v.string(),
+    userId: v.string(),
+  }).index("by_user", ["userId"])
+    .index("by_client", ["clientId"])
+    .index("by_user_and_date", ["userId", "createdAt"]),
+
+  tasks_v2: defineTable({
+    amount: v.optional(v.float64()),
+    client: v.optional(v.string()),
+    clientId: v.id("clients"),
+    createdAt: v.optional(v.string()),
+    date: v.optional(v.string()),
+    description: v.optional(v.string()),
+    hours: v.float64(),
+    hourlyRate: v.optional(v.float64()),
+    invoiceId: v.optional(v.id("invoices")),
     invoiced: v.boolean(),
     status: v.union(v.literal("pending"), v.literal("completed")),
     updatedAt: v.string(),
@@ -19,6 +37,7 @@ export default defineSchema({
   }).index("by_user", ["userId"])
     .index("by_client", ["clientId"])
     .index("by_user_and_date", ["userId", "createdAt"]),
+
   clients: defineTable({
     name: v.string(),
     email: v.string(),
@@ -54,7 +73,7 @@ export default defineSchema({
     date: v.string(),
     dueDate: v.string(),
     clientId: v.id("clients"),
-    tasks: v.array(v.id("tasks")),
+    tasks: v.array(v.id("tasks_v2")),
     subtotal: v.float64(),
     tax: v.optional(v.float64()),
     total: v.float64(),

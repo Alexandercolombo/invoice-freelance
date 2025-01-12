@@ -7,7 +7,7 @@ export const list = query({
   async handler(ctx) {
     const identity = await getUser(ctx);
     const tasks = await ctx.db
-      .query("tasks")
+      .query("tasks_v2")
       .withIndex("by_user", (q) => q.eq("userId", identity.subject))
       .collect();
 
@@ -29,7 +29,7 @@ export const create = mutation({
 
     const amount = args.hourlyRate * args.hours;
 
-    return await ctx.db.insert("tasks", {
+    return await ctx.db.insert("tasks_v2", {
       description: args.description,
       hours: args.hours,
       date: args.date,
@@ -46,14 +46,13 @@ export const create = mutation({
 });
 
 export const getTasksByIds = query({
-  args: { ids: v.array(v.id("tasks")) },
+  args: { ids: v.array(v.id("tasks_v2")) },
   async handler(ctx, args) {
     const identity = await getUser(ctx);
     const tasks = await Promise.all(
       args.ids.map(id => ctx.db.get(id))
     );
     
-    // Filter out any null values and verify user access
     return tasks
       .filter((task): task is NonNullable<typeof task> => 
         task !== null && task.userId === identity.subject
@@ -67,7 +66,7 @@ export const getTasksByIds = query({
 
 export const update = mutation({
   args: {
-    id: v.id("tasks"),
+    id: v.id("tasks_v2"),
     description: v.string(),
     hours: v.float64(),
     date: v.string(),
@@ -102,7 +101,7 @@ export const getRecentTasks = query({
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     return await ctx.db
-      .query("tasks")
+      .query("tasks_v2")
       .withIndex("by_user", (q) => q.eq("userId", identity.subject))
       .filter((q) => 
         q.gte(q.field("createdAt"), thirtyDaysAgo.toISOString())
@@ -119,23 +118,19 @@ export const getDashboardStats = query({
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // Get all tasks for the user
     const tasks = await ctx.db
-      .query("tasks")
+      .query("tasks_v2")
       .withIndex("by_user", (q) => q.eq("userId", identity.subject))
       .collect();
 
-    // Calculate unbilled tasks
     const unbilledTasks = tasks.filter(task => !task.invoiced);
     const unbilledAmount = unbilledTasks.reduce((sum, task) => sum + (task.amount ?? 0), 0);
     const unbilledHours = unbilledTasks.reduce((sum, task) => sum + task.hours, 0);
 
-    // Get recent tasks count
     const recentTasks = tasks.filter(task => 
       task.createdAt && new Date(task.createdAt) >= thirtyDaysAgo
     );
 
-    // Get active clients (clients with unbilled tasks)
     const activeClientIds = new Set(unbilledTasks.map(task => task.clientId.toString()));
 
     return {
@@ -152,9 +147,28 @@ export const getByClient = query({
   async handler(ctx, args) {
     const identity = await getUser(ctx);
     return await ctx.db
-      .query("tasks")
+      .query("tasks_v2")
       .withIndex("by_client", (q) => q.eq("clientId", args.clientId))
       .filter((q) => q.eq(q.field("userId"), identity.subject))
       .collect();
+  },
+});
+
+export const updateAllTasks = mutation({
+  args: {},
+  async handler(ctx) {
+    const identity = await getUser(ctx);
+    const tasks = await ctx.db
+      .query("tasks_v2")
+      .filter((q) => q.eq(q.field("userId"), identity.subject))
+      .collect();
+    
+    for (const task of tasks) {
+      await ctx.db.patch(task._id, {
+        invoiced: false
+      });
+    }
+    
+    return tasks.length;
   },
 }); 

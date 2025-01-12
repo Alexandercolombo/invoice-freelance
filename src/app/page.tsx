@@ -8,7 +8,7 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20">
         <div className="text-center space-y-8">
-          <div className="space-y-4 opacity-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h1 className="text-4xl tracking-tight font-extrabold text-gray-900 dark:text-white sm:text-5xl md:text-6xl">
               <span className="block">Freelance Invoice</span>
               <span className="block text-primary">Management System</span>
@@ -18,7 +18,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center opacity-0 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
             <Link
               href="/sign-in"
               className="inline-flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary hover:bg-primary/90 md:py-4 md:text-lg md:px-10 transition-all duration-200 hover:scale-105 w-full sm:w-auto"

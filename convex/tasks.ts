@@ -23,6 +23,7 @@ export const create = mutation({
     clientId: v.id("clients"),
     hourlyRate: v.float64(),
     status: v.union(v.literal("pending"), v.literal("completed")),
+    invoiced: v.optional(v.boolean()),
   },
   async handler(ctx, args) {
     const identity = await getUser(ctx);
@@ -40,7 +41,7 @@ export const create = mutation({
       userId: identity.subject,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      invoiced: false
+      invoiced: args.invoiced ?? false
     });
   },
 });

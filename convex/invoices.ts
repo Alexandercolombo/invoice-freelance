@@ -29,7 +29,10 @@ export const getUnbilledTasksByClient = query({
       .filter((q) => 
         q.and(
           q.eq(q.field("userId"), identity.subject),
-          q.eq(q.field("invoiced"), false)
+          q.or(
+            q.eq(q.field("invoiced"), false),
+            q.eq(q.field("invoiced"), undefined)
+          )
         )
       )
       .collect();

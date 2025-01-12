@@ -40,6 +40,7 @@ export const create = mutation({
       userId: identity.subject,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      invoiced: false
     });
   },
 });

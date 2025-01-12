@@ -75,6 +75,7 @@ export function NewTaskModal({ isOpen, onClose }: NewTaskModalProps) {
           status,
           clientId: newClient as unknown as Id<"clients">,
           hourlyRate: parseFloat(newClientRate),
+          invoiced: false
         });
       } else {
         // Create task with existing client
@@ -86,6 +87,7 @@ export function NewTaskModal({ isOpen, onClose }: NewTaskModalProps) {
           status,
           clientId: selectedClientId,
           hourlyRate: selectedClient.hourlyRate,
+          invoiced: false
         });
       }
       onClose();

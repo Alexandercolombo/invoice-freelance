@@ -98,15 +98,11 @@ export const getRecentTasks = query({
   args: {},
   async handler(ctx) {
     const identity = await getUser(ctx);
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     return await ctx.db
       .query("tasks_v2")
       .withIndex("by_user", (q) => q.eq("userId", identity.subject))
-      .filter((q) => 
-        q.gte(q.field("createdAt"), thirtyDaysAgo.toISOString())
-      )
+      .filter((q) => q.eq(q.field("invoiced"), false))
       .order("desc")
       .collect();
   },

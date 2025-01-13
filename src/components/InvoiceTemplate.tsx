@@ -4,7 +4,7 @@ type InvoiceTemplateProps = {
   invoice: {
     number: string;
     date: string;
-    dueDate: string;
+    dueDate?: string;
     totalAmount: number;
     totalHours: number;
     notes?: string;
@@ -69,10 +69,12 @@ export default function InvoiceTemplate({
               <span className="text-gray-600">Date:</span>
               <span className="text-gray-900">{new Date(invoice.date).toLocaleDateString()}</span>
             </div>
-            <div className="grid grid-cols-2">
-              <span className="text-gray-600">Due Date:</span>
-              <span className="text-gray-900">{new Date(invoice.dueDate).toLocaleDateString()}</span>
-            </div>
+            {invoice.dueDate && (
+              <div className="grid grid-cols-2">
+                <span className="text-gray-600">Due Date:</span>
+                <span className="text-gray-900">{new Date(invoice.dueDate).toLocaleDateString()}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

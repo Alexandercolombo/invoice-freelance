@@ -132,9 +132,13 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
           <div>
             <DialogTitle className="text-2xl">Invoice #{invoice.number}</DialogTitle>
             <DialogDescription>
-              Status: <span className={`font-medium ${isPastDue ? 'text-red-500' : 'text-green-500'}`}>
-                {isPastDue ? 'Past Due' : 'Due'} {dueDate.toLocaleDateString()}
-              </span>
+              {invoice.dueDate && (
+                <>
+                  Status: <span className={`font-medium ${isPastDue ? 'text-red-500' : 'text-green-500'}`}>
+                    {isPastDue ? 'Past Due' : 'Due'} {dueDate.toLocaleDateString()}
+                  </span>
+                </>
+              )}
             </DialogDescription>
           </div>
         </DialogHeader>
@@ -195,12 +199,14 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
                     {new Date(invoice.date).toLocaleDateString()}
                   </span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">Due Date:</span>
-                  <span className={`font-medium ${isPastDue ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>
-                    {dueDate.toLocaleDateString()}
-                  </span>
-                </div>
+                {invoice.dueDate && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500 dark:text-gray-400">Due Date:</span>
+                    <span className={`font-medium ${isPastDue ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>
+                      {dueDate.toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -105,7 +105,7 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
           <div className="flex justify-between text-sm">
             <span className="text-gray-500 dark:text-gray-400">Due Date</span>
             <span className="text-gray-900 dark:text-white font-medium">
-              {new Date(invoice.dueDate).toLocaleDateString()}
+              {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : "N/A"}
             </span>
           </div>
           <div className="flex justify-between text-sm">

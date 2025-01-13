@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatCurrency } from "@/lib/utils";
-import { Loader2, Plus, Receipt, ArrowRight, Home, Filter, Download, Calendar } from "lucide-react";
+import { Plus, Receipt, ArrowRight } from "lucide-react";
 import { Task, Client } from "@/types";
 import { DashboardStats } from "@/components/dashboard/stats";
 import { NewTaskModal } from "@/components/tasks/new-task-modal";
@@ -68,12 +68,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <nav className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 animate-in fade-in slide-in-from-top-4 duration-500">
-        <Home className="w-4 h-4" />
-        <span>/</span>
-        <span className="text-gray-900 dark:text-white">Dashboard</span>
-      </nav>
-
       <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
         <div className="flex flex-col space-y-1 animate-in fade-in slide-in-from-left-4 duration-500">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
@@ -84,19 +78,7 @@ export default function DashboardPage() {
           </p>
         </div>
         
-        <div className="flex items-center space-x-3 animate-in fade-in slide-in-from-right-4 duration-500">
-          <Button variant="outline" size="sm" className="group">
-            <Filter className="w-4 h-4 mr-2 transition-transform group-hover:scale-110" />
-            Filter
-          </Button>
-          <Button variant="outline" size="sm" className="group">
-            <Calendar className="w-4 h-4 mr-2 transition-transform group-hover:scale-110" />
-            Date Range
-          </Button>
-          <Button variant="outline" size="sm" className="group">
-            <Download className="w-4 h-4 mr-2 transition-transform group-hover:scale-110" />
-            Export
-          </Button>
+        <div className="animate-in fade-in slide-in-from-right-4 duration-500">
           <Button
             onClick={() => setIsNewTaskModalOpen(true)}
             className="group"

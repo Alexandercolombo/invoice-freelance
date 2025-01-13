@@ -114,10 +114,16 @@ export async function GET(
 
     doc.setTextColor(128, 128, 128);
     doc.text("Date:", dateCol1, y);
-    doc.text("Due Date:", dateCol3, y);
     doc.setTextColor(31, 41, 55);
     doc.text(new Date(invoice.date).toLocaleDateString(), dateCol2, y);
-    doc.text(invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A', dateCol4, y);
+
+    // Only show due date if it exists
+    if (invoice.dueDate) {
+      doc.setTextColor(128, 128, 128);
+      doc.text("Due Date:", dateCol3, y);
+      doc.setTextColor(31, 41, 55);
+      doc.text(new Date(invoice.dueDate).toLocaleDateString(), dateCol4, y);
+    }
 
     // Add separator line
     y += 10;

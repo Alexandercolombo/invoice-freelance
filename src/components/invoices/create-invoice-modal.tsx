@@ -17,6 +17,8 @@ import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "../../components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
 import { EditInvoiceModal } from "./edit-invoice-modal";
+import { useToast } from "@/hooks/use-toast";
+import { InvoicePreviewModal } from "./invoice-preview-modal";
 
 type CreateInvoiceModalProps = {
   isOpen: boolean;
@@ -36,6 +38,7 @@ export function CreateInvoiceModal({
   tasks,
   clients,
 }: CreateInvoiceModalProps) {
+  const { toast } = useToast();
   const [step, setStep] = useState<Step>("summary");
   const [showDueDate, setShowDueDate] = useState(false);
   const [dueDate, setDueDate] = useState<Date>(new Date());
@@ -51,6 +54,7 @@ export function CreateInvoiceModal({
     status: "draft" | "sent" | "paid";
   } | null>(null);
   const createInvoice = useMutation(api.invoices.createInvoice);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   const selectedTasksArray = tasks.filter((task) => selectedTasks.has(task._id));
   const groupedTasks = selectedTasksArray.reduce((acc, task) => {
@@ -77,6 +81,7 @@ export function CreateInvoiceModal({
   );
 
   const handleSubmit = async () => {
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       const clientId = selectedTasksArray[0]?.clientId;
@@ -85,23 +90,32 @@ export function CreateInvoiceModal({
       }
 
       const result = await createInvoice({
-        taskIds: Array.from(selectedTasks),
         clientId,
+        taskIds: Array.from(selectedTasks),
         date: new Date().toISOString(),
         dueDate: showDueDate ? dueDate.toISOString() : undefined,
-        tax: showTax ? tax : 0,
+        tax: showTax ? Number(tax) : 0,
         notes,
       });
-
-      setCreatedInvoice({
-        _id: result._id,
-        dueDate: result.dueDate,
-        tax: result.tax,
-        notes: result.notes,
-        status: result.status,
+      
+      setCreatedInvoice(result);
+      // Show success toast
+      toast({
+        title: "Invoice created successfully",
+        description: "Your invoice has been created and is ready to view.",
+        variant: "default",
       });
+      
+      // Close the create modal and show preview
+      onClose();
+      setShowPreviewModal(true);
     } catch (error) {
       console.error("Failed to create invoice:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create invoice. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -390,10 +404,10 @@ export function CreateInvoiceModal({
       </Dialog>
 
       {createdInvoice && (
-        <EditInvoiceModal
-          isOpen={true}
-          onClose={() => setCreatedInvoice(null)}
-          invoice={createdInvoice}
+        <InvoicePreviewModal
+          invoiceId={createdInvoice._id}
+          open={showPreviewModal}
+          onOpenChange={setShowPreviewModal}
         />
       )}
     </>

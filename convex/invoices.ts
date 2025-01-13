@@ -44,6 +44,7 @@ export const createInvoice = mutation({
     dueDate: v.optional(v.string()),
     tax: v.number(),
     notes: v.optional(v.string()),
+    number: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await getUser(ctx);
@@ -63,9 +64,25 @@ export const createInvoice = mutation({
     const subtotal = validTasks.reduce((sum, task) => sum + (task.amount ?? 0), 0);
     const total = subtotal + (subtotal * args.tax / 100);
 
+    // Get the latest invoice number for this user
+    const latestInvoice = await ctx.db
+      .query("invoices")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .order("desc")
+      .first();
+
+    // Generate next invoice number
+    let nextNumber;
+    if (args.number) {
+      nextNumber = args.number;
+    } else {
+      const lastNumber = latestInvoice ? parseInt(latestInvoice.number) : 0;
+      nextNumber = String(lastNumber + 1).padStart(3, '0');
+    }
+
     // Create invoice
     const invoiceId = await ctx.db.insert("invoices", {
-      number: new Date().getTime().toString(), // Simple number generation
+      number: nextNumber,
       date: args.date,
       dueDate: args.dueDate,
       clientId: args.clientId,
@@ -248,6 +265,7 @@ export const updateInvoice = mutation({
     tax: v.number(),
     notes: v.optional(v.string()),
     status: v.union(v.literal("draft"), v.literal("sent"), v.literal("paid")),
+    number: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await getUser(ctx);
@@ -266,6 +284,7 @@ export const updateInvoice = mutation({
       total,
       notes: args.notes,
       status: args.status,
+      number: args.number ?? invoice.number,
       updatedAt: new Date().toISOString(),
     });
 

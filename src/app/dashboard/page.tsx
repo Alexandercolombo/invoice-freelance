@@ -47,7 +47,7 @@ export default function DashboardPage() {
   if (!tasks || !clients.clients) {
     return (
       <div className="space-y-8">
-        <div className="flex justify-between items-center opacity-0 animate-in fade-in duration-500">
+        <div className="flex justify-between items-center animate-in fade-in duration-500">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
             Dashboard
           </h1>
@@ -68,14 +68,14 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <nav className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 opacity-0 animate-in fade-in slide-in-from-top-4 duration-500">
+      <nav className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 animate-in fade-in slide-in-from-top-4 duration-500">
         <Home className="w-4 h-4" />
         <span>/</span>
         <span className="text-gray-900 dark:text-white">Dashboard</span>
       </nav>
 
       <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
-        <div className="flex flex-col space-y-1 opacity-0 animate-in fade-in slide-in-from-left-4 duration-500">
+        <div className="flex flex-col space-y-1 animate-in fade-in slide-in-from-left-4 duration-500">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
             Dashboard
           </h1>
@@ -84,7 +84,7 @@ export default function DashboardPage() {
           </p>
         </div>
         
-        <div className="flex items-center space-x-3 opacity-0 animate-in fade-in slide-in-from-right-4 duration-500">
+        <div className="flex items-center space-x-3 animate-in fade-in slide-in-from-right-4 duration-500">
           <Button variant="outline" size="sm" className="group">
             <Filter className="w-4 h-4 mr-2 transition-transform group-hover:scale-110" />
             Filter
@@ -107,11 +107,11 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="opacity-0 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
         <DashboardStats />
       </div>
 
-      <div className="opacity-0 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">Unbilled Tasks</h2>
           {tasks.length > 0 && selectedTasks.size === 0 && (
@@ -151,7 +151,7 @@ export default function DashboardPage() {
                 return (
                   <div
                     key={task._id}
-                    className={`opacity-0 animate-in fade-in slide-in-from-bottom-4 duration-500`}
+                    className="animate-in fade-in slide-in-from-bottom-4 duration-500"
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
                     <Card 
@@ -205,7 +205,7 @@ export default function DashboardPage() {
             <AnimatePresence>
               {selectedTasks.size > 0 && (
                 <div
-                  className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 opacity-0 animate-in fade-in slide-in-from-bottom-8 duration-500"
+                  className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-8 duration-500"
                 >
                   <Card className="p-6 shadow-2xl bg-gradient-to-r from-primary to-primary/90 text-primary-foreground backdrop-blur-sm">
                     <div className="flex items-center space-x-8">

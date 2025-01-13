@@ -21,11 +21,17 @@ type EditInvoiceModalProps = {
   onClose: () => void;
   invoice: {
     _id: Id<"invoices">;
+    number: string;
+    date: string;
     dueDate?: string;
     tax?: number;
     notes?: string;
     status: "draft" | "sent" | "paid";
-    number: string;
+    total: number;
+    client?: {
+      name: string;
+      email: string;
+    } | null;
   };
 };
 

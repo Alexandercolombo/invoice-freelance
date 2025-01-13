@@ -13,16 +13,25 @@ import { EditInvoiceModal } from "@/components/invoices/edit-invoice-modal";
 import { Id } from "../../../convex/_generated/dataModel";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
+type Invoice = {
+  _id: Id<"invoices">;
+  number: string;
+  date: string;
+  dueDate?: string;
+  status: "draft" | "sent" | "paid";
+  total: number;
+  tax?: number;
+  notes?: string;
+  client?: {
+    name: string;
+    email: string;
+  } | null;
+};
+
 export default function InvoicesPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState<Set<Id<"tasks_v2">>>(new Set());
-  const [editingInvoice, setEditingInvoice] = useState<{
-    _id: Id<"invoices">;
-    dueDate?: string;
-    tax?: number;
-    notes?: string;
-    status: "draft" | "sent" | "paid";
-  } | null>(null);
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   
   const deleteInvoice = useMutation(api.invoices.deleteInvoice);
   
@@ -72,63 +81,39 @@ export default function InvoicesPage() {
                 <h3 className="font-semibold">{invoice.number}</h3>
                 <p className="text-sm text-gray-500">{invoice.client?.name}</p>
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`px-2 py-1 text-xs rounded-full ${
-                  invoice.status === "paid" 
-                    ? "bg-green-100 text-green-800"
-                    : invoice.status === "sent"
-                    ? "bg-blue-100 text-blue-800"
-                    : "bg-gray-100 text-gray-800"
-                }`}>
-                  {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
-                </span>
-                <div className="flex gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-1"
-                    onClick={() => setEditingInvoice({
-                      _id: invoice._id,
-                      dueDate: invoice.dueDate,
-                      tax: invoice.tax,
-                      notes: invoice.notes,
-                      status: invoice.status,
-                    })}
-                  >
-                    <Pencil className="h-3 w-3" />
-                    Edit
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-1 text-red-600 hover:bg-red-50"
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditingInvoice(invoice)}
+                >
+                  <Pencil className="w-4 h-4" />
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Invoice</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete this invoice? This action cannot be undone.
+                        The tasks associated with this invoice will be marked as unbilled.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-red-600 hover:bg-red-700"
+                        onClick={() => deleteInvoice({ id: invoice._id })}
                       >
-                        <Trash2 className="h-3 w-3" />
                         Delete
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Invoice</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete this invoice? This action cannot be undone.
-                          The tasks associated with this invoice will be marked as unbilled.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          className="bg-red-600 hover:bg-red-700"
-                          onClick={() => deleteInvoice({ id: invoice._id })}
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
             <div className="space-y-2">

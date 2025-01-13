@@ -66,22 +66,20 @@ export async function GET(
     // Add header background - making it more subtle
     drawRect(doc, 0, 0, pageWidth, 12, "#F9FAFB");
 
-    // Simplify invoice number format
-    const invoiceDate = new Date(invoice.date);
-    const yearMonth = `${invoiceDate.getFullYear()}${String(invoiceDate.getMonth() + 1).padStart(2, '0')}`;
+    // Simplify invoice number to just use the sequential number
     const simpleNumber = String(parseInt(invoice.number.split('-').pop() || '1')).padStart(3, '0');
-    const formattedNumber = `${yearMonth}-${simpleNumber}`;
+    const formattedNumber = simpleNumber; // Just use the simple sequential number
     
     // Add business info with better styling
-    doc.setFontSize(20); // Reduced from 24
+    doc.setFontSize(20);
     doc.setTextColor(31, 41, 55);
     doc.text(convexUser.businessName || '', margin, y + 15);
 
     // Add "INVOICE" text with more subtle styling
-    doc.setFontSize(12); // Reduced from 14
-    doc.setTextColor(107, 114, 128); // More subtle color
+    doc.setFontSize(12);
+    doc.setTextColor(107, 114, 128);
     doc.text("INVOICE", pageWidth - margin - 35, y + 15);
-    doc.setFontSize(10); // Reduced from 12
+    doc.setFontSize(10);
     doc.text(`#${formattedNumber}`, pageWidth - margin - 35, y + 22);
 
     // Add business details with better spacing

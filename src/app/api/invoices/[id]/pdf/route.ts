@@ -91,165 +91,164 @@ export async function GET(
 
       const pageWidth = doc.internal.pageSize.width;
       const pageHeight = doc.internal.pageSize.height;
-      const margin = 30;  // Even larger margins for a more premium look
-      let y = 35;  // Start content lower
+      const margin = 20;  // Reduced margins
+      let y = 25;  // Start content higher
 
       // Add sophisticated header design
-      drawRect(doc, 0, 0, pageWidth, 50, "#F8FAFC");  // Taller header
-      drawLine(doc, 0, 50, pageWidth, 50, "#E2E8F0");
+      drawRect(doc, 0, 0, pageWidth, 35, "#F8FAFC");  // Shorter header
+      drawLine(doc, 0, 35, pageWidth, 35, "#E2E8F0");
       
       // Business branding section
-      setTextStyle(doc, 28, "#1E293B");  // Larger, darker business name
+      setTextStyle(doc, 20, "#1E293B");  // Smaller business name
       doc.text(convexUser.businessName || 'Business Name', margin, y);
       
       // Invoice details in top right
       const rightCol = pageWidth - margin;
-      setTextStyle(doc, 16, "#475569");
-      doc.text("INVOICE", rightCol - 45, y);
-      setTextStyle(doc, 14, "#64748B");
-      doc.text(`#${invoice.number}`, rightCol - 45, y + 8);
+      setTextStyle(doc, 14, "#475569");
+      doc.text("INVOICE", rightCol - 35, y);
+      setTextStyle(doc, 12, "#64748B");
+      doc.text(`#${invoice.number}`, rightCol - 35, y + 6);
 
       // Business details with refined typography
-      y += 45;  // More spacing after header
-      setTextStyle(doc, 11, "#64748B");
+      y += 25;  // Less spacing after header
+      setTextStyle(doc, 10, "#64748B");
       doc.text(convexUser.email || '', margin, y);
       if (convexUser.address) {
-        y += 7;
+        y += 5;
         const addressLines = convexUser.address.split('\n');
         addressLines.forEach((line) => {
           doc.text(line.trim(), margin, y);
-          y += 7;
+          y += 5;
         });
       }
 
       // Client section with enhanced layout
-      const clientSectionY = y + 15;
-      drawRect(doc, margin - 5, clientSectionY - 8, pageWidth - (2 * margin) + 10, 50, "#F8FAFC");
+      const clientSectionY = y + 10;
+      drawRect(doc, margin - 5, clientSectionY - 6, pageWidth - (2 * margin) + 10, 35, "#F8FAFC");
       
-      setTextStyle(doc, 12, "#475569");
+      setTextStyle(doc, 11, "#475569");
       doc.text("BILL TO", margin, clientSectionY + 5);
-      setTextStyle(doc, 14, "#1E293B");
-      doc.text(invoice.client?.name || 'Client Name', margin, clientSectionY + 15);
-      setTextStyle(doc, 11, "#64748B");
+      setTextStyle(doc, 12, "#1E293B");
+      doc.text(invoice.client?.name || 'Client Name', margin, clientSectionY + 12);
+      setTextStyle(doc, 10, "#64748B");
       if (invoice.client?.email) {
-        doc.text(invoice.client.email, margin, clientSectionY + 25);
+        doc.text(invoice.client.email, margin, clientSectionY + 19);
       }
 
       // Dates section with improved alignment
-      y = clientSectionY + 65;
+      y = clientSectionY + 45;
       const dateGrid = {
         col1: margin,
-        col2: margin + 45,
-        col3: pageWidth - margin - 90,
-        col4: pageWidth - margin - 30
+        col2: margin + 35,
+        col3: margin + 90,
+        col4: margin + 125
       };
 
-      setTextStyle(doc, 11, "#64748B");
+      setTextStyle(doc, 10, "#64748B");
       doc.text("Invoice Date:", dateGrid.col1, y);
-      setTextStyle(doc, 11, "#1E293B");
+      setTextStyle(doc, 10, "#1E293B");
       doc.text(new Date(invoice.date).toLocaleDateString(), dateGrid.col2, y);
 
       if (invoice.dueDate) {
-        setTextStyle(doc, 11, "#64748B");
+        setTextStyle(doc, 10, "#64748B");
         doc.text("Due Date:", dateGrid.col3, y);
-        setTextStyle(doc, 11, "#1E293B");
+        setTextStyle(doc, 10, "#1E293B");
         doc.text(new Date(invoice.dueDate).toLocaleDateString(), dateGrid.col4, y);
       }
 
       // Enhanced table styling
-      y += 20;
-      drawRect(doc, margin - 5, y - 8, pageWidth - (2 * margin) + 10, 16, "#F1F5F9");
+      y += 15;
+      drawRect(doc, margin - 5, y - 6, pageWidth - (2 * margin) + 10, 12, "#F1F5F9");
       
       const tableHeaders = ['Description', 'Hours', 'Rate', 'Amount'];
       const colWidths = [
-        pageWidth - 200,  // Even wider description column
-        40,
-        60,
-        60
+        pageWidth - 160,  // Adjusted column widths
+        30,
+        45,
+        45
       ];
       
-      setTextStyle(doc, 12, "#475569");
+      setTextStyle(doc, 11, "#475569");
       let x = margin;
       tableHeaders.forEach((header, i) => {
-        if (i === 0) {
-          doc.text(header, x, y);
-        } else {
-          doc.text(header, x + colWidths[i], y, { align: 'right' });
-        }
+        const xPos = i === 0 ? x : x + colWidths[i];
+        doc.text(header, xPos, y, { align: i === 0 ? 'left' : 'right' });
         x += colWidths[i];
       });
 
       // Table content with zebra striping
-      y += 15;
-      setTextStyle(doc, 11, "#334155");
+      y += 12;
+      setTextStyle(doc, 10, "#334155");
       const validTasks = (invoice.tasks || []).filter((task): task is NonNullable<typeof task> => task !== null);
       validTasks.forEach((task, index) => {
         if (index % 2 === 1) {
-          drawRect(doc, margin - 5, y - 6, pageWidth - (2 * margin) + 10, 12, "#F8FAFC");
+          drawRect(doc, margin - 5, y - 5, pageWidth - (2 * margin) + 10, 10, "#F8FAFC");
         }
 
         const hourlyRate = invoice.client?.hourlyRate || 0;
         const amount = task.hours * hourlyRate;
         
         x = margin;
-        doc.text(task.description || '', x, y, { maxWidth: colWidths[0] - 10 });
+        // Split description into words and join with space to prevent vertical text
+        const description = (task.description || '').split('').join(' ');
+        doc.text(description, x, y, { maxWidth: colWidths[0] - 5 });
         x += colWidths[0];
         
         ['hours', hourlyRate, amount].forEach((value, i) => {
-          doc.text(
-            i === 0 ? value.toString() : formatCurrency(value as number),
-            x + colWidths[i + 1],
-            y,
-            { align: 'right' }
-          );
+          const text = i === 0 ? value.toString() : formatCurrency(value as number);
+          doc.text(text, x + colWidths[i + 1], y, { align: 'right' });
           x += colWidths[i + 1];
         });
         
-        y += 12;
+        y += 10;
       });
 
       // Premium total section
-      y += 10;
-      const totalWidth = 130;
+      y += 8;
+      const totalWidth = 110;
       const totalX = pageWidth - margin - totalWidth;
-      drawRect(doc, totalX, y - 8, totalWidth, 30, "#F1F5F9");
+      drawRect(doc, totalX, y - 6, totalWidth, 20, "#F1F5F9");
       
-      setTextStyle(doc, 14, "#475569");
-      doc.text("Total:", totalX + 15, y + 8);
-      setTextStyle(doc, 16, "#1E293B");
-      doc.text(formatCurrency(invoice.total), pageWidth - margin - 15, y + 8, { align: 'right' });
+      setTextStyle(doc, 12, "#475569");
+      doc.text("Total:", totalX + 10, y + 5);
+      setTextStyle(doc, 14, "#1E293B");
+      doc.text(formatCurrency(invoice.total), pageWidth - margin - 10, y + 5, { align: 'right' });
 
       // Elegant payment instructions
       if (convexUser.paymentInstructions) {
-        y += 50;
-        drawRect(doc, margin - 5, y - 8, pageWidth - (2 * margin) + 10, 55, "#F0F9FF");
+        y += 30;
+        drawRect(doc, margin - 5, y - 6, pageWidth - (2 * margin) + 10, 40, "#F0F9FF");
         
-        setTextStyle(doc, 13, "#0369A1");
-        doc.text("Payment Instructions", margin + 15, y + 5);
+        setTextStyle(doc, 11, "#0369A1");
+        doc.text("Payment Instructions", margin + 10, y + 5);
         
-        setTextStyle(doc, 11, "#334155");
-        const maxWidth = pageWidth - (2 * margin) - 30;
-        doc.text(convexUser.paymentInstructions, margin + 15, y + 20, { maxWidth });
+        setTextStyle(doc, 10, "#334155");
+        const maxWidth = pageWidth - (2 * margin) - 20;
+        // Split instructions into words and join with space to prevent vertical text
+        const instructions = convexUser.paymentInstructions.split('').join(' ');
+        doc.text(instructions, margin + 10, y + 15, { maxWidth });
       }
 
       // Professional notes section
       if (invoice.notes) {
-        y += 70;
-        setTextStyle(doc, 13, "#475569");
+        y += 50;
+        setTextStyle(doc, 11, "#475569");
         doc.text("Notes", margin, y);
         
-        setTextStyle(doc, 11, "#334155");
-        y += 10;
+        setTextStyle(doc, 10, "#334155");
+        y += 8;
         const maxWidth = pageWidth - (2 * margin);
-        doc.text(invoice.notes, margin, y, { maxWidth });
+        // Split notes into words and join with space to prevent vertical text
+        const notes = invoice.notes.split('').join(' ');
+        doc.text(notes, margin, y, { maxWidth });
       }
 
       // Sophisticated footer
-      const footerY = pageHeight - 25;
-      drawRect(doc, 0, footerY - 8, pageWidth, 33, "#F8FAFC");
-      drawLine(doc, 0, footerY - 8, pageWidth, footerY - 8, "#E2E8F0");
+      const footerY = pageHeight - 20;
+      drawRect(doc, 0, footerY - 6, pageWidth, 26, "#F8FAFC");
+      drawLine(doc, 0, footerY - 6, pageWidth, footerY - 6, "#E2E8F0");
       
-      setTextStyle(doc, 11, "#64748B");
+      setTextStyle(doc, 10, "#64748B");
       doc.text("Thank you for your business", pageWidth / 2, footerY + 5, { align: 'center' });
 
       console.log('Generating PDF output...');

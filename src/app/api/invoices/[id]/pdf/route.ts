@@ -52,6 +52,7 @@ export async function GET(
     client.setAuth(token);
 
     // Fetch invoice data
+    console.log('Fetching invoice:', params.id);
     const invoice = await client.query(api.invoices.getInvoice, { 
       id: params.id as Id<"invoices">
     });
@@ -62,18 +63,22 @@ export async function GET(
     }
 
     // Get user data from Convex
+    console.log('Fetching user data');
     const convexUser = await client.query(api.users.get);
     if (!convexUser) {
       console.error('User not found for ID:', userId);
       return new NextResponse("User not found", { status: 404 });
     }
 
-    // Create PDF document
+    console.log('Creating PDF document');
+    // Create PDF document with explicit settings
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
       format: 'a4',
-      compress: true
+      compress: true,
+      putOnlyUsedFonts: true,
+      floatPrecision: 16
     });
     
     try {
@@ -81,6 +86,7 @@ export async function GET(
       const margin = 20;
       let y = 20;
 
+      console.log('Adding content to PDF');
       // Add header background
       drawRect(doc, 0, 0, pageWidth, 12, "#F9FAFB");
 
@@ -192,7 +198,10 @@ export async function GET(
 
         let x = startX;
         
-        doc.text(task.description || '', x, y);
+        // Ensure text doesn't exceed column width
+        const description = task.description || '';
+        const maxWidth = colWidths[0] - 5; // Leave some padding
+        doc.text(description, x, y, { maxWidth });
         x += colWidths[0];
         
         doc.text(task.hours.toString(), x + colWidths[1], y, { align: 'right' });
@@ -224,7 +233,8 @@ export async function GET(
         y += 12;
         doc.setFontSize(10);
         doc.setTextColor(31, 41, 55);
-        doc.text(convexUser.paymentInstructions, margin + 10, y);
+        const maxWidth = pageWidth - (2 * margin) - 20;
+        doc.text(convexUser.paymentInstructions, margin + 10, y, { maxWidth });
       }
 
       // Add notes
@@ -236,7 +246,8 @@ export async function GET(
         y += 7;
         doc.setFontSize(10);
         doc.setTextColor(31, 41, 55);
-        doc.text(invoice.notes, margin, y);
+        const maxWidth = pageWidth - (2 * margin);
+        doc.text(invoice.notes, margin, y, { maxWidth });
       }
 
       // Add footer
@@ -246,17 +257,20 @@ export async function GET(
       doc.setTextColor(107, 114, 128);
       doc.text("Thank you for your business", pageWidth / 2, footerY, { align: 'center' });
 
-      // Generate PDF - using arraybuffer output type for better compatibility
-      const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
+      console.log('Generating PDF buffer');
+      // Generate PDF buffer using a more reliable method
+      const pdfData = doc.output('arraybuffer');
+      const pdfBuffer = Buffer.from(pdfData);
 
-      // Use NextResponse for better Edge compatibility
+      console.log('Sending PDF response');
       return new NextResponse(pdfBuffer, {
         status: 200,
         headers: {
           'Content-Type': 'application/pdf',
           'Content-Disposition': `attachment; filename="invoice-${invoice.number}.pdf"`,
           'Content-Length': pdfBuffer.length.toString(),
-          'Cache-Control': 'no-store'
+          'Cache-Control': 'no-store, must-revalidate',
+          'Pragma': 'no-cache'
         },
       });
     } catch (error) {

@@ -92,7 +92,7 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
       setIsDownloading(true);
       
       // Get the auth token
-      const token = await session?.getToken();
+      const token = await session?.getToken({ template: "convex" });
       if (!token) {
         throw new Error('Not authenticated');
       }
@@ -106,7 +106,7 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Download failed:', errorText);
-        throw new Error('Failed to generate PDF');
+        throw new Error(errorText || 'Failed to generate PDF');
       }
       
       const blob = await response.blob();

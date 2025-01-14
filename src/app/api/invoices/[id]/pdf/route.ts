@@ -122,17 +122,19 @@ export async function GET(
         });
       }
 
-      // Client section with enhanced layout
-      const clientSectionY = y + 10;
-      drawRect(doc, margin - 5, clientSectionY - 6, pageWidth - (2 * margin) + 10, 35, "#F8FAFC");
+      // Client section with enhanced layout (moved to right side)
+      const clientSectionY = y - 15; // Align with business details
+      const clientBoxWidth = 80;
+      const clientBoxX = pageWidth - margin - clientBoxWidth;
+      drawRect(doc, clientBoxX - 5, clientSectionY - 6, clientBoxWidth + 10, 35, "#F8FAFC");
       
       setTextStyle(doc, 11, "#475569");
-      doc.text("BILL TO", margin, clientSectionY + 5);
+      doc.text("BILL TO", clientBoxX, clientSectionY + 5);
       setTextStyle(doc, 12, "#1E293B");
-      doc.text(invoice.client?.name || 'Client Name', margin, clientSectionY + 12);
+      doc.text(invoice.client?.name || 'Client Name', clientBoxX, clientSectionY + 12);
       setTextStyle(doc, 10, "#64748B");
       if (invoice.client?.email) {
-        doc.text(invoice.client.email, margin, clientSectionY + 19);
+        doc.text(invoice.client.email, clientBoxX, clientSectionY + 19);
       }
 
       // Dates section with improved alignment
@@ -189,9 +191,8 @@ export async function GET(
         const amount = task.hours * hourlyRate;
         
         x = margin;
-        // Split description into words and join with space to prevent vertical text
-        const description = (task.description || '').split('').join(' ');
-        doc.text(description, x, y, { maxWidth: colWidths[0] - 5 });
+        // Keep original text without splitting characters
+        doc.text(task.description || '', x, y, { maxWidth: colWidths[0] - 5 });
         x += colWidths[0];
         
         ['hours', hourlyRate, amount].forEach((value, i) => {
@@ -224,9 +225,8 @@ export async function GET(
         
         setTextStyle(doc, 10, "#334155");
         const maxWidth = pageWidth - (2 * margin) - 20;
-        // Split instructions into words and join with space to prevent vertical text
-        const instructions = convexUser.paymentInstructions.split('').join(' ');
-        doc.text(instructions, margin + 10, y + 15, { maxWidth });
+        // Keep original text without splitting characters
+        doc.text(convexUser.paymentInstructions, margin + 10, y + 15, { maxWidth });
       }
 
       // Professional notes section
@@ -238,9 +238,8 @@ export async function GET(
         setTextStyle(doc, 10, "#334155");
         y += 8;
         const maxWidth = pageWidth - (2 * margin);
-        // Split notes into words and join with space to prevent vertical text
-        const notes = invoice.notes.split('').join(' ');
-        doc.text(notes, margin, y, { maxWidth });
+        // Keep original text without splitting characters
+        doc.text(invoice.notes, margin, y, { maxWidth });
       }
 
       // Sophisticated footer

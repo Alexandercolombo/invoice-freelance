@@ -6,8 +6,8 @@ import { jsPDF } from "jspdf";
 import { Id } from "convex/_generated/dataModel";
 import { auth } from "@clerk/nextjs";
 
-// Force Node.js runtime
-export const runtime = 'nodejs';
+// Force Edge runtime since we're having issues with Node
+export const runtime = 'edge';
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -27,60 +27,45 @@ export async function GET(
   { params }: { params: { id: Id<"invoices"> } }
 ) {
   try {
-    // Get the authorization header
+    // Auth checks remain the same
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.error('No auth token provided');
       return new NextResponse("Unauthorized - No token provided", { status: 401 });
     }
 
-    // Get the current session
     const { userId } = auth();
     if (!userId) {
-      console.error('No user ID found in session');
       return new NextResponse("Unauthorized - No user found", { status: 401 });
     }
 
-    // Get the Convex token from the Authorization header
     const token = authHeader.split(' ')[1];
     if (!token) {
-      console.error('Invalid auth token format');
       return new NextResponse("Unauthorized - Invalid token", { status: 401 });
     }
 
-    // Set up Convex client with auth token
     client.setAuth(token);
 
-    // Fetch invoice data
-    console.log('Fetching invoice:', params.id);
+    // Fetch data
     const invoice = await client.query(api.invoices.getInvoice, { 
       id: params.id as Id<"invoices">
     });
     
     if (!invoice) {
-      console.error('Invoice not found:', params.id);
       return new NextResponse("Invoice not found", { status: 404 });
     }
 
-    // Get user data from Convex
-    console.log('Fetching user data');
     const convexUser = await client.query(api.users.get);
     if (!convexUser) {
-      console.error('User not found for ID:', userId);
       return new NextResponse("User not found", { status: 404 });
     }
 
-    console.log('Creating PDF document');
-    // Create PDF document with explicit settings
+    // Create PDF with minimal settings
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: 'a4',
-      compress: true,
-      putOnlyUsedFonts: true,
-      floatPrecision: 16
+      format: 'a4'
     });
-    
+
     try {
       const pageWidth = doc.internal.pageSize.width;
       const margin = 20;
@@ -257,33 +242,30 @@ export async function GET(
       doc.setTextColor(107, 114, 128);
       doc.text("Thank you for your business", pageWidth / 2, footerY, { align: 'center' });
 
-      console.log('Generating PDF buffer');
-      // Generate PDF buffer using a more reliable method
-      const pdfData = doc.output('arraybuffer');
-      const pdfBuffer = Buffer.from(pdfData);
-
-      console.log('Sending PDF response');
-      return new NextResponse(pdfBuffer, {
+      // Generate PDF data
+      const pdfOutput = doc.output('arraybuffer');
+      
+      // Create response with proper headers
+      return new Response(pdfOutput, {
         status: 200,
         headers: {
           'Content-Type': 'application/pdf',
           'Content-Disposition': `attachment; filename="invoice-${invoice.number}.pdf"`,
-          'Content-Length': pdfBuffer.length.toString(),
-          'Cache-Control': 'no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        },
+          'Content-Length': pdfOutput.byteLength.toString(),
+          'Cache-Control': 'no-store'
+        }
       });
     } catch (error) {
-      console.error('Error generating PDF:', error);
-      return new NextResponse(
-        `Error generating PDF: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      console.error('PDF Generation Error:', error);
+      return new Response(
+        `PDF Generation Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
         { status: 500 }
       );
     }
   } catch (error) {
-    console.error('Unexpected error:', error);
-    return new NextResponse(
-      `Internal server error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    console.error('API Error:', error);
+    return new Response(
+      `API Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
       { status: 500 }
     );
   }

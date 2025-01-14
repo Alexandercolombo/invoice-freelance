@@ -4,7 +4,8 @@ import { api } from "convex/_generated/api";
 import { formatCurrency } from "@/lib/utils";
 import { jsPDF } from "jspdf";
 import { Id } from "convex/_generated/dataModel";
-import { auth, currentUser } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs";
+import { getAuth } from "@clerk/nextjs/server";
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -21,23 +22,26 @@ export async function GET(
   try {
     console.log('Starting PDF generation process...');
 
-    // Get the current user from Clerk
-    const user = await currentUser();
-    if (!user) {
+    // Get auth from Clerk
+    const { userId, getToken } = auth();
+    if (!userId || !getToken) {
       console.log('No user found in session');
       return new NextResponse("Unauthorized - No user found", { status: 401 });
     }
 
-    // Get the authorization header which contains the Convex token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      console.log('Authorization header missing or invalid');
-      return new NextResponse("Unauthorized - No token available", { status: 401 });
+    // Get a fresh Convex token
+    try {
+      const token = await getToken({ template: "convex" });
+      if (!token) {
+        console.log('Failed to get Convex token');
+        return new NextResponse("Unauthorized - Failed to get token", { status: 401 });
+      }
+      console.log('Setting up Convex client with fresh token...');
+      client.setAuth(token);
+    } catch (error) {
+      console.error('Error getting Convex token:', error);
+      return new NextResponse("Unauthorized - Token error", { status: 401 });
     }
-
-    console.log('Setting up Convex client with token...');
-    const token = authHeader.split(' ')[1];
-    client.setAuth(token);
 
     console.log('Fetching invoice data...');
     // Fetch data
@@ -53,7 +57,7 @@ export async function GET(
     console.log('Fetching user data...');
     const convexUser = await client.query(api.users.get);
     if (!convexUser) {
-      console.log('User not found:', user.id);
+      console.log('User not found:', userId);
       return new NextResponse("User not found", { status: 404 });
     }
 

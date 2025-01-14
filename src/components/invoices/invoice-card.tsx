@@ -11,6 +11,7 @@ import { EditInvoiceModal } from './edit-invoice-modal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
+import { useClerk } from '@clerk/clerk-react';
 
 interface InvoiceCardProps {
   invoice: {
@@ -35,11 +36,24 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const deleteInvoice = useMutation(api.invoices.deleteInvoice);
+  const { session } = useClerk();
 
   const handleDownload = async () => {
     try {
       setIsDownloading(true);
-      const response = await fetch(`/api/invoices/${invoice._id}/pdf`);
+      
+      // Get the auth token
+      const token = await session?.getToken();
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+      
+      const response = await fetch(`/api/invoices/${invoice._id}/pdf`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
       if (!response.ok) throw new Error('Failed to generate PDF');
       
       // Create a blob from the PDF stream

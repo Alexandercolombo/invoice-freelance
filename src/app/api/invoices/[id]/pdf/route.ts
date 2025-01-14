@@ -28,32 +28,44 @@ export async function GET(
   { params }: { params: { id: Id<"invoices"> } }
 ) {
   try {
+    // Get the authorization header
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('No auth token provided');
+      return new NextResponse("Unauthorized - No token provided", { status: 401 });
+    }
+
     // Get the current session
-    const { userId, getToken } = auth();
+    const { userId } = auth();
     if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      console.error('No user ID found in session');
+      return new NextResponse("Unauthorized - No user found", { status: 401 });
     }
 
-    // Get the Convex token
-    const token = await getToken({ template: "convex" });
+    // Get the Convex token from the Authorization header
+    const token = authHeader.split(' ')[1];
     if (!token) {
-      return new NextResponse("Failed to get Convex token", { status: 401 });
+      console.error('Invalid auth token format');
+      return new NextResponse("Unauthorized - Invalid token", { status: 401 });
     }
 
+    // Set up Convex client with auth token
     client.setAuth(token);
 
-    // Fetch invoice data first
+    // Fetch invoice data
     const invoice = await client.query(api.invoices.getInvoice, { 
       id: params.id as Id<"invoices">
     });
     
     if (!invoice) {
+      console.error('Invoice not found:', params.id);
       return new NextResponse("Invoice not found", { status: 404 });
     }
 
     // Get user data from Convex
     const convexUser = await client.query(api.users.get);
     if (!convexUser) {
+      console.error('User not found for ID:', userId);
       return new NextResponse("User not found", { status: 404 });
     }
 

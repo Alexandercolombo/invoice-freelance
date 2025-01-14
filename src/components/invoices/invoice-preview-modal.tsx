@@ -31,13 +31,61 @@ interface InvoicePreviewModalProps {
 
 export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePreviewModalProps) {
   const [isDownloading, setIsDownloading] = useState(false);
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
   const { toast } = useToast();
   const { session } = useClerk();
   const user = useQuery(api.users.get);
   const invoice = useQuery(api.invoices.getInvoice, { id: invoiceId });
   const [showSendModal, setShowSendModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+
+  // Handle authentication loading state
+  if (!isLoaded) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <div className="flex flex-col items-center justify-center min-h-[200px] gap-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white" />
+            <p className="text-sm text-gray-500">Loading authentication...</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Handle not authenticated state
+  if (!isSignedIn) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Authentication Required</DialogTitle>
+            <DialogDescription>
+              Please sign in to view invoice details.
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Handle data loading state
+  if (!invoice || !user) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <div className="flex flex-col items-center justify-center min-h-[200px] gap-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white" />
+            <p className="text-sm text-gray-500">
+              {!user && !invoice && "Loading user and invoice data..."}
+              {user && !invoice && "Loading invoice data..."}
+              {!user && invoice && "Loading user data..."}
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   const handleDownload = async () => {
     try {
@@ -55,13 +103,17 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
         },
       });
       
-      if (!response.ok) throw new Error('Failed to generate PDF');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Download failed:', errorText);
+        throw new Error('Failed to generate PDF');
+      }
       
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `invoice-${invoice?.number}.pdf`;
+      link.download = `invoice-${invoice.number}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -75,40 +127,13 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
       console.error('Error downloading invoice:', error);
       toast({
         title: "Error",
-        description: "Failed to download invoice",
+        description: error instanceof Error ? error.message : "Failed to download invoice",
         variant: "destructive",
       });
     } finally {
       setIsDownloading(false);
     }
   };
-
-  if (!isSignedIn || !open) {
-    return null;
-  }
-
-  if (!invoice || !user) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Loading Invoice</DialogTitle>
-            <DialogDescription>
-              {!user ? "Loading user data..." : "Loading invoice details..."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col items-center justify-center min-h-[200px] gap-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white" />
-            <p className="text-sm text-gray-500">
-              {!user && !invoice && "Loading user and invoice data..."}
-              {user && !invoice && "Loading invoice data..."}
-              {!user && invoice && "Loading user data..."}
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   const validTasks = (invoice.tasks || []).filter((task): task is NonNullable<typeof task> => task !== null);
   const dueDate = new Date(invoice.dueDate || new Date());

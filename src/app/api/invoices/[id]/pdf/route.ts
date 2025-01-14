@@ -5,22 +5,32 @@ import { formatCurrency } from "@/lib/utils";
 import { jsPDF } from "jspdf";
 import { Id } from "convex/_generated/dataModel";
 import { auth } from "@clerk/nextjs";
-import { Task } from "@/types";
+
+// Force Node.js runtime
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-export const runtime = 'nodejs';
-
 // Helper functions for styling
 function drawLine(doc: jsPDF, startX: number, startY: number, endX: number, endY: number, color: string = "#E5E7EB") {
-  doc.setDrawColor(color);
-  doc.setLineWidth(0.5);
-  doc.line(startX, startY, endX, endY);
+  try {
+    doc.setDrawColor(color);
+    doc.setLineWidth(0.5);
+    doc.line(startX, startY, endX, endY);
+  } catch (error) {
+    console.error('Error in drawLine:', error);
+  }
 }
 
 function drawRect(doc: jsPDF, x: number, y: number, width: number, height: number, color: string = "#F9FAFB") {
-  doc.setFillColor(color);
-  doc.rect(x, y, width, height, "F");
+  try {
+    doc.setFillColor(color);
+    doc.rect(x, y, width, height, "F");
+  } catch (error) {
+    console.error('Error in drawRect:', error);
+  }
 }
 
 export async function GET(
@@ -75,30 +85,37 @@ export async function GET(
 
     // Create PDF document
     console.log('Creating PDF document');
-    const doc = new jsPDF();
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'pt',
+      format: 'a4',
+      putOnlyUsedFonts: true,
+      compress: true
+    });
     
     try {
       const pageWidth = doc.internal.pageSize.width;
-      const margin = 20;
-      let y = 20;
+      const margin = 40; // Increased margin for better readability
+      let y = 40;
 
       // Add header background
-      drawRect(doc, 0, 0, pageWidth, 12, "#F9FAFB");
+      drawRect(doc, 0, 0, pageWidth, 24, "#F9FAFB");
 
       // Format invoice number
       const formattedNumber = invoice.number || 'N/A';
       
       // Add business info - handle potential undefined values
-      doc.setFontSize(20);
+      doc.setFontSize(24);
       doc.setTextColor(31, 41, 55);
-      doc.text(convexUser.businessName || 'Business Name', margin, y + 15);
+      const businessName = convexUser.businessName || 'Business Name';
+      doc.text(businessName, margin, y + 15);
 
       // Add invoice text
-      doc.setFontSize(12);
+      doc.setFontSize(14);
       doc.setTextColor(107, 114, 128);
-      doc.text("INVOICE", pageWidth - margin - 35, y + 15);
-      doc.setFontSize(10);
-      doc.text(`#${formattedNumber}`, pageWidth - margin - 35, y + 22);
+      doc.text("INVOICE", pageWidth - margin - 70, y + 15);
+      doc.setFontSize(12);
+      doc.text(`#${formattedNumber}`, pageWidth - margin - 70, y + 30);
 
       // Add business details
       y += 30;
@@ -262,12 +279,14 @@ export async function GET(
       doc.text("Thank you for your business", pageWidth / 2, footerY, { align: 'center' });
 
       console.log('PDF generated successfully');
-      const pdfBuffer = doc.output('arraybuffer');
+      const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
+      
       return new NextResponse(pdfBuffer, {
         status: 200,
         headers: {
           'Content-Type': 'application/pdf',
           'Content-Disposition': `attachment; filename="invoice-${formattedNumber}.pdf"`,
+          'Cache-Control': 'no-store'
         },
       });
     } catch (error) {

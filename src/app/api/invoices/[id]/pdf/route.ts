@@ -54,6 +54,7 @@ export async function GET(
       client.setAuth(token);
 
       // Fetch invoice data
+      console.log('Fetching invoice:', params.id);
       const invoice = await client.query(api.invoices.getInvoice, { 
         id: params.id as Id<"invoices">
       });
@@ -62,15 +63,19 @@ export async function GET(
         console.error('Invoice not found:', params.id);
         return new NextResponse("Invoice not found", { status: 404 });
       }
+      console.log('Invoice fetched successfully');
 
       // Get user data from Convex
+      console.log('Fetching user data');
       const convexUser = await client.query(api.users.get);
       if (!convexUser) {
         console.error('User not found for ID:', userId);
         return new NextResponse("User not found", { status: 404 });
       }
+      console.log('User data fetched successfully');
 
       // Create PDF document
+      console.log('Creating PDF document');
       const doc = new jsPDF();
       
       try {
@@ -82,12 +87,12 @@ export async function GET(
         drawRect(doc, 0, 0, pageWidth, 12, "#F9FAFB");
 
         // Format invoice number
-        const formattedNumber = invoice.number;
+        const formattedNumber = invoice.number || 'N/A';
         
-        // Add business info
+        // Add business info - handle potential undefined values
         doc.setFontSize(20);
         doc.setTextColor(31, 41, 55);
-        doc.text(convexUser.businessName || '', margin, y + 15);
+        doc.text(convexUser.businessName || 'Business Name', margin, y + 15);
 
         // Add invoice text
         doc.setFontSize(12);
@@ -96,25 +101,29 @@ export async function GET(
         doc.setFontSize(10);
         doc.text(`#${formattedNumber}`, pageWidth - margin - 35, y + 22);
 
-        // Add business details with better spacing
-        y += 30; // Reduced from 35
+        // Add business details
+        y += 30;
         doc.setFontSize(10);
         doc.setTextColor(107, 114, 128);
         doc.text(convexUser.email || '', margin, y);
         if (convexUser.address) {
           y += 5;
-          doc.text(convexUser.address, margin, y);
+          const addressLines = convexUser.address.split('\n');
+          addressLines.forEach((line) => {
+            doc.text(line.trim(), margin, y);
+            y += 5;
+          });
         }
 
-        // Add client info with better alignment
-        y = 50; // Adjusted for better spacing
+        // Add client info
+        y = 50;
         doc.setTextColor(107, 114, 128);
         doc.setFontSize(10);
         doc.text("BILL TO", pageWidth - margin - 80, y);
         y += 7;
         doc.setFontSize(11);
         doc.setTextColor(31, 41, 55);
-        doc.text(invoice.client?.name || '', pageWidth - margin - 80, y);
+        doc.text(invoice.client?.name || 'Client Name', pageWidth - margin - 80, y);
         y += 6;
         doc.setFontSize(10);
         doc.setTextColor(107, 114, 128);
@@ -122,26 +131,27 @@ export async function GET(
           doc.text(invoice.client.email, pageWidth - margin - 80, y);
         }
 
-        // Add dates with cleaner layout
-        y += 20; // Reduced spacing
+        // Add dates
+        y += 20;
         doc.setFontSize(10);
         const dateCol1 = margin;
-        const dateCol2 = margin + 40; // Reduced spacing
+        const dateCol2 = margin + 40;
         const dateCol3 = pageWidth - margin - 80;
         const dateCol4 = pageWidth - margin - 25;
 
-        // Date section with better alignment
+        // Date section
         doc.setTextColor(107, 114, 128);
         doc.text("Date:", dateCol1, y);
         doc.setTextColor(31, 41, 55);
-        doc.text(new Date(invoice.date).toLocaleDateString(), dateCol2, y);
+        const formattedDate = new Date(invoice.date).toLocaleDateString();
+        doc.text(formattedDate, dateCol2, y);
 
-        // Only show due date if it exists
         if (invoice.dueDate) {
           doc.setTextColor(107, 114, 128);
           doc.text("Due Date:", dateCol3, y);
           doc.setTextColor(31, 41, 55);
-          doc.text(new Date(invoice.dueDate).toLocaleDateString(), dateCol4, y);
+          const formattedDueDate = new Date(invoice.dueDate).toLocaleDateString();
+          doc.text(formattedDueDate, dateCol4, y);
         }
 
         // Add separator line with subtle color
@@ -252,7 +262,7 @@ export async function GET(
         doc.setTextColor(107, 114, 128);
         doc.text("Thank you for your business", pageWidth / 2, footerY, { align: 'center' });
 
-        // Generate and return PDF
+        console.log('PDF generated successfully');
         const pdfBuffer = doc.output('arraybuffer');
         return new NextResponse(pdfBuffer, {
           status: 200,
@@ -263,14 +273,20 @@ export async function GET(
         });
       } catch (pdfError) {
         console.error('Error generating PDF:', pdfError);
-        return new NextResponse("Error generating PDF", { status: 500 });
+        return new NextResponse(`Error generating PDF: ${pdfError instanceof Error ? pdfError.message : 'Unknown error'}`, { status: 500 });
+      } catch (convexError) {
+        console.error('Convex API error:', convexError);
+        return new NextResponse(`Error fetching data: ${convexError instanceof Error ? convexError.message : 'Unknown error'}`, { status: 500 });
+      } catch (error) {
+        console.error('Unexpected error in PDF generation:', error);
+        return new NextResponse(`Internal server error: ${error instanceof Error ? error.message : 'Unknown error'}`, { status: 500 });
       }
-    } catch (convexError) {
-      console.error('Convex API error:', convexError);
-      return new NextResponse("Error fetching data", { status: 500 });
+    } catch (error) {
+      console.error('Unexpected error in PDF generation:', error);
+      return new NextResponse(`Internal server error: ${error instanceof Error ? error.message : 'Unknown error'}`, { status: 500 });
     }
   } catch (error) {
     console.error('Unexpected error in PDF generation:', error);
-    return new NextResponse("Internal server error", { status: 500 });
+    return new NextResponse(`Internal server error: ${error instanceof Error ? error.message : 'Unknown error'}`, { status: 500 });
   }
 } 

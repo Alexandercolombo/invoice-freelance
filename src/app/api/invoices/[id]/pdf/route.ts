@@ -4,8 +4,7 @@ import { api } from "convex/_generated/api";
 import { formatCurrency } from "@/lib/utils";
 import { jsPDF } from "jspdf";
 import { Id } from "convex/_generated/dataModel";
-import { auth } from "@clerk/nextjs";
-import { getAuth } from "@clerk/nextjs/server";
+import { clerkClient, auth } from "@clerk/nextjs";
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -23,23 +22,32 @@ export async function GET(
     console.log('Starting PDF generation process...');
 
     // Get auth from Clerk
-    const { userId, getToken } = auth();
-    if (!userId || !getToken) {
+    const { userId } = auth();
+    if (!userId) {
       console.log('No user found in session');
       return new NextResponse("Unauthorized - No user found", { status: 401 });
     }
 
-    // Get a fresh Convex token
+    // Get the user from Clerk
+    const user = await clerkClient.users.getUser(userId);
+    if (!user) {
+      console.log('User not found in Clerk');
+      return new NextResponse("Unauthorized - User not found", { status: 401 });
+    }
+
+    // Get a Convex token using the session token from the request
     try {
-      const token = await getToken({ template: "convex" });
-      if (!token) {
-        console.log('Failed to get Convex token');
-        return new NextResponse("Unauthorized - Failed to get token", { status: 401 });
+      const authHeader = request.headers.get('authorization');
+      if (!authHeader?.startsWith('Bearer ')) {
+        console.log('No authorization header found');
+        return new NextResponse("Unauthorized - No token", { status: 401 });
       }
-      console.log('Setting up Convex client with fresh token...');
+
+      const token = authHeader.split(' ')[1];
+      console.log('Setting up Convex client with token...');
       client.setAuth(token);
     } catch (error) {
-      console.error('Error getting Convex token:', error);
+      console.error('Error setting up Convex client:', error);
       return new NextResponse("Unauthorized - Token error", { status: 401 });
     }
 

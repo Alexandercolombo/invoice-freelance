@@ -15,13 +15,13 @@ const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 // Helper functions for PDF styling
 function drawLine(doc: jsPDF, startX: number, startY: number, endX: number, endY: number, color: string = "#E5E7EB") {
   doc.setDrawColor(color);
-  doc.setLineWidth(0.5);
+  doc.setLineWidth(0.2);  // Thinner, more elegant lines
   doc.line(startX, startY, endX, endY);
 }
 
 function drawRect(doc: jsPDF, x: number, y: number, width: number, height: number, color: string = "#F9FAFB") {
   doc.setFillColor(color);
-  doc.rect(x, y, width, height, "F");
+  doc.roundedRect(x, y, width, height, 1, 1, "F");  // Rounded corners for modern look
 }
 
 export async function GET(
@@ -78,56 +78,58 @@ export async function GET(
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4',
-        putOnlyUsedFonts: true
+        putOnlyUsedFonts: true,
+        compress: true
       });
 
       const pageWidth = doc.internal.pageSize.width;
-      const margin = 20;
-      let y = 20;
+      const margin = 25;  // Increased margins for better whitespace
+      let y = 25;  // Start content slightly lower
 
-      // Add header background
-      drawRect(doc, 0, 0, pageWidth, 12, "#F9FAFB");
+      // Add header background with gradient effect
+      drawRect(doc, 0, 0, pageWidth, 15, "#F3F4F6");
+      drawLine(doc, 0, 15, pageWidth, 15, "#E5E7EB");
 
-      // Add business info
-      doc.setFontSize(20);
-      doc.setTextColor(31, 41, 55);
+      // Add business info with improved typography
+      doc.setFontSize(24);  // Larger business name
+      doc.setTextColor(17, 24, 39);  // Darker text for better contrast
       doc.text(convexUser.businessName || 'Business Name', margin, y + 15);
 
-      // Add invoice text
+      // Add invoice text with better positioning
+      doc.setFontSize(14);
+      doc.setTextColor(75, 85, 99);
+      doc.text("INVOICE", pageWidth - margin - 40, y + 15);
       doc.setFontSize(12);
-      doc.setTextColor(107, 114, 128);
-      doc.text("INVOICE", pageWidth - margin - 35, y + 15);
-      doc.setFontSize(10);
-      doc.text(`#${invoice.number}`, pageWidth - margin - 35, y + 22);
+      doc.text(`#${invoice.number}`, pageWidth - margin - 40, y + 22);
 
-      // Add business details
-      y += 30;
+      // Add business details with improved spacing
+      y += 35;
       doc.setFontSize(10);
-      doc.setTextColor(107, 114, 128);
+      doc.setTextColor(75, 85, 99);
       doc.text(convexUser.email || '', margin, y);
       if (convexUser.address) {
-        y += 5;
+        y += 6;  // Increased line spacing
         const addressLines = convexUser.address.split('\n');
         addressLines.forEach((line) => {
           doc.text(line.trim(), margin, y);
-          y += 5;
+          y += 6;
         });
       }
 
-      // Add client info
-      y = 50;
-      doc.setTextColor(107, 114, 128);
-      doc.setFontSize(10);
-      doc.text("BILL TO", pageWidth - margin - 80, y);
-      y += 7;
+      // Add client info with better visual hierarchy
+      y = 55;
+      doc.setTextColor(75, 85, 99);
       doc.setFontSize(11);
-      doc.setTextColor(31, 41, 55);
-      doc.text(invoice.client?.name || 'Client Name', pageWidth - margin - 80, y);
-      y += 6;
+      doc.text("BILL TO", pageWidth - margin - 85, y);
+      y += 8;
+      doc.setFontSize(12);
+      doc.setTextColor(17, 24, 39);
+      doc.text(invoice.client?.name || 'Client Name', pageWidth - margin - 85, y);
+      y += 7;
       doc.setFontSize(10);
-      doc.setTextColor(107, 114, 128);
+      doc.setTextColor(75, 85, 99);
       if (invoice.client?.email) {
-        doc.text(invoice.client.email, pageWidth - margin - 80, y);
+        doc.text(invoice.client.email, pageWidth - margin - 85, y);
       }
 
       // Add dates
@@ -157,20 +159,20 @@ export async function GET(
 
       // Add table header
       y += 15;
-      drawRect(doc, margin, y - 5, pageWidth - (2 * margin), 12, "#F9FAFB");
+      drawRect(doc, margin, y - 6, pageWidth - (2 * margin), 14, "#F8FAFC");  // Lighter background
       
       // Table headers
       const tableHeaders = ['Description', 'Hours', 'Rate', 'Amount'];
       const colWidths = [
-        pageWidth - 180,
-        30,
-        50,
-        50
+        pageWidth - 190,  // Wider description column
+        35,
+        55,
+        55
       ];
-      const startX = margin;
+      const startX = margin + 5;  // Add padding to first column
       
-      doc.setFontSize(10);
-      doc.setTextColor(107, 114, 128);
+      doc.setFontSize(11);  // Slightly larger headers
+      doc.setTextColor(51, 65, 85);  // Slate-600 for better contrast
       
       // Draw table headers
       tableHeaders.forEach((header, i) => {
@@ -213,46 +215,47 @@ export async function GET(
         y += 12;
       });
 
-      // Add total section
-      y += 5;
-      drawRect(doc, pageWidth - margin - 100, y - 5, 100, 20, "#F9FAFB");
-      doc.setFontSize(12);
-      doc.setTextColor(31, 41, 55);
-      doc.text("Total:", pageWidth - margin - 80, y + 5);
-      doc.text(formatCurrency(invoice.total), pageWidth - margin, y + 5, { align: 'right' });
+      // Add total section with enhanced styling
+      y += 8;
+      drawRect(doc, pageWidth - margin - 110, y - 6, 110, 24, "#F1F5F9");  // Larger total box
+      doc.setFontSize(13);  // Larger total text
+      doc.setTextColor(17, 24, 39);
+      doc.text("Total:", pageWidth - margin - 90, y + 6);
+      doc.setFontSize(14);  // Even larger total amount
+      doc.text(formatCurrency(invoice.total), pageWidth - margin, y + 6, { align: 'right' });
 
-      // Add payment instructions
+      // Add payment instructions with improved styling
       if (convexUser.paymentInstructions) {
-        y += 40;
-        drawRect(doc, margin, y - 5, pageWidth - (2 * margin), 40, "#EFF6FF");
-        doc.setFontSize(11);
-        doc.setTextColor(59, 130, 246);
-        doc.text("Payment Instructions", margin + 10, y + 5);
-        y += 12;
+        y += 45;
+        drawRect(doc, margin, y - 6, pageWidth - (2 * margin), 45, "#EFF6FF");
+        doc.setFontSize(12);
+        doc.setTextColor(37, 99, 235);  // Brighter blue
+        doc.text("Payment Instructions", margin + 12, y + 6);
+        y += 14;
         doc.setFontSize(10);
         doc.setTextColor(31, 41, 55);
-        const maxWidth = pageWidth - (2 * margin) - 20;
-        doc.text(convexUser.paymentInstructions, margin + 10, y, { maxWidth });
+        const maxWidth = pageWidth - (2 * margin) - 24;
+        doc.text(convexUser.paymentInstructions, margin + 12, y, { maxWidth });
       }
 
-      // Add notes
+      // Add notes with better spacing
       if (invoice.notes) {
-        y += 40;
-        doc.setFontSize(11);
-        doc.setTextColor(107, 114, 128);
+        y += 45;
+        doc.setFontSize(12);
+        doc.setTextColor(75, 85, 99);
         doc.text("Notes", margin, y);
-        y += 7;
+        y += 8;
         doc.setFontSize(10);
         doc.setTextColor(31, 41, 55);
         const maxWidth = pageWidth - (2 * margin);
         doc.text(invoice.notes, margin, y, { maxWidth });
       }
 
-      // Add footer
-      const footerY = doc.internal.pageSize.height - 15;
-      drawRect(doc, 0, footerY - 5, pageWidth, 20, "#F3F4F6");
-      doc.setFontSize(9);
-      doc.setTextColor(107, 114, 128);
+      // Add footer with improved styling
+      const footerY = doc.internal.pageSize.height - 18;
+      drawRect(doc, 0, footerY - 6, pageWidth, 24, "#F8FAFC");
+      doc.setFontSize(10);
+      doc.setTextColor(75, 85, 99);
       doc.text("Thank you for your business", pageWidth / 2, footerY, { align: 'center' });
 
       console.log('Generating PDF output...');

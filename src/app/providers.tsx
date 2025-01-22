@@ -16,8 +16,7 @@ export default function Providers({
         <BrowserCompatibilityProvider>
           <ThemeProvider
             attribute="class"
-            defaultTheme="system"
-            enableSystem
+            defaultTheme="light"
             disableTransitionOnChange
           >
             {children}

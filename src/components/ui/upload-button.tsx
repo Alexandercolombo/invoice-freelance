@@ -1,67 +1,74 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { UploadCloud, Loader2 } from "lucide-react";
 import { useUploadThing } from "@/lib/uploadthing";
-import { Button } from "./button";
 
 interface UploadButtonProps {
-  onUploadComplete?: (url: string) => void;
-  onUploadError?: (error: Error) => void;
+  onUploadComplete: (url: string) => void;
+  onUploadError: (error: Error) => void;
 }
 
-export function UploadButton({ onUploadComplete, onUploadError }: UploadButtonProps) {
+export function UploadButton({
+  onUploadComplete,
+  onUploadError,
+}: UploadButtonProps) {
   const [isUploading, setIsUploading] = useState(false);
   const { startUpload } = useUploadThing("logoUploader", {
-    onClientUploadComplete: (res: { url: string }[]) => {
+    onClientUploadComplete: (res) => {
       setIsUploading(false);
-      if (res?.[0]?.url && onUploadComplete) {
+      if (res?.[0]?.url) {
         onUploadComplete(res[0].url);
       }
     },
-    onUploadError: (error: Error) => {
+    onUploadError: (error) => {
       setIsUploading(false);
-      if (onUploadError) {
-        onUploadError(error);
-      }
-      console.error("Upload error:", error);
+      onUploadError(error);
     },
   });
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
 
     setIsUploading(true);
     await startUpload([file]);
+    // Reset the input
+    event.target.value = "";
   };
 
   return (
-    <div className="space-y-2">
+    <div className="relative">
+      <input
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+        disabled={isUploading}
+        aria-label="Upload file"
+      />
       <Button
         type="button"
+        variant="outline"
+        className="w-full"
         disabled={isUploading}
-        className="relative w-full h-12 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        onClick={() => document.getElementById("logo-upload")?.click()}
       >
         {isUploading ? (
           <>
-            <span className="opacity-0">Upload Logo</span>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-white" />
-            </div>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Uploading...
           </>
         ) : (
-          "Upload Logo"
+          <>
+            <UploadCloud className="mr-2 h-4 w-4" />
+            Upload Logo
+          </>
         )}
       </Button>
-      <input
-        id="logo-upload"
-        type="file"
-        accept="image/*"
-        onChange={handleUpload}
-        className="hidden"
-      />
-      <div className="text-xs text-gray-500">Max file size: 4MB • PNG, JPG, WEBP</div>
+      <p className="mt-1 text-xs text-gray-500">
+        Max file size: 4MB • PNG, JPG, WEBP
+      </p>
     </div>
   );
 } 

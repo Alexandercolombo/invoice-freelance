@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { useState } from "react";
+import { useState, useMemo, lazy } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useToast } from "@/hooks/use-toast";
 import { useClerk } from "@clerk/nextjs";
@@ -76,7 +76,7 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
         <DialogContent>
           <div className="flex flex-col items-center justify-center min-h-[200px] gap-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white" />
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {!user && !invoice && "Loading user and invoice data..."}
               {user && !invoice && "Loading invoice data..."}
               {!user && invoice && "Loading user data..."}
@@ -87,44 +87,62 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
     );
   }
 
+  // Validate required data
+  if (!invoice.client) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <div className="flex flex-col items-center justify-center min-h-[200px] gap-4">
+            <p className="text-sm text-red-500">Error: Invoice is missing client data</p>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Memoize expensive calculations
+  const validTasks = useMemo(() => 
+    (invoice.tasks || []).filter((task): task is NonNullable<typeof task> => task !== null),
+    [invoice.tasks]
+  );
+
+  const { dueDate, isPastDue } = useMemo(() => {
+    const dueDate = invoice.dueDate ? new Date(invoice.dueDate) : undefined;
+    return {
+      dueDate,
+      isPastDue: dueDate ? dueDate < new Date() : false
+    };
+  }, [invoice.dueDate]);
+
   const handleDownload = async () => {
     try {
       setIsDownloading(true);
+
+      // Dynamically import the PDF generation function
+      const { generateInvoicePDF } = await import('@/lib/generatePDF');
+      const pdfBlob = await generateInvoicePDF(invoice, user, invoice.client, validTasks);
       
-      // Get the auth token
-      const token = await session?.getToken({ template: "convex" });
-      if (!token) {
-        throw new Error('Not authenticated');
-      }
-      
-      const response = await fetch(`/api/invoices/${invoiceId}/pdf`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Download failed:', errorText);
-        throw new Error(errorText || 'Failed to generate PDF');
-      }
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      // Create download link
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement("a");
       link.href = url;
       link.download = `invoice-${invoice.number}.pdf`;
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
       
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 100);
+
       toast({
         title: "Success",
         description: "Invoice downloaded successfully",
       });
     } catch (error) {
-      console.error('Error downloading invoice:', error);
+      console.error("Error downloading invoice:", error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to download invoice",
@@ -134,10 +152,6 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
       setIsDownloading(false);
     }
   };
-
-  const validTasks = (invoice.tasks || []).filter((task): task is NonNullable<typeof task> => task !== null);
-  const dueDate = new Date(invoice.dueDate || new Date());
-  const isPastDue = dueDate < new Date();
 
   return (
     <AnimatePresence>
@@ -203,7 +217,7 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
                             animate={{ opacity: 1 }}
                             className={`font-medium ${isPastDue ? 'text-red-500' : 'text-green-500'}`}
                           >
-                            {isPastDue ? 'Past Due' : 'Due'} {dueDate.toLocaleDateString()}
+                            {(dueDate as Date).toLocaleDateString()}
                           </motion.span>
                         )}
                       </DialogDescription>
@@ -290,7 +304,7 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
                           <div className="flex justify-between text-sm">
                             <span className="text-gray-500 dark:text-gray-400">Due Date:</span>
                             <span className={`font-medium ${isPastDue ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>
-                              {dueDate.toLocaleDateString()}
+                              {dueDate?.toLocaleDateString()}
                             </span>
                           </div>
                         )}

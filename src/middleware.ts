@@ -9,14 +9,23 @@ export default authMiddleware({
     "/api/webhooks(.*)",
   ],
   afterAuth(auth, req) {
+    // Get the intended destination from the URL or default to dashboard
+    const redirectTo = new URL(req.url).searchParams.get('redirect_to') || '/dashboard';
+    
     // Handle users who aren't authenticated
     if (!auth.userId && !auth.isPublicRoute) {
       const signInUrl = new URL('/sign-in', req.url);
-      signInUrl.searchParams.set('redirect_url', req.url);
+      // Preserve the intended destination
+      signInUrl.searchParams.set('redirect_to', req.url);
       return NextResponse.redirect(signInUrl);
     }
 
-    // If the user is signed in and trying to access a protected route, allow them to access route
+    // If user is signed in and trying to access auth pages, redirect to dashboard
+    if (auth.userId && (req.url.includes('/sign-in') || req.url.includes('/sign-up'))) {
+      return NextResponse.redirect(new URL(redirectTo, req.url));
+    }
+
+    // If the user is signed in and trying to access a protected route, allow them
     if (auth.userId && !auth.isPublicRoute) {
       return NextResponse.next();
     }
@@ -27,5 +36,10 @@ export default authMiddleware({
 });
 
 export const config = {
-  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
+  matcher: [
+    // Skip Next.js internals and all static files, unless found in search params
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Always run for API routes
+    '/(api|trpc)(.*)',
+  ],
 }; 

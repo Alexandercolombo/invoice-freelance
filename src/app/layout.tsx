@@ -1,8 +1,13 @@
+'use client';
+
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import Providers from './providers';
-import { Toaster } from "@/components/toaster"
+import { ClerkProvider } from '@clerk/nextjs';
+import { ConvexClientProvider } from '@/components/providers/convex-client-provider';
+import { BrowserCompatibilityProvider } from '@/components/providers/browser-compatibility-provider';
+import { ThemeProvider } from '@/components/providers/theme-provider';
+import { Toaster } from '@/components/ui/toaster';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -19,12 +24,21 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} min-h-screen antialiased`}>
-        <Providers>
-          <div className="min-h-screen bg-white dark:bg-gray-900">
-            {children}
-          </div>
-        </Providers>
-        <Toaster />
+        <ClerkProvider>
+          <ConvexClientProvider>
+            <BrowserCompatibilityProvider>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+                disableTransitionOnChange
+              >
+                {children}
+                <Toaster />
+              </ThemeProvider>
+            </BrowserCompatibilityProvider>
+          </ConvexClientProvider>
+        </ClerkProvider>
       </body>
     </html>
   );

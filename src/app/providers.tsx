@@ -4,11 +4,24 @@ import { ClerkProvider, useAuth } from '@clerk/nextjs'
 import { ConvexProviderWithClerk } from 'convex/react-clerk'
 import { ConvexReactClient } from 'convex/react'
 import { ThemeProvider } from 'next-themes'
+import { useMemo } from 'react'
 
-const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
+// Initialize Convex Client with proper error handling
+function initializeConvexClient() {
+  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
+  if (!convexUrl) {
+    throw new Error(
+      'NEXT_PUBLIC_CONVEX_URL is not set. Please add it to your environment variables.'
+    )
+  }
+  return new ConvexReactClient(convexUrl)
+}
 
 function ConvexClientProvider({ children }: { children: React.ReactNode }) {
+  // Create the Convex client inside the component using useMemo
+  const convex = useMemo(() => initializeConvexClient(), [])
   const auth = useAuth()
+
   return (
     <ConvexProviderWithClerk client={convex} useAuth={() => auth}>
       {children}

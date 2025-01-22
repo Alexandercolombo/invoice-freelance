@@ -50,7 +50,7 @@ export default function InvoicesPage() {
       numToSkip: 0,
       numToTake: 100
     }
-  } : "skip") as Invoice[] | undefined;
+  } : "skip");
 
   const [filters, setFilters] = useState({
     search: "",
@@ -61,8 +61,8 @@ export default function InvoicesPage() {
 
   // Apply filters and sorting to invoices
   const filteredInvoices = useMemo(() => {
-    // Return early if no invoices
-    if (!invoices?.length) return [];
+    // Return empty array if invoices is undefined or empty
+    if (!invoices || !Array.isArray(invoices) || invoices.length === 0) return [];
 
     // Create stable date objects
     const now = new Date();
@@ -71,7 +71,9 @@ export default function InvoicesPage() {
 
     return invoices
       .filter((invoice) => {
-        if (!invoice?.date || !invoice?.status) return false;
+        // Skip invalid invoices
+        if (!invoice || typeof invoice !== 'object') return false;
+        if (!invoice.date || !invoice.status) return false;
 
         // Filter by search
         if (filters.search && !invoice.client?.name?.toLowerCase().includes(filters.search.toLowerCase())) {
@@ -122,7 +124,7 @@ export default function InvoicesPage() {
           default:
             return 0;
         }
-      });
+      }) as Invoice[];
   }, [invoices, filters]);
 
   // Show loading state while auth is loading

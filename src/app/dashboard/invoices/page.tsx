@@ -61,8 +61,8 @@ export default function InvoicesPage() {
 
   // Apply filters and sorting to invoices
   const filteredInvoices = useMemo(() => {
-    // Return early if no invoices or filters
-    if (!invoices?.length || !filters) return [];
+    // Return early if no invoices
+    if (!invoices?.length) return [];
 
     // Create stable date objects
     const now = new Date();

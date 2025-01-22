@@ -1,20 +1,12 @@
-'use client';
-
-import './globals.css';
-import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { ClerkProvider } from '@clerk/nextjs';
-import { ConvexClientProvider } from '@/components/providers/convex-client-provider';
-import { BrowserCompatibilityProvider } from '@/components/providers/browser-compatibility-provider';
-import { ThemeProvider } from '@/components/providers/theme-provider';
+import Providers from './providers';
 import { Toaster } from '@/components/ui/toaster';
+import './globals.css';
+import { metadata } from './metadata';
 
 const inter = Inter({ subsets: ['latin'] });
 
-export const metadata: Metadata = {
-  title: 'Freelance Invoice Manager',
-  description: 'Manage your freelance work and invoices',
-};
+export { metadata };
 
 export default function RootLayout({
   children,
@@ -24,21 +16,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} min-h-screen antialiased`}>
-        <ClerkProvider>
-          <ConvexClientProvider>
-            <BrowserCompatibilityProvider>
-              <ThemeProvider
-                attribute="class"
-                defaultTheme="system"
-                enableSystem
-                disableTransitionOnChange
-              >
-                {children}
-                <Toaster />
-              </ThemeProvider>
-            </BrowserCompatibilityProvider>
-          </ConvexClientProvider>
-        </ClerkProvider>
+        <Providers>
+          {children}
+          <Toaster />
+        </Providers>
       </body>
     </html>
   );

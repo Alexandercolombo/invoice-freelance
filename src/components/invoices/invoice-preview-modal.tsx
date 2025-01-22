@@ -42,38 +42,34 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
   // Handle authentication loading state
   if (!isLoaded) {
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
           <div className="flex flex-col items-center justify-center min-h-[200px] gap-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white" />
             <p className="text-sm text-gray-500">Loading authentication...</p>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </div>
     );
   }
 
   // Handle not authenticated state
   if (!isSignedIn) {
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Authentication Required</DialogTitle>
-            <DialogDescription>
-              Please sign in to view invoice details.
-            </DialogDescription>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+          <h2 className="text-lg font-semibold mb-2">Authentication Required</h2>
+          <p className="text-sm text-gray-500">Please sign in to view invoice details.</p>
+        </div>
+      </div>
     );
   }
 
   // Handle data loading state
   if (!invoice || !user) {
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
           <div className="flex flex-col items-center justify-center min-h-[200px] gap-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white" />
             <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -82,22 +78,22 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
               {!user && invoice && "Loading user data..."}
             </p>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </div>
     );
   }
 
   // Validate required data
   if (!invoice.client) {
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
           <div className="flex flex-col items-center justify-center min-h-[200px] gap-4">
             <p className="text-sm text-red-500">Error: Invoice is missing client data</p>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </div>
     );
   }
 

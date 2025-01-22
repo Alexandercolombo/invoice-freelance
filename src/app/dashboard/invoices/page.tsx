@@ -61,12 +61,14 @@ export default function InvoicesPage() {
 
   // Apply filters and sorting to invoices
   const filteredInvoices = useMemo(() => {
-    if (!invoices) return [];
+    if (!invoices || !Array.isArray(invoices)) return [];
 
     return invoices
       .filter((invoice) => {
+        if (!invoice) return false;
+
         // Filter by search
-        if (filters.search && !invoice.client?.name.toLowerCase().includes(filters.search.toLowerCase())) {
+        if (filters.search && !invoice.client?.name?.toLowerCase().includes(filters.search.toLowerCase())) {
           return false;
         }
 
@@ -76,16 +78,20 @@ export default function InvoicesPage() {
         }
 
         // Filter by date range
-        if (filters.dateRange !== "all") {
+        if (filters.dateRange !== "all" && invoice.date) {
           const invoiceDate = new Date(invoice.date);
+          if (isNaN(invoiceDate.getTime())) return false;
+          
           const now = new Date();
           
           switch (filters.dateRange) {
             case "today":
               return invoiceDate.toDateString() === now.toDateString();
-            case "week":
-              const weekAgo = new Date(now.setDate(now.getDate() - 7));
+            case "week": {
+              const weekAgo = new Date();
+              weekAgo.setDate(weekAgo.getDate() - 7);
               return invoiceDate >= weekAgo;
+            }
             case "month":
               return invoiceDate.getMonth() === now.getMonth() && 
                      invoiceDate.getFullYear() === now.getFullYear();
@@ -97,6 +103,8 @@ export default function InvoicesPage() {
         return true;
       })
       .sort((a, b) => {
+        if (!a || !b) return 0;
+        
         // Sort by selected option
         switch (filters.sortBy) {
           case "date-desc":

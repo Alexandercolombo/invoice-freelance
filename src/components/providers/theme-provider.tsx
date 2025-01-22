@@ -11,8 +11,22 @@ interface ThemeProviderProps {
   defaultTheme?: string;
   enableSystem?: boolean;
   disableTransitionOnChange?: boolean;
+  forcedTheme?: string;
 }
 
-export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
-  return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
+export function ThemeProvider({ 
+  children, 
+  defaultTheme = "light",
+  enableSystem = false,
+  ...props 
+}: ThemeProviderProps) {
+  return (
+    <NextThemesProvider 
+      defaultTheme={defaultTheme}
+      enableSystem={enableSystem}
+      {...props}
+    >
+      {children}
+    </NextThemesProvider>
+  );
 } 

@@ -61,11 +61,17 @@ export default function InvoicesPage() {
 
   // Apply filters and sorting to invoices
   const filteredInvoices = useMemo(() => {
-    if (!invoices || !Array.isArray(invoices)) return [];
+    // Return early if no invoices or filters
+    if (!invoices?.length || !filters) return [];
+
+    // Create stable date objects
+    const now = new Date();
+    const weekAgo = new Date(now);
+    weekAgo.setDate(weekAgo.getDate() - 7);
 
     return invoices
       .filter((invoice) => {
-        if (!invoice) return false;
+        if (!invoice?.date || !invoice?.status) return false;
 
         // Filter by search
         if (filters.search && !invoice.client?.name?.toLowerCase().includes(filters.search.toLowerCase())) {
@@ -78,45 +84,41 @@ export default function InvoicesPage() {
         }
 
         // Filter by date range
-        if (filters.dateRange !== "all" && invoice.date) {
+        if (filters.dateRange !== "all") {
           const invoiceDate = new Date(invoice.date);
           if (isNaN(invoiceDate.getTime())) return false;
-          
-          const now = new Date();
           
           switch (filters.dateRange) {
             case "today":
               return invoiceDate.toDateString() === now.toDateString();
-            case "week": {
-              const weekAgo = new Date();
-              weekAgo.setDate(weekAgo.getDate() - 7);
+            case "week":
               return invoiceDate >= weekAgo;
-            }
             case "month":
               return invoiceDate.getMonth() === now.getMonth() && 
                      invoiceDate.getFullYear() === now.getFullYear();
             case "year":
               return invoiceDate.getFullYear() === now.getFullYear();
+            default:
+              return true;
           }
         }
 
         return true;
       })
       .sort((a, b) => {
-        if (!a || !b) return 0;
+        if (!a?.date || !b?.date) return 0;
         
-        // Sort by selected option
         switch (filters.sortBy) {
           case "date-desc":
             return new Date(b.date).getTime() - new Date(a.date).getTime();
           case "date-asc":
             return new Date(a.date).getTime() - new Date(b.date).getTime();
           case "amount-desc":
-            return b.total - a.total;
+            return (b.total || 0) - (a.total || 0);
           case "amount-asc":
-            return a.total - b.total;
+            return (a.total || 0) - (b.total || 0);
           case "status":
-            return a.status.localeCompare(b.status);
+            return (a.status || '').localeCompare(b.status || '');
           default:
             return 0;
         }
@@ -152,12 +154,12 @@ export default function InvoicesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col gap-8">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <h1 className="text-3xl font-semibold text-gray-900 dark:text-white tracking-tight">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                 Invoices
               </h1>
               <p className="text-base text-gray-600 dark:text-gray-400">
@@ -167,16 +169,17 @@ export default function InvoicesPage() {
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Button
                 onClick={() => router.push("/dashboard/invoices/new")}
-                className="px-5 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white transition-all shadow-sm hover:shadow-md"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                size="lg"
               >
                 Create Invoice
               </Button>
             </motion.div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <Card className="p-6">
             <InvoiceFilters onFilterChange={setFilters} />
-          </div>
+          </Card>
 
           <motion.div 
             className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"

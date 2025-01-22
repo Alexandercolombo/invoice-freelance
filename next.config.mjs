@@ -14,6 +14,12 @@ const nextConfig = {
       allowedOrigins: ['localhost:3000', 'invoice-freelance.vercel.app'],
     },
   },
+  runtime: {
+    edge: {
+      regions: ['iad1'], // US East (N. Virginia)
+    },
+  },
+  serverComponentsExternalPackages: ['puppeteer', 'pdfkit'],
 }
 
 export default nextConfig; 

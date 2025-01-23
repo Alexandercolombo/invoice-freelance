@@ -59,6 +59,9 @@ export default function InvoicesPage() {
     dateRange: "all",
   });
 
+  // Memoize the filter values to prevent unnecessary recalculations
+  const { search, status, sortBy, dateRange } = filters;
+
   // Apply filters and sorting to invoices
   const filteredInvoices = useMemo(() => {
     // Return empty array if invoices is undefined or empty
@@ -76,21 +79,21 @@ export default function InvoicesPage() {
         if (!invoice.date || !invoice.status) return false;
 
         // Filter by search
-        if (filters.search && !invoice.client?.name?.toLowerCase().includes(filters.search.toLowerCase())) {
+        if (search && !invoice.client?.name?.toLowerCase().includes(search.toLowerCase())) {
           return false;
         }
 
         // Filter by status
-        if (filters.status !== "all" && invoice.status !== filters.status) {
+        if (status !== "all" && invoice.status !== status) {
           return false;
         }
 
         // Filter by date range
-        if (filters.dateRange !== "all") {
+        if (dateRange !== "all") {
           const invoiceDate = new Date(invoice.date);
           if (isNaN(invoiceDate.getTime())) return false;
           
-          switch (filters.dateRange) {
+          switch (dateRange) {
             case "today":
               return invoiceDate.toDateString() === now.toDateString();
             case "week":
@@ -110,7 +113,7 @@ export default function InvoicesPage() {
       .sort((a, b) => {
         if (!a?.date || !b?.date) return 0;
         
-        switch (filters.sortBy) {
+        switch (sortBy) {
           case "date-desc":
             return new Date(b.date).getTime() - new Date(a.date).getTime();
           case "date-asc":
@@ -125,7 +128,7 @@ export default function InvoicesPage() {
             return 0;
         }
       }) as Invoice[];
-  }, [invoices, filters]);
+  }, [invoices, search, status, sortBy, dateRange]); // Use individual filter values instead of the filters object
 
   // Show loading state while auth is loading
   if (!isLoaded) {

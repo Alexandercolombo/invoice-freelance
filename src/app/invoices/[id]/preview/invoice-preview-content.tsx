@@ -22,7 +22,7 @@ interface InvoicePreviewContentProps {
 }
 
 export function InvoicePreviewContent({ params, searchParams }: InvoicePreviewContentProps) {
-  const { userId } = useAuth();
+  const { isLoaded, userId } = useAuth();
   const router = useRouter();
   const { session } = useClerk();
   const { toast } = useToast();
@@ -35,6 +35,10 @@ export function InvoicePreviewContent({ params, searchParams }: InvoicePreviewCo
   });
 
   const user = useQuery(api.users.get);
+
+  if (!isLoaded) {
+    return <div className="h-screen flex items-center justify-center">Loading authentication...</div>;
+  }
 
   if (!userId) {
     router.push("/sign-in");

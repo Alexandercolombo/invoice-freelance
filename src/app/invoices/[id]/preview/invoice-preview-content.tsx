@@ -18,9 +18,10 @@ interface InvoicePreviewContentProps {
   params: {
     id: string;
   };
+  searchParams?: { [key: string]: string | string[] | undefined };
 }
 
-export function InvoicePreviewContent({ params }: InvoicePreviewContentProps) {
+export function InvoicePreviewContent({ params, searchParams }: InvoicePreviewContentProps) {
   const { userId } = useAuth();
   const router = useRouter();
   const { session } = useClerk();

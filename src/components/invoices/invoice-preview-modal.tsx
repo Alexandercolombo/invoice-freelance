@@ -24,6 +24,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { EditInvoiceModal } from "./edit-invoice-modal";
 import { ErrorBoundary } from '@/components/error-boundary';
 import { LoadingState } from '@/components/loading-state';
+import type { LoadingStateProps } from '@/components/loading-state';
 
 interface InvoicePreviewModalProps {
   invoiceId: Id<"invoices">;

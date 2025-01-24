@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@clerk/nextjs": "^4.29.3",
+    "@clerk/nextjs": "^6.10.1",
     "@clerk/themes": "^2.2.3",
     "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.2.0",
@@ -35,11 +35,11 @@
     "framer-motion": "^11.0.3",
     "jspdf": "^2.5.2",
     "lucide-react": "^0.303.0",
-    "next": "14.0.4",
+    "next": "^15.1.6",
     "next-themes": "^0.2.1",
     "pdfkit": "^0.14.0",
     "postcss": "^8.4.32",
-    "puppeteer": "^21.7.0",
+    "puppeteer": "^24.1.1",
     "react": "^18.2.0",
     "react-day-picker": "^9.5.0",
     "react-dom": "^18.2.0",

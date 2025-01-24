@@ -1,7 +1,17 @@
-"use client";
+import { Suspense } from 'react';
+import { InvoicePreviewContent } from './invoice-preview-content';
+import { LoadingState } from '@/components/loading-state';
 
-import { InvoicePreviewPage } from "./invoice-preview-page";
+interface PageProps {
+  params: {
+    id: string;
+  };
+}
 
-export default function Page({ params }: { params: { id: string } }) {
-  return <InvoicePreviewPage params={params} />;
+export default async function Page({ params }: PageProps) {
+  return (
+    <Suspense fallback={<LoadingState fullScreen={true} />}>
+      <InvoicePreviewContent params={params} />
+    </Suspense>
+  );
 } 

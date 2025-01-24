@@ -12,9 +12,9 @@ const nextConfig = {
     externalDir: true,
     serverActions: {
       allowedOrigins: ['localhost:3000', 'invoice-freelance.vercel.app'],
-    },
-    serverComponentsExternalPackages: ['puppeteer', 'pdfkit']
-  }
+    }
+  },
+  serverExternalPackages: ['puppeteer', 'pdfkit']
 }
 
 export default nextConfig; 

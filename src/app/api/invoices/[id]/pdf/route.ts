@@ -6,7 +6,7 @@ import { Id } from 'convex/_generated/dataModel';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: Id<'invoices'> } }
 ) {
   const { userId } = getAuth(req);
   
@@ -16,7 +16,7 @@ export async function GET(
 
   try {
     const invoice = await fetchQuery(api.invoices.getInvoice, { 
-      id: params.id as Id<'invoices'> 
+      id: params.id
     });
 
     if (!invoice) {

@@ -12,7 +12,7 @@ import { CreateInvoiceModal } from "@/components/invoices/create-invoice-modal";
 import { EditInvoiceModal } from "@/components/invoices/edit-invoice-modal";
 import { Id } from "../../../convex/_generated/dataModel";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import ErrorBoundary from '@/components/error-boundary';
+import { ErrorBoundary } from '@/components/error-boundary';
 
 type Invoice = {
   _id: Id<"invoices">;

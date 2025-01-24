@@ -13,7 +13,7 @@ const nextConfig = {
     serverActions: {
       allowedOrigins: ['localhost:3000', 'invoice-freelance.vercel.app'],
     },
-    serverComponentsExternalPackages: ['puppeteer', 'pdfkit']
+    serverExternalPackages: ['puppeteer', 'pdfkit']
   }
 }
 

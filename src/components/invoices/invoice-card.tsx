@@ -41,11 +41,14 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
   const handleDownload = async () => {
     try {
       setIsDownloading(true);
+      toast({
+        title: "Starting download",
+        description: `Preparing Invoice #${invoice.number} for download...`,
+      });
       
-      // Get the auth token
       const token = await session?.getToken();
       if (!token) {
-        throw new Error('Not authenticated');
+        throw new Error('Authentication required. Please sign in again.');
       }
       
       const response = await fetch(`/api/invoices/${invoice._id}/pdf`, {
@@ -54,12 +57,11 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
         },
       });
       
-      if (!response.ok) throw new Error('Failed to generate PDF');
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF. Please try again.');
+      }
       
-      // Create a blob from the PDF stream
       const blob = await response.blob();
-      
-      // Create a link element and trigger download
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -71,18 +73,69 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
 
       toast({
         title: "Download successful",
-        description: `Invoice #${invoice.number} has been downloaded.`,
+        description: `Invoice #${invoice.number} has been downloaded to your device.`,
         variant: "default",
       });
     } catch (error) {
       console.error('Error downloading invoice:', error);
       toast({
         title: "Download failed",
-        description: "There was an error downloading your invoice. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error downloading your invoice. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handlePreviewClick = () => {
+    setIsPreviewOpen(true);
+    toast({
+      title: "Opening preview",
+      description: `Loading preview for Invoice #${invoice.number}`,
+    });
+  };
+
+  const handleEditClick = () => {
+    setIsEditOpen(true);
+    toast({
+      title: "Opening editor",
+      description: `Loading editor for Invoice #${invoice.number}`,
+    });
+  };
+
+  const handleDeleteClick = () => {
+    setIsDeleteDialogOpen(true);
+    toast({
+      title: "Confirm deletion",
+      description: `Please confirm if you want to delete Invoice #${invoice.number}`,
+      variant: "destructive",
+    });
+  };
+
+  const handleDelete = async () => {
+    try {
+      toast({
+        title: "Deleting invoice",
+        description: `Removing Invoice #${invoice.number}...`,
+      });
+      
+      await deleteInvoice({ id: invoice._id });
+      
+      toast({
+        title: "Invoice deleted",
+        description: `Invoice #${invoice.number} has been permanently deleted.`,
+        variant: "default",
+      });
+      router.refresh();
+    } catch (error) {
+      toast({
+        title: "Deletion failed",
+        description: "Failed to delete invoice. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleteDialogOpen(false);
     }
   };
 
@@ -98,7 +151,7 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
               Invoice #{invoice.number}
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {invoice.client?.name}
+              {invoice.client?.name || 'No Client'}
             </p>
           </div>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -120,19 +173,19 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
           <div className="flex justify-between text-sm">
             <span className="text-gray-500 dark:text-gray-400">Date</span>
             <span className="text-gray-900 dark:text-white font-medium">
-              {new Date(invoice.date).toLocaleDateString()}
+              {invoice.date ? new Date(invoice.date).toLocaleDateString() : 'N/A'}
             </span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-gray-500 dark:text-gray-400">Due Date</span>
             <span className="text-gray-900 dark:text-white font-medium">
-              {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : "N/A"}
+              {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}
             </span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-gray-500 dark:text-gray-400">Amount</span>
             <span className="text-gray-900 dark:text-white font-semibold group-hover:text-blue-500 transition-colors">
-              {formatCurrency(invoice.total)}
+              {formatCurrency(invoice.total || 0)}
             </span>
           </div>
         </div>
@@ -141,7 +194,7 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
             <Button
               variant="outline"
-              onClick={() => setIsPreviewOpen(true)}
+              onClick={handlePreviewClick}
               className="w-full rounded-xl h-11 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               <Eye className="w-4 h-4 mr-2" />
@@ -174,7 +227,7 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Button
                 variant="outline"
-                onClick={() => setIsEditOpen(true)}
+                onClick={handleEditClick}
                 className="w-full rounded-xl h-11 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 <Pencil className="w-4 h-4 mr-2" />
@@ -185,7 +238,7 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Button
                 variant="outline"
-                onClick={() => setIsDeleteDialogOpen(true)}
+                onClick={handleDeleteClick}
                 className="w-full rounded-xl h-11 border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800 transition-colors"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
@@ -199,13 +252,27 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
       <InvoicePreviewModal
         invoiceId={invoice._id}
         open={isPreviewOpen}
-        onOpenChange={setIsPreviewOpen}
+        onOpenChange={(open) => {
+          setIsPreviewOpen(open);
+          if (!open) {
+            toast({
+              title: "Preview closed",
+              description: `Closed preview for Invoice #${invoice.number}`,
+            });
+          }
+        }}
       />
 
       <EditInvoiceModal
         invoice={invoice}
         isOpen={isEditOpen}
-        onClose={() => setIsEditOpen(false)}
+        onClose={() => {
+          setIsEditOpen(false);
+          toast({
+            title: "Edit mode closed",
+            description: "Any saved changes have been applied.",
+          });
+        }}
       />
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -217,24 +284,15 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => {
+              setIsDeleteDialogOpen(false);
+              toast({
+                title: "Deletion cancelled",
+                description: "Invoice deletion was cancelled.",
+              });
+            }}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={async () => {
-                try {
-                  await deleteInvoice({ id: invoice._id });
-                  toast({
-                    title: "Invoice deleted",
-                    description: `Invoice #${invoice.number} has been deleted.`,
-                  });
-                  router.refresh();
-                } catch (error) {
-                  toast({
-                    title: "Error",
-                    description: "Failed to delete invoice. Please try again.",
-                    variant: "destructive",
-                  });
-                }
-              }}
+              onClick={handleDelete}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               Delete

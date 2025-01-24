@@ -1,38 +1,18 @@
-import { authMiddleware } from "@clerk/nextjs";
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export default authMiddleware({
-  publicRoutes: [
-    "/",
-    "/sign-in",
-    "/sign-up",
-    "/api/webhooks(.*)",
-  ],
-  afterAuth(auth, req) {
-    // Get the intended destination from the URL or default to dashboard
-    const redirectTo = new URL(req.url).searchParams.get('redirect_to') || '/dashboard';
-    
-    // Handle users who aren't authenticated
-    if (!auth.userId && !auth.isPublicRoute) {
-      const signInUrl = new URL('/sign-in', req.url);
-      // Preserve the intended destination
-      signInUrl.searchParams.set('redirect_to', req.url);
-      return NextResponse.redirect(signInUrl);
-    }
+const isPublicRoute = createRouteMatcher([
+  '/',
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+  '/api/webhooks(.*)'
+]);
 
-    // If user is signed in and trying to access auth pages, redirect to dashboard
-    if (auth.userId && (req.url.includes('/sign-in') || req.url.includes('/sign-up'))) {
-      return NextResponse.redirect(new URL(redirectTo, req.url));
-    }
-
-    // If the user is signed in and trying to access a protected route, allow them
-    if (auth.userId && !auth.isPublicRoute) {
-      return NextResponse.next();
-    }
-
-    // Allow users visiting public routes to access them
-    return NextResponse.next();
-  },
+export default clerkMiddleware(async (auth, request) => {
+  if (!isPublicRoute(request)) {
+    await auth.protect();
+  }
 });
 
 export const config = {

@@ -14,11 +14,13 @@ import { useClerk } from "@clerk/nextjs";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 
-export default function InvoicePreviewPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+interface PageProps {
+  params: {
+    id: string;
+  };
+}
+
+export default function InvoicePreviewPage({ params }: PageProps) {
   const { userId } = useAuth();
   const router = useRouter();
   const { session } = useClerk();

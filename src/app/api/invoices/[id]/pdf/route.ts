@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuth } from '@clerk/nextjs/server';
 import { fetchQuery } from 'convex/nextjs';
-import { api } from '../../../../../convex/_generated/api';
+import { api } from '../../../../../../convex/_generated/api';
 import { Id } from 'convex/_generated/dataModel';
 
 export async function GET(

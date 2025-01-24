@@ -43,7 +43,7 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
 
   // Handle authentication loading state
   if (!isLoaded) {
-    return <LoadingState message="Loading authentication..." size="sm" fullScreen />;
+    return <LoadingState message="Loading authentication..." size="sm" fullScreen={true} />;
   }
 
   // Handle not authenticated state
@@ -68,7 +68,7 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
           "Loading user data..."
         }
         size="md"
-        fullScreen
+        fullScreen={true}
       />
     );
   }

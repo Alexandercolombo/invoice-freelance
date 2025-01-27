@@ -3,6 +3,9 @@ import { getAuth } from '@clerk/nextjs/server';
 import { fetchQuery } from 'convex/nextjs';
 import { api } from '../../../../../../convex/_generated/api';
 import { Id } from 'convex/_generated/dataModel';
+import { ReactElement } from 'react';
+import { renderToBuffer } from '@react-pdf/renderer';
+import InvoicePDF from '@/components/invoices/pdf-template';
 
 export async function GET(
   req: NextRequest,
@@ -24,10 +27,15 @@ export async function GET(
       return new Response('Invoice not found', { status: 404 });
     }
 
-    // Mock PDF generation - replace with your actual PDF logic
-    const mockPDF = new Blob([`Invoice ${invoice.number}`], { type: 'application/pdf' });
-    
-    return new Response(mockPDF, {
+    // Get user data for PDF
+    const user = await fetchQuery(api.users.get);
+
+    // Generate actual PDF
+    const pdfBuffer = await renderToBuffer(
+      <InvoicePDF invoice={invoice} user={user} />
+    );
+
+    return new Response(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename=invoice-${invoice.number}.pdf`

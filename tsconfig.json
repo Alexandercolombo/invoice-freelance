@@ -16,7 +16,8 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
     "plugins": [
       {
         "name": "next"
@@ -33,7 +34,9 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "convex/**/*.ts"
+    "convex/**/*.ts",
+    "**/*.js",
+    "**/*.jsx"
   ],
   "exclude": [
     "node_modules"

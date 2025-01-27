@@ -11,7 +11,32 @@ const styles = StyleSheet.create({
   totalRow: { flexDirection: "row", marginTop: 10, paddingTop: 10 }
 });
 
-export default function InvoicePDF({ invoice, user }) {
+// Add proper TypeScript types
+interface InvoicePDFProps {
+  invoice: {
+    number: string;
+    date: string;
+    client?: {
+      name: string;
+      email: string;
+      hourlyRate?: number;
+    };
+    tasks: Array<{
+      _id: string;
+      description: string;
+      hours: number;
+    }>;
+    subtotal: number;
+    tax: number;
+    total: number;
+    taxRate?: number;
+  };
+  user?: {
+    logoUrl?: string;
+  };
+}
+
+export default function InvoicePDF({ invoice, user }: InvoicePDFProps) {
   return (
     <Document>
       <Page size="A4" style={styles.page}>

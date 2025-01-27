@@ -11,12 +11,14 @@ const styles = StyleSheet.create({
   totalRow: { flexDirection: "row", marginTop: 10, paddingTop: 10 }
 });
 
-// Add proper TypeScript types
+// Update the invoice type to match Convex response
 interface InvoicePDFProps {
   invoice: {
+    _id: string;
     number: string;
     date: string;
     client?: {
+      _id: string;
       name: string;
       email: string;
       hourlyRate?: number;
@@ -32,6 +34,7 @@ interface InvoicePDFProps {
     taxRate?: number;
   };
   user?: {
+    _id?: string;
     logoUrl?: string;
   };
 }

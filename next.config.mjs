@@ -7,7 +7,10 @@ const nextConfig = {
     };
     return config;
   },
-  transpilePackages: ['convex'],
+  transpilePackages: [
+    'convex',
+    '@react-pdf/renderer'
+  ],
   experimental: {
     externalDir: true,
     serverActions: {

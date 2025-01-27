@@ -1,9 +1,10 @@
+/** @jsxImportSource react */
+
 import { NextResponse, NextRequest } from 'next/server';
 import { getAuth } from '@clerk/nextjs/server';
 import { fetchQuery } from 'convex/nextjs';
 import { api } from '../../../../../../convex/_generated/api';
 import { Id } from 'convex/_generated/dataModel';
-import { ReactElement } from 'react';
 import { renderToBuffer } from '@react-pdf/renderer';
 import InvoicePDF from '@/components/invoices/pdf-template';
 

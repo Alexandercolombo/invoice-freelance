@@ -19,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/pop
 import { EditInvoiceModal } from "./edit-invoice-modal";
 import { useToast } from "@/hooks/use-toast";
 import { InvoicePreviewModal } from "./invoice-preview-modal";
+import { cn } from "@/lib/utils";
 
 type CreateInvoiceModalProps = {
   isOpen: boolean;

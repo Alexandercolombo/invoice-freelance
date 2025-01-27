@@ -57,6 +57,14 @@ export default function InvoicePDF({ invoice, user }) {
 
         {/* Totals - Match preview styling */}
         <View style={styles.totalRow}>
+          <Text style={[styles.cell, { flex: 3 }]}>Subtotal:</Text>
+          <Text style={styles.cell}>{formatCurrency(invoice.subtotal)}</Text>
+        </View>
+        <View style={styles.totalRow}>
+          <Text style={[styles.cell, { flex: 3 }]}>Tax ({invoice.taxRate}%):</Text>
+          <Text style={styles.cell}>{formatCurrency(invoice.tax)}</Text>
+        </View>
+        <View style={styles.totalRow}>
           <Text style={[styles.cell, { flex: 3 }]}>Total Due:</Text>
           <Text style={styles.cell}>{formatCurrency(invoice.total)}</Text>
         </View>

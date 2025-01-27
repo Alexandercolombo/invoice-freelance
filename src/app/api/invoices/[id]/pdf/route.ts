@@ -9,14 +9,15 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   const { userId } = getAuth(req);
-  
+  const invoiceId = params.id;
+
   if (!userId) {
     return new Response('Unauthorized', { status: 401 });
   }
 
   try {
     const invoice = await fetchQuery(api.invoices.getInvoice, { 
-      id: params.id as Id<'invoices'>
+      id: invoiceId as Id<'invoices'>
     });
 
     if (!invoice) {

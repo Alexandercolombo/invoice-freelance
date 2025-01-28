@@ -6,7 +6,7 @@ import { Id } from "convex/_generated/dataModel";
 import { formatCurrency } from "@/lib/utils";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Download, ArrowLeft, Send, Edit, Copy } from "lucide-react";
+import { Download, ArrowLeft, Send, Edit } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -14,17 +14,14 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { useState, useMemo, lazy } from "react";
+import { useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useToast } from "@/hooks/use-toast";
 import { useClerk } from "@clerk/nextjs";
-import { Task } from "@/types";
-import { SendInvoiceModal } from "./send-invoice-modal";
 import { motion, AnimatePresence } from "framer-motion";
+import { SendInvoiceModal } from "./send-invoice-modal";
 import { EditInvoiceModal } from "./edit-invoice-modal";
-import { ErrorBoundary } from '@/components/error-boundary';
 import { LoadingState } from '@/components/loading-state';
-import type { LoadingStateProps } from '@/components/loading-state';
 
 interface InvoicePreviewModalProps {
   invoiceId: Id<"invoices">;
@@ -99,7 +96,6 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
         description: "Preparing your invoice PDF...",
       });
 
-      // Get the auth token
       const token = await session?.getToken();
       if (!token) {
         throw new Error("Authentication required. Please sign in again.");
@@ -127,7 +123,6 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
       link.href = url;
       link.download = `invoice-${invoice.number}.pdf`;
       
-      // Use a try-finally to ensure cleanup
       try {
         document.body.appendChild(link);
         link.click();
@@ -168,14 +163,6 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
     toast({
       title: "Preparing to send",
       description: `Getting email ready for Invoice #${invoice.number}`,
-    });
-  };
-
-  const handleCloseEdit = () => {
-    setShowEditModal(false);
-    toast({
-      title: "Edit mode closed",
-      description: "Any saved changes have been applied.",
     });
   };
 
@@ -239,50 +226,23 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
                       </Button>
                     </div>
                   </div>
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex items-center justify-between"
-                  >
-                    <div>
-                      <DialogTitle className="text-2xl font-bold">Invoice #{invoice.number}</DialogTitle>
-                      <DialogDescription className="mt-1">
-                        {invoice.dueDate && (
-                          <motion.span
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className={`font-medium ${isPastDue ? 'text-red-500' : 'text-green-500'}`}
-                          >
-                            {(dueDate as Date).toLocaleDateString()}
-                          </motion.span>
-                        )}
-                      </DialogDescription>
-                    </div>
-                    <motion.div
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="text-2xl font-bold text-blue-600"
-                    >
-                      {formatCurrency(invoice.total)}
-                    </motion.div>
-                  </motion.div>
+                  <div>
+                    <DialogTitle className="text-2xl font-bold">Invoice #{invoice.number}</DialogTitle>
+                    <DialogDescription className="mt-1">
+                      {invoice.dueDate && (
+                        <span className={`font-medium ${isPastDue ? 'text-red-500' : 'text-green-500'}`}>
+                          Due: {dueDate?.toLocaleDateString()}
+                        </span>
+                      )}
+                    </DialogDescription>
+                  </div>
                 </DialogHeader>
               </div>
 
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="p-6"
-              >
+              <div className="p-6">
                 <div className="space-y-8">
                   {/* Header Section */}
-                  <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                    className="grid grid-cols-2 gap-8"
-                  >
+                  <div className="grid grid-cols-2 gap-8">
                     {/* From Section */}
                     <div className="space-y-4">
                       <div className="flex items-center space-x-4">
@@ -346,15 +306,10 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
                         )}
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
 
-                  {/* Tasks Table with animation */}
-                  <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.4 }}
-                    className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
-                  >
+                  {/* Tasks Table */}
+                  <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
                     <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                       <thead className="bg-gray-50 dark:bg-gray-800">
                         <tr>
@@ -394,50 +349,56 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
                           );
                         })}
                       </tbody>
-                      <tfoot className="bg-gray-50 dark:bg-gray-800">
-                        <tr className="border-t-2 border-gray-200 dark:border-gray-700">
-                          <td colSpan={2} />
-                          <td className="px-6 py-3 text-sm font-bold text-gray-900 dark:text-white text-right">
-                            Total
-                          </td>
-                          <td className="px-6 py-3 text-sm font-bold text-gray-900 dark:text-white text-right">
-                            {formatCurrency(invoice.total)}
-                          </td>
-                        </tr>
-                      </tfoot>
                     </table>
-                  </motion.div>
+                  </div>
 
-                  {/* Notes & Payment Instructions with animation */}
-                  <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                    className="space-y-6 border-t border-gray-200 dark:border-gray-700 pt-6"
-                  >
-                    {invoice.notes && (
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Notes</h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                          {invoice.notes}
-                        </p>
+                  {/* Totals Section */}
+                  <div className="flex justify-end">
+                    <div className="w-64 space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500 dark:text-gray-400">Subtotal:</span>
+                        <span className="text-gray-900 dark:text-white font-medium">
+                          {formatCurrency(invoice.subtotal || 0)}
+                        </span>
                       </div>
-                    )}
-                    
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Payment Instructions</h4>
-                      <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
-                        <p className="text-sm text-blue-700 dark:text-blue-300 whitespace-pre-line">
-                          {user.paymentInstructions}
-                        </p>
+                      {typeof invoice.tax === 'number' && invoice.tax > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500 dark:text-gray-400">Tax ({invoice.tax}%):</span>
+                          <span className="text-gray-900 dark:text-white font-medium">
+                            {formatCurrency((invoice.subtotal || 0) * (invoice.tax / 100))}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-lg font-bold">
+                        <span className="text-gray-900 dark:text-white">Total:</span>
+                        <span className="text-blue-600">
+                          {formatCurrency(invoice.total)}
+                        </span>
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
+
+                  {/* Notes Section */}
+                  {invoice.notes && (
+                    <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Notes:</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line">
+                        {invoice.notes}
+                      </p>
+                    </div>
+                  )}
                 </div>
-              </motion.div>
+              </div>
             </motion.div>
           </DialogContent>
         </Dialog>
+      )}
+
+      {showSendModal && (
+        <SendInvoiceModal
+          invoice={invoice}
+          onSuccess={() => setShowSendModal(false)}
+        />
       )}
 
       {showEditModal && (
@@ -445,20 +406,6 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
           invoice={invoice}
           isOpen={showEditModal}
           onClose={() => setShowEditModal(false)}
-        />
-      )}
-
-      {showSendModal && (
-        <SendInvoiceModal
-          invoice={{
-            _id: invoice._id,
-            number: invoice.number,
-            client: {
-              name: invoice.client.name,
-              email: invoice.client.email
-            }
-          }}
-          onSuccess={() => setShowSendModal(false)}
         />
       )}
     </AnimatePresence>

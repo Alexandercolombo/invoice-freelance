@@ -18,7 +18,7 @@ interface InvoiceCardProps {
     _id: Id<"invoices">;
     number: string;
     date: string;
-    dueDate: string;
+    dueDate?: string;
     status: 'draft' | 'sent' | 'paid';
     total: number;
     client?: {
@@ -115,9 +115,15 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
 
   const handleDelete = async () => {
     try {
+      setIsDeleteDialogOpen(false);
+      
+      const deletedInvoice = { ...invoice };
+      
+      router.refresh();
+      
       toast({
-        title: "Deleting invoice",
-        description: `Removing Invoice #${invoice.number}...`,
+        title: "Deleting invoice...",
+        description: `Invoice #${invoice.number} is being deleted.`,
       });
       
       await deleteInvoice({ id: invoice._id });
@@ -127,15 +133,13 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
         description: `Invoice #${invoice.number} has been permanently deleted.`,
         variant: "default",
       });
-      router.refresh();
     } catch (error) {
       toast({
         title: "Deletion failed",
-        description: "Failed to delete invoice. Please try again.",
+        description: "Failed to delete invoice. The invoice has been restored.",
         variant: "destructive",
       });
-    } finally {
-      setIsDeleteDialogOpen(false);
+      router.refresh();
     }
   };
 

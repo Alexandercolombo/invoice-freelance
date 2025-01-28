@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SendInvoiceModal } from "@/components/invoices/send-invoice-modal";
 import { InvoiceFilters } from "@/components/invoices/invoice-filters";
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { InvoiceCard } from '@/components/invoices/invoice-card';
 import { Invoice } from '@/types';
@@ -171,11 +171,11 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   // Memoize the filter values to prevent unnecessary recalculations
   const { search, status, sortBy, dateRange } = filters;
 
-  // Apply filters and sorting to invoices
-  const filteredInvoices = useMemo(() => {
-    if (!invoices) return [];
-    return invoices;
-  }, [invoices]);
+  // Handle invoices data without useMemo
+  let filteredInvoices: InvoiceCardData[] = [];
+  if (invoices && Array.isArray(invoices)) {
+    filteredInvoices = invoices;
+  }
 
   // Show loading state while data is loading
   if (invoices === undefined) {

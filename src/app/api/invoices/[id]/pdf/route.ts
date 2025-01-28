@@ -6,145 +6,88 @@ import { auth } from '@clerk/nextjs/server';
 import { fetchQuery } from 'convex/nextjs';
 import { api } from '../../../../../../convex/_generated/api';
 import { Id } from 'convex/_generated/dataModel';
-import { renderToBuffer, PDFViewer } from '@react-pdf/renderer';
-import { createElement } from 'react';
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { formatCurrency } from '@/lib/utils';
 
-// Register a default font
-Font.register({
-  family: 'Helvetica',
-  fonts: [
-    { src: 'https://fonts.gstatic.com/s/roboto/v27/KFOmCnqEu92Fr1Mu4mxP.ttf' }
-  ]
-});
+async function generatePDF(invoice: any, userData: any) {
+  // Create a new PDFDocument
+  const pdfDoc = await PDFDocument.create();
+  
+  // Add a blank page
+  const page = pdfDoc.addPage([595.28, 841.89]); // A4 size in points
+  
+  // Embed the standard font
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  
+  // Set some basic properties
+  const { width, height } = page.getSize();
+  const margin = 50;
+  let y = height - margin;
+  const lineHeight = 20;
+  
+  // Helper function to write text
+  const writeText = (text: string, x: number, yPos: number, options: any = {}) => {
+    const { fontSize = 12, font: textFont = font, color = rgb(0, 0, 0) } = options;
+    page.drawText(text, {
+      x,
+      y: yPos,
+      size: fontSize,
+      font: textFont,
+      color,
+    });
+    return yPos - lineHeight;
+  };
 
-// Define styles for PDF
-const styles = StyleSheet.create({
-  page: { 
-    padding: 30,
-    fontFamily: 'Helvetica'
-  },
-  header: { 
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    marginBottom: 20 
-  },
-  section: { 
-    marginBottom: 10 
-  },
-  table: { 
-    display: "flex" as const,
-    width: "100%",
-    marginBottom: 15 
-  },
-  row: { 
-    flexDirection: "row" as const,
-    borderBottomWidth: 1,
-    paddingVertical: 8 
-  },
-  cell: { 
-    flex: 1,
-    paddingHorizontal: 5 
-  },
-  totalRow: { 
-    flexDirection: "row" as const,
-    marginTop: 10,
-    paddingTop: 10 
+  // Write header
+  y = writeText(`Invoice #${invoice.number}`, margin, y, { fontSize: 24, font: boldFont });
+  y = writeText(new Date(invoice.date).toLocaleDateString(), margin, y);
+  y -= lineHeight;
+
+  // Write client info
+  y = writeText('Bill To:', margin, y, { font: boldFont });
+  y = writeText(invoice.client?.name || 'Unknown Client', margin, y);
+  if (invoice.client?.email) {
+    y = writeText(invoice.client.email, margin, y);
   }
-});
+  y -= lineHeight * 2;
 
-interface PDFDocumentProps {
-  invoice: {
-    _id: string;
-    number: string;
-    date: string;
-    client?: {
-      _id: string;
-      name: string;
-      email?: string;
-      hourlyRate?: number;
-    };
-    tasks?: Array<{
-      _id: string;
-      description?: string;
-      hours?: number;
-    }>;
-    subtotal?: number;
-    tax?: number;
-    total?: number;
-    taxRate?: number;
-  };
-  user?: {
-    _id?: string;
-    logoUrl?: string;
-  };
-}
+  // Write table header
+  const colWidths = [300, 60, 80, 80];
+  const startX = margin;
+  y = writeText('Description', startX, y, { font: boldFont });
+  y = writeText('Hours', startX + colWidths[0], y, { font: boldFont });
+  y = writeText('Rate', startX + colWidths[0] + colWidths[1], y, { font: boldFont });
+  y = writeText('Amount', startX + colWidths[0] + colWidths[1] + colWidths[2], y, { font: boldFont });
+  y -= lineHeight;
 
-// Server-side PDF component
-function PDFDocument({ invoice, user }: PDFDocumentProps) {
-  const safeInvoice = {
-    ...invoice,
-    number: invoice.number || 'NO-NUMBER',
-    date: invoice.date || new Date().toISOString(),
-    client: invoice.client || {
-      _id: 'unknown',
-      name: 'Unknown Client',
-      email: '',
-      hourlyRate: 0,
-    },
-    tasks: Array.isArray(invoice.tasks) ? invoice.tasks : [],
-    subtotal: invoice.subtotal || 0,
-    tax: invoice.tax || 0,
-    total: invoice.total || 0,
-    taxRate: invoice.taxRate || 0,
-  };
+  // Write tasks
+  if (Array.isArray(invoice.tasks)) {
+    for (const task of invoice.tasks) {
+      const amount = (task.hours || 0) * (invoice.client?.hourlyRate || 0);
+      y = writeText(task.description || 'No description', startX, y);
+      y = writeText(String(task.hours || 0), startX + colWidths[0], y);
+      y = writeText(formatCurrency(invoice.client?.hourlyRate || 0), startX + colWidths[0] + colWidths[1], y);
+      y = writeText(formatCurrency(amount), startX + colWidths[0] + colWidths[1] + colWidths[2], y);
+      y -= lineHeight;
+    }
+  }
 
-  return createElement(Document, null,
-    createElement(Page, { style: styles.page },
-      createElement(View, { style: styles.header },
-        createElement(View, null,
-          createElement(Text, { style: { fontSize: 24 } }, `Invoice #${safeInvoice.number}`),
-          createElement(Text, { style: { marginTop: 4 } }, new Date(safeInvoice.date).toLocaleDateString())
-        )
-      ),
-      createElement(View, { style: styles.section },
-        createElement(Text, null, "Bill To:"),
-        createElement(Text, null, safeInvoice.client.name),
-        safeInvoice.client.email && createElement(Text, null, safeInvoice.client.email)
-      ),
-      createElement(View, { style: styles.table },
-        createElement(View, { style: styles.row },
-          createElement(Text, { style: { ...styles.cell, flex: 3 } }, "Description"),
-          createElement(Text, { style: styles.cell }, "Hours"),
-          createElement(Text, { style: styles.cell }, "Rate"),
-          createElement(Text, { style: styles.cell }, "Amount")
-        ),
-        ...safeInvoice.tasks.map(task =>
-          createElement(View, { key: task._id, style: styles.row },
-            createElement(Text, { style: { ...styles.cell, flex: 3 } }, task.description || 'No description'),
-            createElement(Text, { style: styles.cell }, String(task.hours || 0)),
-            createElement(Text, { style: styles.cell }, formatCurrency(safeInvoice.client.hourlyRate || 0)),
-            createElement(Text, { style: styles.cell }, 
-              formatCurrency((task.hours || 0) * (safeInvoice.client.hourlyRate || 0))
-            )
-          )
-        )
-      ),
-      createElement(View, { style: styles.totalRow },
-        createElement(Text, { style: { ...styles.cell, flex: 3 } }, "Subtotal:"),
-        createElement(Text, { style: styles.cell }, formatCurrency(safeInvoice.subtotal))
-      ),
-      createElement(View, { style: styles.totalRow },
-        createElement(Text, { style: { ...styles.cell, flex: 3 } }, `Tax (${safeInvoice.taxRate}%)`),
-        createElement(Text, { style: styles.cell }, formatCurrency(safeInvoice.tax))
-      ),
-      createElement(View, { style: styles.totalRow },
-        createElement(Text, { style: { ...styles.cell, flex: 3 } }, "Total Due:"),
-        createElement(Text, { style: styles.cell }, formatCurrency(safeInvoice.total))
-      )
-    )
-  );
+  y -= lineHeight;
+
+  // Write totals
+  const totalsX = startX + colWidths[0] + colWidths[1];
+  y = writeText('Subtotal:', totalsX, y, { font: boldFont });
+  y = writeText(formatCurrency(invoice.subtotal || 0), totalsX + colWidths[2], y);
+  
+  y = writeText(`Tax (${invoice.taxRate || 0}%):`, totalsX, y, { font: boldFont });
+  y = writeText(formatCurrency(invoice.tax || 0), totalsX + colWidths[2], y);
+  
+  y = writeText('Total Due:', totalsX, y, { font: boldFont });
+  y = writeText(formatCurrency(invoice.total || 0), totalsX + colWidths[2], y);
+
+  // Return the PDF as a buffer
+  return await pdfDoc.save();
 }
 
 export async function GET(
@@ -184,9 +127,7 @@ export async function GET(
     }
 
     try {
-      const pdfBuffer = await renderToBuffer(
-        createElement(PDFDocument, { invoice, user: userData })
-      );
+      const pdfBuffer = await generatePDF(invoice, userData);
 
       if (!pdfBuffer || pdfBuffer.length === 0) {
         throw new Error('Generated PDF is empty');

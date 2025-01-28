@@ -8,14 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SendInvoiceModal } from "@/components/invoices/send-invoice-modal";
 import { InvoiceFilters } from "@/components/invoices/invoice-filters";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { InvoiceCard } from '@/components/invoices/invoice-card';
 import { Invoice } from '@/types';
 import { Skeleton } from "@/components/ui/skeleton";
 import { PlusCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useEventListener } from '@/hooks/use-event-listener';
 
 interface InvoiceCardData {
   _id: Id<"invoices">;
@@ -128,7 +127,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   // Add keyboard shortcuts
   const [showShortcuts, setShowShortcuts] = useState(false);
 
-  useEventListener('keydown', (e: KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
     // Ignore if target is an input or textarea
     if (
       e.target instanceof HTMLInputElement ||
@@ -162,7 +161,12 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
         }
         break;
     }
-  });
+  }, [router]);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
 
   // Memoize the filter values to prevent unnecessary recalculations
   const { search, status, sortBy, dateRange } = filters;
@@ -252,7 +256,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   }, [invoices, search, status, sortBy, dateRange]);
 
   // Show loading state while data is loading
-  if (!invoices) {
+  if (invoices === undefined) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">

@@ -173,87 +173,9 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
 
   // Apply filters and sorting to invoices
   const filteredInvoices = useMemo(() => {
-    // Return empty array if invoices is undefined or empty
-    if (!invoices || !Array.isArray(invoices)) return [];
-
-    // Create stable date objects outside of the filter/sort operations
-    const now = new Date();
-    const weekAgo = new Date(now);
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    // First filter the invoices and map to UI format in one pass
-    const uiInvoices: InvoiceCardData[] = invoices
-      .filter(invoice => {
-        if (!invoice || typeof invoice !== 'object') return false;
-        if (!invoice.date || !invoice.number || !invoice.status || !invoice.total) return false;
-        
-        // Safely check invoice properties
-        const invoiceDate = new Date(invoice.date);
-        const clientName = invoice.client?.name?.toLowerCase() || '';
-        const invoiceStatus = invoice.status;
-
-        // Filter by search
-        if (search && !clientName.includes(search.toLowerCase())) {
-          return false;
-        }
-
-        // Filter by status
-        if (status !== "all" && invoiceStatus !== status) {
-          return false;
-        }
-
-        // Filter by date range
-        if (dateRange !== "all") {
-          switch (dateRange) {
-            case "today":
-              return invoiceDate.toDateString() === now.toDateString();
-            case "week":
-              return invoiceDate >= weekAgo;
-            case "month":
-              return invoiceDate.getMonth() === currentMonth && 
-                     invoiceDate.getFullYear() === currentYear;
-            case "year":
-              return invoiceDate.getFullYear() === currentYear;
-            default:
-              return true;
-          }
-        }
-
-        return true;
-      })
-      .map(invoice => ({
-        _id: invoice._id,
-        number: invoice.number,
-        date: invoice.date,
-        dueDate: invoice.dueDate,
-        status: invoice.status,
-        total: invoice.total,
-        client: invoice.client ? {
-          name: invoice.client.name,
-          email: invoice.client.email
-        } : null
-      }));
-
-    // Then sort the filtered results
-    return uiInvoices.sort((a, b) => {
-      switch (sortBy) {
-        case "date-desc":
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
-        case "date-asc":
-          return new Date(a.date).getTime() - new Date(b.date).getTime();
-        case "amount-desc":
-          return (b.total || 0) - (a.total || 0);
-        case "amount-asc":
-          return (a.total || 0) - (b.total || 0);
-        case "status":
-          return a.status.localeCompare(b.status);
-        default:
-          return 0;
-      }
-    });
-  }, [invoices, search, status, sortBy, dateRange]);
+    if (!invoices) return [];
+    return invoices;
+  }, [invoices]);
 
   // Show loading state while data is loading
   if (invoices === undefined) {

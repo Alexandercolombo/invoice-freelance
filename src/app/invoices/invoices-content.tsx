@@ -39,10 +39,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   const [selectedTasks, setSelectedTasks] = useState<Set<Id<"tasks_v2">>>(new Set());
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   
-  const deleteInvoice = useMutation(api.invoices.deleteInvoice)
-    .withOptimisticUpdate(({ setQuery }) => {
-      // Add optimistic update logic here
-    });
+  const deleteInvoice = useMutation(api.invoices.deleteInvoice);
   
   const invoices = useQuery(api.invoices.getAllInvoices, {
     paginationOpts: {

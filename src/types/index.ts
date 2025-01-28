@@ -19,7 +19,8 @@ export interface Task {
 }
 
 export interface Client {
-  _id: string;
+  _id: Id<"clients">;
+  _creationTime: number;
   name: string;
   email: string;
   phone?: string;
@@ -34,6 +35,7 @@ export interface Client {
 
 export interface User {
   _id: string;
+  _creationTime: number;
   address?: string;
   businessName: string;
   createdAt: string;
@@ -50,13 +52,14 @@ export interface User {
 }
 
 export interface Invoice {
-  _id: string;
+  _id: Id<"invoices">;
+  _creationTime: number;
   number: string;
   date: string;
   dueDate?: string;
-  clientId: string;
+  clientId: Id<"clients">;
   client?: Client;
-  tasks: Task[];
+  tasks: Id<"tasks_v2">[];
   subtotal: number;
   tax?: number;
   total: number;

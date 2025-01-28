@@ -39,53 +39,85 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
   const { session } = useClerk();
 
   const handleDownload = async () => {
-    try {
-      setIsDownloading(true);
-      toast({
-        title: "Starting download",
-        description: `Preparing Invoice #${invoice.number} for download...`,
-      });
-      
-      const token = await session?.getToken();
-      if (!token) {
-        throw new Error('Authentication required. Please sign in again.');
-      }
-      
-      const response = await fetch(`/api/invoices/${invoice._id}/pdf`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to generate PDF. Please try again.');
-      }
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `invoice-${invoice.number}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+    let retryCount = 0;
+    const maxRetries = 3;
 
-      toast({
-        title: "Download successful",
-        description: `Invoice #${invoice.number} has been downloaded to your device.`,
-        variant: "default",
-      });
-    } catch (error) {
-      console.error('Error downloading invoice:', error);
-      toast({
-        title: "Download failed",
-        description: error instanceof Error ? error.message : "There was an error downloading your invoice. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDownloading(false);
-    }
+    const attemptDownload = async () => {
+      try {
+        setIsDownloading(true);
+        toast({
+          title: "Starting download",
+          description: `Preparing Invoice #${invoice.number} for download...`,
+        });
+        
+        const token = await session?.getToken();
+        if (!token) {
+          throw new Error('Authentication required. Please sign in again.');
+        }
+        
+        const response = await fetch(`/api/invoices/${invoice._id}/pdf`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Cache-Control': 'no-cache',
+          },
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Failed to generate PDF (${response.status})`);
+        }
+        
+        const blob = await response.blob();
+        if (blob.size === 0) {
+          throw new Error('Generated PDF is empty');
+        }
+
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `invoice-${invoice.number}.pdf`;
+        
+        try {
+          document.body.appendChild(link);
+          link.click();
+          toast({
+            title: "Download successful",
+            description: `Invoice #${invoice.number} has been downloaded to your device.`,
+            variant: "default",
+          });
+        } finally {
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+        }
+      } catch (error) {
+        console.error('Error downloading invoice:', error);
+        
+        // Check if we should retry
+        if (retryCount < maxRetries && error instanceof Error && 
+            (error.message.includes('network') || error.message.includes('timeout'))) {
+          retryCount++;
+          toast({
+            title: "Download retry",
+            description: `Retrying download (attempt ${retryCount}/${maxRetries})...`,
+            variant: "default",
+          });
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+          return attemptDownload();
+        }
+        
+        toast({
+          title: "Download failed",
+          description: error instanceof Error 
+            ? `Error: ${error.message}. Please try again.`
+            : "There was an error downloading your invoice. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsDownloading(false);
+      }
+    };
+
+    await attemptDownload();
   };
 
   const handlePreviewClick = () => {

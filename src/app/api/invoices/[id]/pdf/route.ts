@@ -47,10 +47,10 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Validate invoice ID format
-    if (!params.id.startsWith('invoices_')) {
+    // Validate invoice ID format - more lenient check
+    if (!params.id || typeof params.id !== 'string') {
       return NextResponse.json(
-        { error: 'Invalid invoice ID format' },
+        { error: 'Invalid invoice ID' },
         { status: 400 }
       );
     }
@@ -64,8 +64,12 @@ export async function GET(
     ]);
 
     // Validate data exists and belongs to user
-    if (!invoice || !userData) {
-      return NextResponse.json({ error: 'Invoice or user data not found' }, { status: 404 });
+    if (!invoice) {
+      return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+    }
+
+    if (!userData) {
+      return NextResponse.json({ error: 'User data not found' }, { status: 404 });
     }
 
     if (invoice.userId !== userId) {
@@ -82,6 +86,10 @@ export async function GET(
         )
       );
 
+      if (!pdfBuffer || pdfBuffer.length === 0) {
+        throw new Error('Generated PDF is empty');
+      }
+
       return new Response(pdfBuffer, {
         headers: {
           'Content-Type': 'application/pdf',
@@ -92,7 +100,7 @@ export async function GET(
     } catch (pdfError) {
       console.error('PDF rendering failed:', pdfError);
       return NextResponse.json(
-        { error: 'Failed to render PDF' },
+        { error: 'Failed to render PDF: ' + (pdfError as Error).message },
         { status: 500 }
       );
     }

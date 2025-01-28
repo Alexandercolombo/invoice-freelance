@@ -7,6 +7,7 @@ import { Id } from "convex/_generated/dataModel";
 import { ClientDialog } from "@/components/clients/client-dialog";
 import { ClientDetails } from "@/components/clients/client-details";
 import { ClientCard } from "@/components/clients/client-card";
+import { LoadingState } from "@/components/loading-state";
 
 interface ClientsContentProps {
   searchParams: { [key: string]: string | string[] | undefined };
@@ -33,6 +34,10 @@ export function ClientsContent({ searchParams }: ClientsContentProps) {
       setShowDetails(true);
     }
   }, [searchParams]);
+
+  if (!clientsResponse) {
+    return <LoadingState fullScreen={true} />;
+  }
   
   return (
     <div className="py-10">

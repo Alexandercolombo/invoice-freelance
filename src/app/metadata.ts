@@ -6,10 +6,6 @@ export const metadata: Metadata = {
   icons: {
     icon: '/favicon.ico',
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-  },
   robots: {
     index: true,
     follow: true,

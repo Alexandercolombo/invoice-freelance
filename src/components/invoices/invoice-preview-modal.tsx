@@ -63,11 +63,7 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
   if (!invoice || !user) {
     return (
       <LoadingState 
-        message={
-          !user && !invoice ? "Loading user and invoice data..." :
-          user && !invoice ? "Loading invoice data..." :
-          "Loading user data..."
-        }
+        message="Loading invoice data..."
         size="md"
         fullScreen={true}
       />
@@ -110,20 +106,42 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
         description: "Preparing your invoice PDF...",
       });
 
-      const { generateInvoicePDF } = await import('@/lib/generatePDF');
-      const pdfBlob = await generateInvoicePDF(invoice, user, invoice.client, validTasks);
-      
-      const url = window.URL.createObjectURL(pdfBlob);
+      // Get the auth token
+      const token = await session?.getToken();
+      if (!token) {
+        throw new Error("Authentication required. Please sign in again.");
+      }
+
+      const response = await fetch(`/api/invoices/${invoiceId}/pdf`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Cache-Control': 'no-cache'
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to generate PDF');
+      }
+
+      const blob = await response.blob();
+      if (blob.size === 0) {
+        throw new Error('Generated PDF is empty');
+      }
+
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
       link.download = `invoice-${invoice.number}.pdf`;
-      document.body.appendChild(link);
-      link.click();
       
-      setTimeout(() => {
+      // Use a try-finally to ensure cleanup
+      try {
+        document.body.appendChild(link);
+        link.click();
+      } finally {
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
-      }, 100);
+      }
 
       toast({
         title: "Download complete",

@@ -1,25 +1,37 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
+// Define public routes that don't require authentication
 const isPublicRoute = createRouteMatcher([
   '/',
   '/sign-in(.*)',
   '/sign-up(.*)',
-  '/api/webhooks(.*)'
+  '/api/webhooks(.*)',
+  '/api/uploadthing(.*)', // Allow uploadthing API routes
+  '/404',
+  '/_not-found',
+  '/favicon.ico',
+  '/manifest.json'
 ]);
 
-export default clerkMiddleware(async (auth, request) => {
-  if (!isPublicRoute(request)) {
-    await auth.protect();
+// Define organization-specific routes
+const organizationPatterns = [
+  '/dashboard/:id/(.*)',
+  '/dashboard/:slug/(.*)'
+];
+
+export default clerkMiddleware((auth, req) => {
+  if (!isPublicRoute(req)) {
+    return auth.protect().then(() => NextResponse.next());
   }
+  return NextResponse.next();
 });
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Skip static files and Next.js internals
+    '/((?!_next/static|_next/image|assets|favicon.ico).*)',
     // Always run for API routes
-    '/(api|trpc)(.*)',
-  ],
+    '/(api|trpc)(.*)'
+  ]
 }; 

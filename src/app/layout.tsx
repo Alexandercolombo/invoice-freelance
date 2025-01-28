@@ -1,12 +1,13 @@
 import { Inter } from 'next/font/google';
-import Providers from './providers';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 import { metadata } from './metadata';
+import { viewport } from './viewport';
+import Providers from './providers';
 
 const inter = Inter({ subsets: ['latin'] });
 
-export { metadata };
+export { metadata, viewport };
 
 export default function RootLayout({
   children,

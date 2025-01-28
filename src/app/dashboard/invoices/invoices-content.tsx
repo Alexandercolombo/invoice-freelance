@@ -3,7 +3,6 @@
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
-import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -47,13 +46,12 @@ const item = {
 
 export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   const router = useRouter();
-  const { isLoaded, isSignedIn } = useAuth();
-  const invoices = useQuery(api.invoices.getAllInvoices, isSignedIn ? {
+  const invoices = useQuery(api.invoices.getAllInvoices, {
     paginationOpts: {
       numToSkip: 0,
       numToTake: 100
     }
-  } : "skip");
+  });
 
   const [filters, setFilters] = useState({
     search: "",
@@ -131,26 +129,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
             return 0;
         }
       }) as Invoice[];
-  }, [invoices, search, status, sortBy, dateRange]); // Use individual filter values instead of the filters object
-
-  // Show loading state while auth is loading
-  if (!isLoaded) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white" />
-      </div>
-    );
-  }
-
-  // Redirect if not signed in
-  if (!isSignedIn) {
-    router.push("/sign-in");
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div>Redirecting to sign in...</div>
-      </div>
-    );
-  }
+  }, [invoices, search, status, sortBy, dateRange]);
 
   // Show loading state while data is loading
   if (!invoices) {

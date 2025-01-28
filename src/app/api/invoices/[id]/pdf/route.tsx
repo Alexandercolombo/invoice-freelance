@@ -9,29 +9,28 @@ import { renderToBuffer } from '@react-pdf/renderer';
 import InvoicePDF from '@/components/invoices/pdf-template';
 
 export async function GET(
-  req: NextRequest,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const { userId } = getAuth(req);
-  const invoiceId = params.id;
-
+  const { userId } = getAuth(request);
+  
   if (!userId) {
-    return new Response('Unauthorized', { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const invoice = await fetchQuery(api.invoices.getInvoice, { 
-      id: invoiceId as Id<'invoices'>
+    const invoice = await fetchQuery(api.invoices.getInvoiceById, {
+      id: params.id as Id<'invoices'>
     });
 
-    if (!invoice) {
-      return new Response('Invoice not found', { status: 404 });
+    const user = await fetchQuery(api.users.getUserById, {
+      id: userId as Id<'users'>
+    });
+
+    if (!invoice || !user) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
-    // Get user data for PDF
-    const user = await fetchQuery(api.users.get);
-
-    // Generate actual PDF
     const pdfBuffer = await renderToBuffer(
       <InvoicePDF invoice={invoice} user={user} />
     );
@@ -43,7 +42,10 @@ export async function GET(
       }
     });
   } catch (error) {
-    console.error('PDF generation error:', error);
-    return new Response('Failed to generate PDF', { status: 500 });
+    console.error('PDF generation failed:', error);
+    return NextResponse.json(
+      { error: 'Failed to generate PDF' },
+      { status: 500 }
+    );
   }
 } 

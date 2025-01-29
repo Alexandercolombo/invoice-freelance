@@ -2,16 +2,7 @@
 
 import { SignIn } from "@clerk/nextjs";
 
-interface PageProps {
-  params: { 'sign-in': string[] | undefined };
-  searchParams: { [key: string]: string | string[] | undefined };
-}
-
-export default function SignInPage({ searchParams }: PageProps) {
-  const redirectTo = typeof searchParams?.redirect_to === 'string' 
-    ? searchParams.redirect_to 
-    : undefined;
-
+export default function SignInPage() {
   return (
     <div className="flex items-center justify-center min-h-screen p-4">
       <SignIn
@@ -21,7 +12,6 @@ export default function SignInPage({ searchParams }: PageProps) {
             card: "shadow-none",
           },
         }}
-        redirectUrl={redirectTo}
       />
     </div>
   );

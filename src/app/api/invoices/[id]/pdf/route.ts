@@ -62,9 +62,15 @@ async function generateInvoicePDF(invoice: any, userData: any, client: any, task
   });
 }
 
+type Context = {
+  params: {
+    id: string;
+  };
+};
+
 export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: Context
 ) {
   try {
     const { userId } = await auth();
@@ -72,7 +78,7 @@ export async function GET(
       return new Response('Unauthorized', { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = context.params;
     if (!id || typeof id !== 'string') {
       return new Response('Invalid invoice ID', { status: 400 });
     }

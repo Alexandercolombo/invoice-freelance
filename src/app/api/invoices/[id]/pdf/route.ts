@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import PDFDocument from "pdfkit";
 import { auth } from '@clerk/nextjs/server';
 import { fetchQuery } from 'convex/nextjs';
@@ -63,41 +63,41 @@ async function generateInvoicePDF(invoice: any, userData: any, client: any, task
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
-): Promise<Response> {
+  context: { params: { id: string } }
+): Promise<NextResponse> {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return new Response('Unauthorized', { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!params.id || typeof params.id !== 'string') {
-      return new Response('Invalid invoice ID', { status: 400 });
+    if (!context.params.id || typeof context.params.id !== 'string') {
+      return NextResponse.json({ error: 'Invalid invoice ID' }, { status: 400 });
     }
 
-    const invoiceId = params.id as Id<'invoices'>;
+    const invoiceId = context.params.id as Id<'invoices'>;
     
     // First fetch invoice and user data
     const invoiceData = await fetchQuery(api.invoices.getInvoice, { id: invoiceId });
     const userData = await fetchQuery(api.users.get, {});
 
     if (!invoiceData) {
-      return new Response('Invoice not found', { status: 404 });
+      return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
     }
 
     if (!userData) {
-      return new Response('User data not found', { status: 404 });
+      return NextResponse.json({ error: 'User data not found' }, { status: 404 });
     }
 
     if (invoiceData.userId !== userId) {
-      return new Response('Unauthorized access to invoice', { status: 403 });
+      return NextResponse.json({ error: 'Unauthorized access to invoice' }, { status: 403 });
     }
 
     // Client data is already included in invoiceData
     const { client, tasks } = invoiceData;
 
     if (!client) {
-      return new Response('Client data not found', { status: 404 });
+      return NextResponse.json({ error: 'Client data not found' }, { status: 404 });
     }
 
     try {
@@ -108,7 +108,7 @@ export async function GET(
       }
 
       // Return PDF as a downloadable file
-      return new Response(pdfBuffer, {
+      return new NextResponse(pdfBuffer, {
         headers: {
           'Content-Type': 'application/pdf',
           'Content-Disposition': `attachment; filename=invoice-${invoiceData.number}.pdf`,
@@ -117,10 +117,16 @@ export async function GET(
       });
     } catch (pdfError) {
       console.error('PDF rendering failed:', pdfError);
-      return new Response('Failed to render PDF: ' + (pdfError as Error).message, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to render PDF: ' + (pdfError as Error).message },
+        { status: 500 }
+      );
     }
   } catch (error) {
     console.error('PDF generation failed:', error);
-    return new Response('Failed to generate PDF - ' + (error as Error).message, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to generate PDF - ' + (error as Error).message },
+      { status: 500 }
+    );
   }
 } 

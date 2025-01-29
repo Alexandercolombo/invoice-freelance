@@ -1,6 +1,4 @@
 /** @jsxImportSource react */
-'use server';
-
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { fetchQuery } from 'convex/nextjs';

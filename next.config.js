@@ -11,6 +11,29 @@ const nextConfig = {
     config.externals = [...(config.externals || []), "jspdf"];
     return config;
   },
+  // Specify Node.js runtime for auth routes
+  async headers() {
+    return [
+      {
+        source: '/sign-in/:path*',
+        headers: [
+          {
+            key: 'x-middleware-prefetch',
+            value: '0',
+          },
+        ],
+      },
+      {
+        source: '/sign-up/:path*',
+        headers: [
+          {
+            key: 'x-middleware-prefetch',
+            value: '0',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig; 

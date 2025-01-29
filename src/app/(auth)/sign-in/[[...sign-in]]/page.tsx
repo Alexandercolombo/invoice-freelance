@@ -2,10 +2,10 @@
 
 import { SignIn } from "@clerk/nextjs";
 
-type PageProps = {
-  params: { slug: string };
+interface PageProps {
+  params: { 'sign-in': string[] | undefined };
   searchParams: { [key: string]: string | string[] | undefined };
-};
+}
 
 export default function SignInPage({ searchParams }: PageProps) {
   const redirectTo = typeof searchParams?.redirect_to === 'string' 

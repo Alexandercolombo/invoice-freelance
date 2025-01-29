@@ -2,10 +2,10 @@
 
 import { SignUp } from "@clerk/nextjs";
 
-type PageProps = {
-  params: { slug: string };
+interface PageProps {
+  params: { 'sign-up': string[] | undefined };
   searchParams: { [key: string]: string | string[] | undefined };
-};
+}
 
 export default function SignUpPage({ searchParams }: PageProps) {
   const redirectTo = typeof searchParams?.redirect_to === 'string' 

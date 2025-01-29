@@ -61,9 +61,15 @@ async function generateInvoicePDF(invoice: any, userData: any, client: any, task
   });
 }
 
+type Props = {
+  params: {
+    id: string;
+  };
+};
+
 export async function GET(
-  request: NextRequest,
-  context: { params: { id: string } }
+  req: NextRequest,
+  props: Props
 ): Promise<NextResponse> {
   try {
     const { userId } = await auth();
@@ -71,11 +77,11 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!context.params.id || typeof context.params.id !== 'string') {
+    if (!props.params.id || typeof props.params.id !== 'string') {
       return NextResponse.json({ error: 'Invalid invoice ID' }, { status: 400 });
     }
 
-    const invoiceId = context.params.id as Id<'invoices'>;
+    const invoiceId = props.params.id as Id<'invoices'>;
     
     // First fetch invoice and user data
     const invoiceData = await fetchQuery(api.invoices.getInvoice, { id: invoiceId });

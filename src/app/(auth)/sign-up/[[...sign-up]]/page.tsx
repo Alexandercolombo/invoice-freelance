@@ -1,12 +1,6 @@
 'use client';
 
 import { SignUp } from "@clerk/nextjs";
-import { type Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: 'Sign Up',
-  description: 'Create a new account',
-};
 
 type PageProps = {
   params: { slug: string };

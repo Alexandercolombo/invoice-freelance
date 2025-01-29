@@ -61,13 +61,14 @@ async function generateInvoicePDF(invoice: any, userData: any, client: any, task
   });
 }
 
-type RouteContext = {
-  params: {
-    id: string;
-  };
-};
+interface RouteSegment {
+  id: string;
+}
 
-export async function GET(request: NextRequest, { params }: RouteContext): Promise<Response> {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: RouteSegment }
+): Promise<Response> {
   try {
     const { userId } = await auth();
     if (!userId) {

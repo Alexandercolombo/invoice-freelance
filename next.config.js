@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ["jspdf"],
-  },
+  serverExternalPackages: ["jspdf"],
   webpack: (config) => {
     // Exclude client-side modules from server bundle
     config.externals = [...(config.externals || []), "jspdf"];

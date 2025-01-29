@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { fetchQuery } from 'convex/nextjs';
@@ -6,8 +5,8 @@ import { api } from '../../../../../../convex/_generated/api';
 import { Id } from 'convex/_generated/dataModel';
 import { generateInvoicePDF } from '@/lib/generatePDF';
 
-// Remove Edge runtime configuration to use default Node.js runtime
-export const dynamic = 'force-dynamic';
+// Configure for Node.js runtime
+export const runtime = 'nodejs';
 
 export async function GET(
   request: Request,
@@ -53,9 +52,11 @@ export async function GET(
       return NextResponse.json({ error: 'Client data not found' }, { status: 404 });
     }
 
+    // Use the tasks data already included in the invoice
+    const validTasks = invoice.tasks.filter(task => task !== null);
+
     try {
-      // Use the tasks from the invoice object since they're already included
-      const pdfBuffer = await generateInvoicePDF(invoice, userData, client, invoice.tasks || []);
+      const pdfBuffer = await generateInvoicePDF(invoice, userData, client, validTasks);
 
       if (!pdfBuffer || pdfBuffer.length === 0) {
         throw new Error('Generated PDF is empty');

@@ -49,9 +49,15 @@ export async function generateInvoicePDF(
   invoice: any,
   userData: any,
   client: any,
-  tasks: any[]
+  taskIds: Id<"tasks_v2">[]
 ): Promise<Buffer> {
-  const doc = new jsPDF();
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+    putOnlyUsedFonts: true
+  });
+
   const margin = 20;
   let y = margin;
   const lineHeight = 10;
@@ -65,13 +71,19 @@ export async function generateInvoicePDF(
   };
 
   // Add header with company info
-  y = writeText(userData?.company || 'Your Company', margin, y, { fontSize: 24 });
+  y = writeText(userData?.businessName || 'Your Company', margin, y, { fontSize: 24 });
   y = writeText(userData?.email || '', margin, y);
+  if (userData?.address) {
+    y = writeText(userData.address, margin, y);
+  }
   y += lineHeight;
 
   // Add invoice details
   y = writeText(`Invoice #${invoice.number}`, margin, y, { fontSize: 18 });
   y = writeText(`Date: ${new Date(invoice.date).toLocaleDateString()}`, margin, y);
+  if (invoice.dueDate) {
+    y = writeText(`Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`, margin, y);
+  }
   y += lineHeight;
 
   // Add client info
@@ -100,8 +112,11 @@ export async function generateInvoicePDF(
   y += 5;
 
   // Add tasks
-  if (Array.isArray(tasks)) {
-    for (const task of tasks) {
+  if (Array.isArray(taskIds)) {
+    for (const taskId of taskIds) {
+      const task = invoice.tasks.find((t: any) => t._id === taskId);
+      if (!task) continue;
+
       const amount = (task.hours || 0) * (client?.hourlyRate || 0);
       let x = startX;
       
@@ -131,17 +146,24 @@ export async function generateInvoicePDF(
   y = writeText('Subtotal:', totalsX, y);
   y = writeText(formatCurrency(invoice.subtotal || 0), totalsX + colWidths[2], y);
   
-  y = writeText(`Tax (${invoice.taxRate || 0}%):`, totalsX, y);
+  y = writeText(`Tax (${invoice.tax || 0}%):`, totalsX, y);
   y = writeText(formatCurrency(invoice.tax || 0), totalsX + colWidths[2], y);
   
   y = writeText('Total Due:', totalsX, y);
   y = writeText(formatCurrency(invoice.total || 0), totalsX + colWidths[2], y);
 
-  // Add payment terms if available
-  if (invoice.paymentTerms) {
+  // Add payment instructions
+  if (userData?.paymentInstructions) {
     y += lineHeight * 2;
-    y = writeText('Payment Terms:', margin, y, { fontSize: 12 });
-    y = writeText(invoice.paymentTerms, margin, y);
+    y = writeText('Payment Instructions:', margin, y, { fontSize: 12 });
+    y = writeText(userData.paymentInstructions, margin, y);
+  }
+
+  // Add notes if available
+  if (invoice.notes) {
+    y += lineHeight * 2;
+    y = writeText('Notes:', margin, y, { fontSize: 12 });
+    y = writeText(invoice.notes, margin, y);
   }
 
   // Convert to Buffer

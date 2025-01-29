@@ -1,7 +1,9 @@
-import { jsPDF } from "jspdf";
 import { formatCurrency } from "./utils";
-import { Id } from "convex/_generated/dataModel";
 import { Task } from "@/types";
+import type { jsPDF } from "jspdf";
+
+// Ensure this module is treated as server-side only
+export const dynamic = 'force-dynamic';
 
 interface PDFTask {
   description: string;
@@ -52,11 +54,15 @@ export async function generateInvoicePDF(
   client: any,
   tasks: Task[]
 ): Promise<Buffer> {
+  // Dynamically import jsPDF only when needed
+  const { jsPDF } = await import('jspdf');
+
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
     format: 'a4',
-    putOnlyUsedFonts: true
+    putOnlyUsedFonts: true,
+    filters: ["PDFA"] // Add PDF/A compliance for server-side safety
   });
 
   const margin = 20;

@@ -9,7 +9,9 @@ import { Id } from 'convex/_generated/dataModel';
 import { formatCurrency } from '@/lib/utils';
 import PDFDocument from 'pdfkit';
 
-export const runtime = 'edge';
+// Configure for Node.js runtime
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 async function generatePDF(invoice: any, userData: any): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -18,6 +20,7 @@ async function generatePDF(invoice: any, userData: any): Promise<Buffer> {
       const doc = new PDFDocument({
         size: 'A4',
         margin: 50,
+        bufferPages: true
       });
 
       // Collect data chunks

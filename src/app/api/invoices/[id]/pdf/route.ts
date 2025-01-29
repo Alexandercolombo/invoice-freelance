@@ -5,7 +5,7 @@ import { api } from '../../../../../../convex/_generated/api';
 import { Id } from 'convex/_generated/dataModel';
 import { generateInvoicePDF } from '@/lib/generatePDF';
 
-// Configure for Node.js runtime
+// Configure for pure Node.js runtime without React/JSX
 export const runtime = 'nodejs';
 
 export async function GET(
@@ -52,16 +52,17 @@ export async function GET(
       return NextResponse.json({ error: 'Client data not found' }, { status: 404 });
     }
 
-    // Use the tasks data already included in the invoice
-    const validTasks = invoice.tasks.filter(task => task !== null);
+    // Get tasks data from the invoice
+    const tasks = invoice.tasks || [];
 
     try {
-      const pdfBuffer = await generateInvoicePDF(invoice, userData, client, validTasks);
+      const pdfBuffer = await generateInvoicePDF(invoice, userData, client, tasks);
 
       if (!pdfBuffer || pdfBuffer.length === 0) {
         throw new Error('Generated PDF is empty');
       }
 
+      // Return PDF as a downloadable file
       return new Response(pdfBuffer, {
         headers: {
           'Content-Type': 'application/pdf',

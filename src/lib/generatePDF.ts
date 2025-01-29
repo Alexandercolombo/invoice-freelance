@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import { formatCurrency } from "./utils";
 import { Id } from "convex/_generated/dataModel";
+import { Task } from "@/types";
 
 interface PDFTask {
   description: string;
@@ -49,7 +50,7 @@ export async function generateInvoicePDF(
   invoice: any,
   userData: any,
   client: any,
-  taskIds: Id<"tasks_v2">[]
+  tasks: Task[]
 ): Promise<Buffer> {
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -112,11 +113,8 @@ export async function generateInvoicePDF(
   y += 5;
 
   // Add tasks
-  if (Array.isArray(taskIds)) {
-    for (const taskId of taskIds) {
-      const task = invoice.tasks.find((t: any) => t._id === taskId);
-      if (!task) continue;
-
+  if (Array.isArray(tasks)) {
+    for (const task of tasks) {
       const amount = (task.hours || 0) * (client?.hourlyRate || 0);
       let x = startX;
       

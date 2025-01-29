@@ -1,14 +1,23 @@
 'use client';
 
 import { SignUp } from "@clerk/nextjs";
+import { type Metadata } from "next";
 
-interface SignUpPageProps {
-  searchParams?: {
-    redirect_to?: string;
-  };
-}
+export const metadata: Metadata = {
+  title: 'Sign Up',
+  description: 'Create a new account',
+};
 
-export default function SignUpPage({ searchParams }: SignUpPageProps) {
+type PageProps = {
+  params: { slug: string };
+  searchParams: { [key: string]: string | string[] | undefined };
+};
+
+export default function SignUpPage({ searchParams }: PageProps) {
+  const redirectTo = typeof searchParams?.redirect_to === 'string' 
+    ? searchParams.redirect_to 
+    : undefined;
+
   return (
     <div className="flex items-center justify-center min-h-screen p-4">
       <SignUp
@@ -18,7 +27,7 @@ export default function SignUpPage({ searchParams }: SignUpPageProps) {
             card: "shadow-none",
           },
         }}
-        redirectUrl={searchParams?.redirect_to}
+        redirectUrl={redirectTo}
       />
     </div>
   );

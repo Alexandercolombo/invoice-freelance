@@ -1,14 +1,23 @@
 'use client';
 
 import { SignIn } from "@clerk/nextjs";
+import { type Metadata } from "next";
 
-interface SignInPageProps {
-  searchParams?: {
-    redirect_to?: string;
-  };
-}
+export const metadata: Metadata = {
+  title: 'Sign In',
+  description: 'Sign in to your account',
+};
 
-export default function SignInPage({ searchParams }: SignInPageProps) {
+type PageProps = {
+  params: { slug: string };
+  searchParams: { [key: string]: string | string[] | undefined };
+};
+
+export default function SignInPage({ searchParams }: PageProps) {
+  const redirectTo = typeof searchParams?.redirect_to === 'string' 
+    ? searchParams.redirect_to 
+    : undefined;
+
   return (
     <div className="flex items-center justify-center min-h-screen p-4">
       <SignIn
@@ -18,7 +27,7 @@ export default function SignInPage({ searchParams }: SignInPageProps) {
             card: "shadow-none",
           },
         }}
-        redirectUrl={searchParams?.redirect_to}
+        redirectUrl={redirectTo}
       />
     </div>
   );

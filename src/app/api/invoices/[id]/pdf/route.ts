@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import PDFDocument from "pdfkit";
 import { auth } from '@clerk/nextjs/server';
 import { fetchQuery } from 'convex/nextjs';
@@ -8,6 +8,7 @@ import { Id } from 'convex/_generated/dataModel';
 // Configure for pure Node.js runtime without React/JSX
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const preferredRegion = 'iad1';
 
 async function generateInvoicePDF(invoice: any, userData: any, client: any, tasks: any[]) {
   return new Promise<Buffer>((resolve, reject) => {
@@ -61,21 +62,26 @@ async function generateInvoicePDF(invoice: any, userData: any, client: any, task
   });
 }
 
+interface RouteSegment {
+  id: string;
+}
+
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-): Promise<Response> {
+  _request: NextRequest,
+  context: { params: RouteSegment }
+) {
   try {
     const { userId } = await auth();
     if (!userId) {
       return new Response('Unauthorized', { status: 401 });
     }
 
-    if (!params.id || typeof params.id !== 'string') {
+    const { id } = context.params;
+    if (!id || typeof id !== 'string') {
       return new Response('Invalid invoice ID', { status: 400 });
     }
 
-    const invoiceId = params.id as Id<'invoices'>;
+    const invoiceId = id as Id<'invoices'>;
     
     // First fetch invoice and user data
     const invoiceData = await fetchQuery(api.invoices.getInvoice, { id: invoiceId });

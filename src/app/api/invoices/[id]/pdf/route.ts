@@ -2,8 +2,8 @@ import { NextRequest } from "next/server";
 import PDFDocument from "pdfkit";
 import { auth } from '@clerk/nextjs/server';
 import { fetchQuery } from 'convex/nextjs';
-import { api } from '../../../../../convex/_generated/api';
-import { Id } from '../../../../../convex/_generated/dataModel';
+import { api } from 'convex/_generated/api';
+import { Id } from 'convex/_generated/dataModel';
 
 // Configure for pure Node.js runtime without React/JSX
 export const runtime = 'nodejs';
@@ -78,10 +78,10 @@ export async function GET(
     const invoiceId = context.params.id as Id<'invoices'>;
     
     // First fetch invoice and user data
-    const invoice = await fetchQuery(api.invoices.get, { id: invoiceId });
-    const userData = await fetchQuery(api.users.get, { id: userId });
+    const invoiceData = await fetchQuery(api.invoices.getInvoice, { id: invoiceId });
+    const userData = await fetchQuery(api.users.get, {});
 
-    if (!invoice) {
+    if (!invoiceData) {
       return new Response('Invoice not found', { status: 404 });
     }
 
@@ -89,22 +89,19 @@ export async function GET(
       return new Response('User data not found', { status: 404 });
     }
 
-    if (invoice.userId !== userId) {
+    if (invoiceData.userId !== userId) {
       return new Response('Unauthorized access to invoice', { status: 403 });
     }
 
-    // Get client data
-    const client = await fetchQuery(api.clients.get, { id: invoice.clientId });
+    // Client data is already included in invoiceData
+    const { client, tasks } = invoiceData;
 
     if (!client) {
       return new Response('Client data not found', { status: 404 });
     }
 
-    // Get tasks data from the invoice
-    const tasks = invoice.tasks || [];
-
     try {
-      const pdfBuffer = await generateInvoicePDF(invoice, userData, client, tasks);
+      const pdfBuffer = await generateInvoicePDF(invoiceData, userData, client, tasks);
 
       if (!pdfBuffer || pdfBuffer.length === 0) {
         throw new Error('Generated PDF is empty');
@@ -114,7 +111,7 @@ export async function GET(
       return new Response(pdfBuffer, {
         headers: {
           'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename=invoice-${invoice.number}.pdf`,
+          'Content-Disposition': `attachment; filename=invoice-${invoiceData.number}.pdf`,
           'Cache-Control': 'no-store'
         }
       });

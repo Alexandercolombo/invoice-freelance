@@ -1,44 +1,48 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { clerkMiddleware, getAuth } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-// Define public routes that don't require authentication
-const isPublicRoute = createRouteMatcher([
-  '/',
-  '/sign-in(.*)',
-  '/sign-up(.*)',
-  '/api/webhooks(.*)',
-  '/api/uploadthing(.*)', // Allow uploadthing API routes
-  '/_next(.*)', // Allow Next.js internals
-  '/favicon.ico',
-  '/manifest.json',
-  '/assets/(.*)', // Allow static assets
-  '/images/(.*)', // Allow images
-  '/fonts/(.*)', // Allow fonts
-  '/404',
-  '/_not-found'
-]);
+// This example protects all routes including api/trpc routes
+// Please edit this to allow other routes to be public as needed.
+// See https://clerk.com/docs/references/nextjs/auth-middleware for more information about configuring your Middleware
 
-export default clerkMiddleware(
-  async (auth, request) => {
-    // Add debug logging
-    console.log('Middleware processing request:', request.url);
-    console.log('Is public route:', isPublicRoute(request));
-    
-    if (!isPublicRoute(request)) {
-      console.log('Protecting route:', request.url);
-      await auth.protect();
-    }
-  },
-  {
-    debug: process.env.NODE_ENV === 'development', // Enable debug logs in development
-    clockSkewInMs: 10000, // Increase clock skew tolerance to 10 seconds
+const publicRoutes = [
+  "/",
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/api/webhooks(.*)",
+  "/api/uploadthing(.*)",
+  "/favicon.ico",
+  "/manifest.json",
+];
+
+const isPublic = (path: string) => {
+  return publicRoutes.some((publicRoute) =>
+    path.match(new RegExp(`^${publicRoute}$`))
+  );
+};
+
+export default clerkMiddleware(async (_, req: NextRequest) => {
+  const path = req.nextUrl.pathname;
+  
+  if (isPublic(path)) {
+    return NextResponse.next();
   }
-);
+
+  const { userId } = getAuth(req);
+  if (!userId) {
+    const signInUrl = new URL('/sign-in', req.url);
+    signInUrl.searchParams.set('redirect_url', req.url);
+    return NextResponse.redirect(signInUrl);
+  }
+
+  return NextResponse.next();
+});
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes
-    '/(api|trpc)(.*)',
+    "/((?!.*\\..*|_next).*)", // match all paths except static files
+    "/",                      // match root
+    "/(api|trpc)(.*)",       // match API routes
   ],
 }; 

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { auth } from '@clerk/nextjs/server';
-import { fetchQuery } from 'convex/nextjs';
+import { ConvexHttpClient } from 'convex/browser';
 import { api } from 'convex/_generated/api';
 import { Id } from 'convex/_generated/dataModel';
 import { generateInvoicePDF } from '@/lib/generatePDF';
@@ -12,7 +12,9 @@ export const revalidate = 3600;
 // Export GET as a named export for Next.js App Router
 export const GET = async (request: NextRequest) => {
   try {
-    const { userId } = await auth();
+    // Get Clerk auth
+    const authRequest = await auth();
+    const { userId } = authRequest;
     if (!userId) {
       return new Response('Unauthorized', { status: 401 });
     }
@@ -28,9 +30,28 @@ export const GET = async (request: NextRequest) => {
 
     const invoiceId = id as Id<'invoices'>;
     
-    // First fetch invoice and user data
-    const invoiceData = await fetchQuery(api.invoices.getInvoice, { id: invoiceId });
-    const userData = await fetchQuery(api.users.get, {});
+    // Create an authenticated Convex client
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+    if (!convexUrl) {
+      throw new Error('Missing NEXT_PUBLIC_CONVEX_URL environment variable');
+    }
+    
+    // Get Convex-specific JWT token from Clerk
+    const token = await authRequest.getToken({
+      template: "convex"  // This must match the JWT template name in Clerk
+    });
+    
+    if (!token) {
+      throw new Error('Failed to get Convex auth token from Clerk');
+    }
+
+    // Initialize Convex client with auth token
+    const client = new ConvexHttpClient(convexUrl);
+    client.setAuth(token);
+
+    // First fetch invoice and user data using the authenticated client
+    const invoiceData = await client.query(api.invoices.getInvoice, { id: invoiceId });
+    const userData = await client.query(api.users.get, {});
 
     if (!invoiceData) {
       return new Response('Invoice not found', { status: 404 });
@@ -45,14 +66,14 @@ export const GET = async (request: NextRequest) => {
     }
 
     // Client data is already included in invoiceData
-    const { client, tasks } = invoiceData;
+    const { client: invoiceClient, tasks } = invoiceData;
 
-    if (!client) {
+    if (!invoiceClient) {
       return new Response('Client data not found', { status: 404 });
     }
 
     try {
-      const pdfBuffer = await generateInvoicePDF(invoiceData, userData, client, tasks);
+      const pdfBuffer = await generateInvoicePDF(invoiceData, userData, invoiceClient, tasks);
 
       if (!pdfBuffer || pdfBuffer.length === 0) {
         throw new Error('Generated PDF is empty');
@@ -71,7 +92,7 @@ export const GET = async (request: NextRequest) => {
       });
     } catch (pdfError) {
       console.error('PDF rendering failed:', pdfError);
-      return new Response('Failed to render PDF: ' + (pdfError as Error).message, { 
+      return new Response(JSON.stringify({ error: (pdfError as Error).message }), { 
         status: 500,
         headers: {
           'Content-Type': 'application/json'
@@ -80,7 +101,7 @@ export const GET = async (request: NextRequest) => {
     }
   } catch (error) {
     console.error('PDF generation failed:', error);
-    return new Response('Failed to generate PDF - ' + (error as Error).message, { 
+    return new Response(JSON.stringify({ error: (error as Error).message }), { 
       status: 500,
       headers: {
         'Content-Type': 'application/json'

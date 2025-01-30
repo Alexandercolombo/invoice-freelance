@@ -227,32 +227,44 @@ export const getAllInvoices = query({
   async handler(ctx, args) {
     const identity = await getUser(ctx);
 
+    // Get paginated invoices with basic data
     const invoices = await ctx.db
       .query("invoices")
       .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .order("desc")
       .collect();
 
-    // Get client details for each invoice
-    const invoicesWithDetails = await Promise.all(
-      invoices.map(async (invoice) => {
-        const client = await ctx.db.get(invoice.clientId);
-        const tasks = await Promise.all(
-          invoice.tasks.map(async (taskId) => {
-            const task = await ctx.db.get(taskId);
-            return task;
-          })
-        );
-
-        // Filter out any null tasks
-        const validTasks = tasks.filter((task): task is NonNullable<typeof task> => task !== null);
-
-        return {
-          ...invoice,
-          client,
-          tasks: validTasks,
-        };
-      })
+    // Get client details for each invoice efficiently
+    const clientIds = new Set(invoices.map(invoice => invoice.clientId));
+    const clientsPromises = Array.from(clientIds).map(async (clientId) => {
+      const client = await ctx.db.get(clientId);
+      return { clientId, client };
+    });
+    
+    const clientsResults = await Promise.all(clientsPromises);
+    const clientsMap = new Map(
+      clientsResults
+        .filter(result => result.client !== null)
+        .map(result => [result.clientId, result.client])
     );
+
+    // Map the invoices with their client data
+    const invoicesWithDetails = invoices.map(invoice => {
+      const client = clientsMap.get(invoice.clientId);
+      return {
+        _id: invoice._id,
+        number: invoice.number,
+        date: invoice.date,
+        dueDate: invoice.dueDate,
+        status: invoice.status,
+        total: invoice.total,
+        client: client ? {
+          name: client.name || '',
+          email: client.email || '',
+          hourlyRate: client.hourlyRate || 0
+        } : null
+      };
+    });
 
     return invoicesWithDetails;
   },

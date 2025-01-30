@@ -7,17 +7,32 @@ const isPublicRoute = createRouteMatcher([
   '/sign-up(.*)',
   '/api/webhooks(.*)',
   '/api/uploadthing(.*)', // Allow uploadthing API routes
-  '/404',
-  '/_not-found',
+  '/_next(.*)', // Allow Next.js internals
   '/favicon.ico',
-  '/manifest.json'
+  '/manifest.json',
+  '/assets/(.*)', // Allow static assets
+  '/images/(.*)', // Allow images
+  '/fonts/(.*)', // Allow fonts
+  '/404',
+  '/_not-found'
 ]);
 
-export default clerkMiddleware(async (auth, request) => {
-  if (!isPublicRoute(request)) {
-    await auth.protect();
+export default clerkMiddleware(
+  async (auth, request) => {
+    // Add debug logging
+    console.log('Middleware processing request:', request.url);
+    console.log('Is public route:', isPublicRoute(request));
+    
+    if (!isPublicRoute(request)) {
+      console.log('Protecting route:', request.url);
+      await auth.protect();
+    }
+  },
+  {
+    debug: process.env.NODE_ENV === 'development', // Enable debug logs in development
+    clockSkewInMs: 10000, // Increase clock skew tolerance to 10 seconds
   }
-});
+);
 
 export const config = {
   matcher: [

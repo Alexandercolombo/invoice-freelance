@@ -28,12 +28,16 @@ export default function Providers({
         baseTheme: dark,
         elements: {
           card: "bg-white dark:bg-gray-800",
-          formButtonPrimary: "bg-blue-600 hover:bg-blue-700 text-white",
+          formButtonPrimary: "bg-blue-600 hover:bg-blue-700 text-sm text-white",
+          formFieldInput: "rounded-md border-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600",
           formFieldLabel: "text-gray-700 dark:text-gray-300",
-          formFieldInput: "dark:bg-gray-700 dark:text-white dark:border-gray-600",
           footerActionLink: "text-blue-600 hover:text-blue-700 dark:text-blue-400",
         },
       }}
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
+      afterSignInUrl="/dashboard"
+      afterSignUpUrl="/onboarding"
     >
       <ConvexClientProvider>
         <BrowserCompatibilityProvider>

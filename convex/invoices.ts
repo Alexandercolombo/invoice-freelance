@@ -226,6 +226,7 @@ export const getAllInvoices = query({
   },
   async handler(ctx, args) {
     const identity = await getUser(ctx);
+    console.log("[Debug] getAllInvoices: Starting query for user", identity.subject);
 
     // Get paginated invoices with basic data
     const invoices = await ctx.db
@@ -233,9 +234,13 @@ export const getAllInvoices = query({
       .withIndex("by_user", (q) => q.eq("userId", identity.subject))
       .order("desc")
       .collect();
+    
+    console.log("[Debug] getAllInvoices: Found", invoices.length, "invoices");
 
     // Get client details for each invoice efficiently
     const clientIds = new Set(invoices.map(invoice => invoice.clientId));
+    console.log("[Debug] getAllInvoices: Unique clients to fetch:", clientIds.size);
+    
     const clientsPromises = Array.from(clientIds).map(async (clientId) => {
       const client = await ctx.db.get(clientId);
       return { clientId, client };
@@ -247,6 +252,8 @@ export const getAllInvoices = query({
         .filter(result => result.client !== null)
         .map(result => [result.clientId, result.client])
     );
+    
+    console.log("[Debug] getAllInvoices: Successfully fetched", clientsMap.size, "clients");
 
     // Map the invoices with their client data
     const invoicesWithDetails = invoices.map(invoice => {
@@ -266,6 +273,7 @@ export const getAllInvoices = query({
       };
     });
 
+    console.log("[Debug] getAllInvoices: Completed processing all invoices");
     return invoicesWithDetails;
   },
 });

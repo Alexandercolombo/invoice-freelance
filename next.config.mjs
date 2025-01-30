@@ -21,7 +21,7 @@ const nextConfig = {
       allowedOrigins: ['localhost:3000', 'invoice-freelance.vercel.app'],
     }
   },
-  serverExternalPackages: ['puppeteer', 'pdfkit', '@clerk/nextjs'],
+  serverExternalPackages: ['puppeteer', 'pdfkit'],
   typescript: {
     ignoreBuildErrors: true
   },

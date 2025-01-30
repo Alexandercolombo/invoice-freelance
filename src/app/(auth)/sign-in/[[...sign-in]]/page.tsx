@@ -12,6 +12,8 @@ export default function SignInPage() {
             card: "shadow-none",
           },
         }}
+        redirectUrl="/dashboard"
+        afterSignInUrl="/dashboard"
       />
     </div>
   );

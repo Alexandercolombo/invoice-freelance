@@ -33,20 +33,35 @@ interface PDFInvoice {
 
 // Helper functions for PDF styling
 function drawLine(doc: jsPDF, startX: number, startY: number, endX: number, endY: number, color: string = "#E2E8F0") {
-  doc.setDrawColor(color);
-  doc.setLineWidth(0.1);
-  doc.line(startX, startY, endX, endY);
+  try {
+    doc.setDrawColor(color);
+    doc.setLineWidth(0.1);
+    doc.line(startX, startY, endX, endY);
+  } catch (error) {
+    console.error('Error drawing line:', { startX, startY, endX, endY, error });
+    throw error;
+  }
 }
 
 function drawRect(doc: jsPDF, x: number, y: number, width: number, height: number, color: string = "#F8FAFC") {
-  doc.setFillColor(color);
-  doc.roundedRect(x, y, width, height, 2, 2, "F");
+  try {
+    doc.setFillColor(color);
+    doc.roundedRect(x, y, width, height, 2, 2, "F");
+  } catch (error) {
+    console.error('Error drawing rectangle:', { x, y, width, height, error });
+    throw error;
+  }
 }
 
 function setTextStyle(doc: jsPDF, size: number, color: string = "#1F2937", isBold: boolean = false) {
-  doc.setFontSize(size);
-  doc.setTextColor(color);
-  doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+  try {
+    doc.setFontSize(size);
+    doc.setTextColor(color);
+    doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+  } catch (error) {
+    console.error('Error setting text style:', { size, color, isBold, error });
+    throw error;
+  }
 }
 
 export async function generateInvoicePDF(
@@ -55,7 +70,20 @@ export async function generateInvoicePDF(
   client: any,
   tasks: Task[]
 ): Promise<Buffer> {
+  // Validate input data
+  if (!invoice) throw new Error('Invoice data is required');
+  if (!userData) throw new Error('User data is required');
+  if (!client) throw new Error('Client data is required');
+  if (!Array.isArray(tasks)) throw new Error('Tasks must be an array');
+
   try {
+    console.log('Starting PDF generation with:', {
+      invoiceNumber: invoice.number,
+      businessName: userData.businessName,
+      clientName: client.name,
+      tasksCount: tasks.length
+    });
+
     // Dynamically import jsPDF only when needed
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF({
@@ -85,20 +113,22 @@ export async function generateInvoicePDF(
         
         setTextStyle(doc, fontSize, color, isBold);
         
+        const processedText = String(text || '');
         if (maxWidth) {
-          doc.text(String(text || ''), x, yPos, { align, maxWidth });
+          doc.text(processedText, x, yPos, { align, maxWidth });
         } else {
-          doc.text(String(text || ''), x, yPos, { align });
+          doc.text(processedText, x, yPos, { align });
         }
         
         return yPos + lineHeight;
       } catch (error) {
-        console.error('Error writing text:', error);
-        return yPos + lineHeight;
+        console.error('Error writing text:', { text, x, yPos, options, error });
+        throw error;
       }
     };
 
     // Add header with company info
+    console.log('Adding company header');
     y = writeText(userData?.businessName || 'Your Company', margin, y, { 
       fontSize: 24, 
       color: '#1E40AF',
@@ -113,6 +143,7 @@ export async function generateInvoicePDF(
     y += lineHeight * 2;
 
     // Add invoice details in a box
+    console.log('Adding invoice details');
     drawRect(doc, margin, y, contentWidth, lineHeight * 4, '#F3F4F6');
     y += lineHeight;
     
@@ -293,11 +324,29 @@ export async function generateInvoicePDF(
       });
     }
 
-    // Convert to Buffer
+    console.log('Generating final PDF buffer');
     const pdfOutput = doc.output('arraybuffer');
     return Buffer.from(pdfOutput);
   } catch (error) {
-    console.error('Error generating PDF:', error);
-    throw new Error('Failed to generate PDF: ' + (error as Error).message);
+    console.error('PDF generation failed:', {
+      error,
+      invoice: {
+        number: invoice?.number,
+        date: invoice?.date,
+        total: invoice?.total
+      },
+      userData: {
+        businessName: userData?.businessName,
+        email: userData?.email
+      },
+      client: {
+        name: client?.name,
+        email: client?.email
+      },
+      tasksCount: tasks?.length
+    });
+
+    // Throw a more detailed error
+    throw new Error(`Failed to generate PDF: ${(error as Error).message}. Context: Invoice #${invoice?.number}`);
   }
 } 

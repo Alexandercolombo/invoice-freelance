@@ -5,14 +5,12 @@ import { api } from 'convex/_generated/api';
 import { Id } from 'convex/_generated/dataModel';
 import { generateInvoicePDF } from '@/lib/generatePDF';
 
-// Configure for Edge runtime for better performance on Vercel
-export const runtime = 'edge';
+// Remove Edge runtime as it might be incompatible with Convex
 export const dynamic = 'force-dynamic';
-
-// Add revalidation period of 1 hour for PDFs
 export const revalidate = 3600;
 
-export async function GET(request: NextRequest) {
+// Export GET as a named export for Next.js App Router
+export const GET = async (request: NextRequest) => {
   try {
     const { userId } = await auth();
     if (!userId) {

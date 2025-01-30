@@ -1,84 +1,29 @@
 import { NextRequest } from "next/server";
-import PDFDocument from "pdfkit";
 import { auth } from '@clerk/nextjs/server';
 import { fetchQuery } from 'convex/nextjs';
 import { api } from 'convex/_generated/api';
 import { Id } from 'convex/_generated/dataModel';
+import { generateInvoicePDF } from '@/lib/generatePDF';
 
-// Configure for pure Node.js runtime without React/JSX
-export const runtime = 'nodejs';
+// Configure for Edge runtime for better performance on Vercel
+export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
-export const preferredRegion = 'iad1';
 
-async function generateInvoicePDF(invoice: any, userData: any, client: any, tasks: any[]) {
-  return new Promise<Buffer>((resolve, reject) => {
-    try {
-      const doc = new PDFDocument({
-        bufferPages: true,
-        size: 'A4',
-        margin: 50,
-      });
+// Add revalidation period of 1 hour for PDFs
+export const revalidate = 3600;
 
-      // Collect the PDF data chunks
-      const chunks: Buffer[] = [];
-      doc.on('data', chunks.push.bind(chunks));
-
-      // Add content to the PDF
-      doc
-        .fontSize(25)
-        .text(`Invoice #${invoice.number}`, 50, 50)
-        .fontSize(12)
-        .text(`From: ${userData.name}`, 50, 100)
-        .text(`To: ${client.name}`, 50, 120)
-        .text(`Date: ${new Date(invoice.date).toLocaleDateString()}`, 50, 140);
-
-      // Add tasks
-      let y = 200;
-      doc.text('Tasks:', 50, y);
-      y += 20;
-
-      tasks.forEach((task) => {
-        doc
-          .text(`${task.description}`, 50, y)
-          .text(`${task.hours} hours @ $${task.rate}/hr = $${task.hours * task.rate}`, 300, y);
-        y += 20;
-      });
-
-      // Add total
-      doc
-        .text('Total:', 50, y + 20)
-        .text(`$${invoice.total}`, 300, y + 20);
-
-      // Finalize the PDF
-      doc.end();
-
-      // When the PDF is done being written, resolve with the buffer
-      doc.on('end', () => {
-        resolve(Buffer.concat(chunks));
-      });
-    } catch (error) {
-      reject(error);
-    }
-  });
-}
-
-type Context = {
-  params: {
-    id: string;
-  };
-};
-
-export async function GET(
-  request: NextRequest,
-  context: Context
-) {
+export async function GET(request: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) {
       return new Response('Unauthorized', { status: 401 });
     }
 
-    const { id } = context.params;
+    // Get the invoice ID from the URL
+    const url = new URL(request.url);
+    const segments = url.pathname.split('/');
+    const id = segments[segments.length - 2]; // Get the ID from the URL path
+
     if (!id || typeof id !== 'string') {
       return new Response('Invalid invoice ID', { status: 400 });
     }
@@ -115,20 +60,33 @@ export async function GET(
         throw new Error('Generated PDF is empty');
       }
 
-      // Return PDF as a downloadable file
+      // Return PDF as a downloadable file with appropriate headers
       return new Response(pdfBuffer, {
         headers: {
           'Content-Type': 'application/pdf',
           'Content-Disposition': `attachment; filename=invoice-${invoiceData.number}.pdf`,
-          'Cache-Control': 'no-store'
+          'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=7200',
+          'Content-Length': pdfBuffer.length.toString(),
+          'ETag': `"${invoiceData._id}-${invoiceData.updatedAt}"`,
+          'Last-Modified': new Date(invoiceData.updatedAt).toUTCString()
         }
       });
     } catch (pdfError) {
       console.error('PDF rendering failed:', pdfError);
-      return new Response('Failed to render PDF: ' + (pdfError as Error).message, { status: 500 });
+      return new Response('Failed to render PDF: ' + (pdfError as Error).message, { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
     }
   } catch (error) {
     console.error('PDF generation failed:', error);
-    return new Response('Failed to generate PDF - ' + (error as Error).message, { status: 500 });
+    return new Response('Failed to generate PDF - ' + (error as Error).message, { 
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
   }
 } 

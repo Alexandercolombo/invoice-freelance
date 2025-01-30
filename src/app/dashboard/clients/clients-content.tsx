@@ -8,12 +8,16 @@ import { ClientDialog } from "@/components/clients/client-dialog";
 import { ClientDetails } from "@/components/clients/client-details";
 import { ClientCard } from "@/components/clients/client-card";
 import { LoadingState } from "@/components/loading-state";
+import { useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 
 interface ClientsContentProps {
   searchParams: { [key: string]: string | string[] | undefined };
 }
 
 export function ClientsContent({ searchParams }: ClientsContentProps) {
+  const { isLoaded, userId } = useAuth();
+  const router = useRouter();
   const clientsResponse = useQuery(api.clients.getAll, {
     paginationOpts: {
       numToSkip: 0,
@@ -26,6 +30,12 @@ export function ClientsContent({ searchParams }: ClientsContentProps) {
   const [selectedClientId, setSelectedClientId] = useState<Id<"clients"> | null>(null);
   const [showDetails, setShowDetails] = useState(false);
 
+  useEffect(() => {
+    if (isLoaded && !userId) {
+      router.push("/sign-in");
+    }
+  }, [isLoaded, userId, router]);
+
   // Handle URL parameter for client details
   useEffect(() => {
     const clientId = searchParams["id"];
@@ -34,6 +44,14 @@ export function ClientsContent({ searchParams }: ClientsContentProps) {
       setShowDetails(true);
     }
   }, [searchParams]);
+
+  if (!isLoaded) {
+    return <LoadingState fullScreen={true} />;
+  }
+
+  if (!userId) {
+    return null;
+  }
 
   if (!clientsResponse) {
     return <LoadingState fullScreen={true} />;

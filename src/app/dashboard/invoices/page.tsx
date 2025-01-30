@@ -9,40 +9,19 @@ import { useEffect } from "react";
 import { InvoicesErrorBoundary } from "@/components/error-boundaries/invoice-error-boundary";
 
 interface PageProps {
-  searchParams: {
+  searchParams: Promise<{
     [key: string]: string | string[] | undefined;
-  };
+  }>;
 }
 
-function InvoicesPage({ searchParams }: PageProps) {
-  const { isLoaded, userId } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (isLoaded && !userId) {
-      router.push("/sign-in");
-    }
-  }, [isLoaded, userId, router]);
-
-  if (!isLoaded) {
-    return <LoadingState fullScreen={true} />;
-  }
-
-  if (!userId) {
-    return null;
-  }
-
-  return (
-    <InvoicesErrorBoundary>
-      <InvoicesContent searchParams={searchParams} />
-    </InvoicesErrorBoundary>
-  );
-}
-
-export default function Page({ searchParams }: PageProps) {
+export default async function Page({ searchParams }: PageProps) {
+  const resolvedParams = await searchParams;
+  
   return (
     <Suspense fallback={<LoadingState fullScreen={true} />}>
-      <InvoicesPage searchParams={searchParams} />
+      <InvoicesErrorBoundary>
+        <InvoicesContent searchParams={resolvedParams} />
+      </InvoicesErrorBoundary>
     </Suspense>
   );
 } 

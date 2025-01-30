@@ -62,13 +62,26 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
           },
         });
         
+        // Try to parse error response first
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || `Failed to generate PDF (${response.status})`);
+          let errorMessage;
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorData.error || `Failed to generate PDF (${response.status})`;
+          } catch {
+            errorMessage = `Failed to generate PDF (${response.status})`;
+          }
+          throw new Error(errorMessage);
         }
         
-        const blob = await response.blob();
-        if (blob.size === 0) {
+        let blob;
+        try {
+          blob = await response.blob();
+        } catch (error) {
+          throw new Error('Failed to read PDF data from response');
+        }
+        
+        if (!blob || blob.size === 0) {
           throw new Error('Generated PDF is empty');
         }
 
@@ -92,7 +105,7 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
       } catch (error) {
         console.error('Error downloading invoice:', error);
         
-        // Check if we should retry
+        // Only retry on network or timeout errors
         if (retryCount < maxRetries && error instanceof Error && 
             (error.message.includes('network') || error.message.includes('timeout'))) {
           retryCount++;
@@ -105,19 +118,25 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
           return attemptDownload();
         }
         
+        // Show error toast with specific message
         toast({
           title: "Download failed",
           description: error instanceof Error 
-            ? `Error: ${error.message}. Please try again.`
+            ? error.message
             : "There was an error downloading your invoice. Please try again.",
           variant: "destructive",
         });
       } finally {
-        setIsDownloading(false);
+        // Always reset loading state unless we're retrying
+        if (retryCount >= maxRetries) {
+          setIsDownloading(false);
+        }
       }
-    };
+    }
 
     await attemptDownload();
+    // Ensure loading state is reset even if retries fail
+    setIsDownloading(false);
   };
 
   const handlePreviewClick = () => {

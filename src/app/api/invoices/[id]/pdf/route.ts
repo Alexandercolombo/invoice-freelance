@@ -79,20 +79,35 @@ export const GET = async (request: NextRequest) => {
         throw new Error('Generated PDF is empty');
       }
 
+      // Format the date for the filename
+      const formattedDate = new Date().toISOString().split('T')[0];
+      const safeBusinessName = userData.businessName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+      const safeInvoiceNumber = invoiceData.number.replace(/[^a-z0-9]/gi, '-');
+      
+      // Create a professional filename
+      const filename = `${safeBusinessName}-invoice-${safeInvoiceNumber}-${formattedDate}.pdf`;
+
       // Return PDF as a downloadable file with appropriate headers
       return new Response(pdfBuffer, {
         headers: {
           'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename=invoice-${invoiceData.number}.pdf`,
-          'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=7200',
+          'Content-Disposition': `attachment; filename="${filename}"`,
           'Content-Length': pdfBuffer.length.toString(),
-          'ETag': `"${invoiceData._id}-${invoiceData.updatedAt}"`,
-          'Last-Modified': new Date(invoiceData.updatedAt).toUTCString()
+          'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'X-Content-Type-Options': 'nosniff',
+          'X-Frame-Options': 'DENY',
+          'X-XSS-Protection': '1; mode=block'
         }
       });
     } catch (pdfError) {
       console.error('PDF rendering failed:', pdfError);
-      return new Response(JSON.stringify({ error: (pdfError as Error).message }), { 
+      return new Response(JSON.stringify({ 
+        error: 'Failed to generate PDF',
+        message: (pdfError as Error).message,
+        code: 'PDF_GENERATION_ERROR'
+      }), { 
         status: 500,
         headers: {
           'Content-Type': 'application/json'
@@ -101,7 +116,11 @@ export const GET = async (request: NextRequest) => {
     }
   } catch (error) {
     console.error('PDF generation failed:', error);
-    return new Response(JSON.stringify({ error: (error as Error).message }), { 
+    return new Response(JSON.stringify({ 
+      error: 'Internal server error',
+      message: (error as Error).message,
+      code: 'INTERNAL_SERVER_ERROR'
+    }), { 
       status: 500,
       headers: {
         'Content-Type': 'application/json'

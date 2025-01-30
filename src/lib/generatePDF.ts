@@ -112,13 +112,13 @@ export async function generateInvoicePDF(
 
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
-    const margin = 25; // Increased margin for better spacing
+    const margin = 20;
     const contentWidth = pageWidth - (margin * 2);
     let y = margin;
-    const lineHeight = 8; // Increased line height for better readability
+    const lineHeight = 7;
 
-    // Add a subtle gradient background
-    const gradient = doc.setFillColor(249, 250, 251); // Very light gray
+    // Clean white background
+    doc.setFillColor(255, 255, 255);
     doc.rect(0, 0, pageWidth, pageHeight, 'F');
 
     // Helper function to write text safely with proper styling
@@ -158,14 +158,12 @@ export async function generateInvoicePDF(
       }
     };
 
-    // Add a professional header bar
-    drawRect(doc, 0, 0, pageWidth, 50, '#FFFFFF');
-    drawLine(doc, margin, 50, pageWidth - margin, 50, '#E5E7EB', 0.75);
-
-    // Company Information Section
-    y = 35;
+    // Top section with company info (left) and invoice details (right)
+    y = margin + 5;
+    
+    // Company Information (Left)
     writeText(userData?.businessName || '', margin, y, { 
-      fontSize: 24, 
+      fontSize: 22, 
       color: '#1E40AF',
       isBold: true 
     });
@@ -174,122 +172,120 @@ export async function generateInvoicePDF(
     if (userData?.address) {
       y = writeText(userData.address, margin, y, { 
         color: '#4B5563',
-        fontSize: 10
+        fontSize: 9
       });
     }
-    y = writeText(userData?.email || '', margin, y, { 
+    writeText(userData?.email || '', margin, y, { 
       color: '#4B5563',
-      fontSize: 10
+      fontSize: 9
     });
 
-    // Invoice Details Box
-    y += lineHeight * 2;
-    drawRect(doc, margin, y, contentWidth, lineHeight * 4, '#F9FAFB', 6);
-    y += lineHeight;
+    // Invoice Details (Right)
+    const rightColumnX = pageWidth / 2 + 10;
+    let rightY = margin + 5;
 
-    // Invoice number and date in a clean layout
-    const invoiceNumberX = margin + 10;
-    writeText('INVOICE', invoiceNumberX, y, { 
-      fontSize: 14,
-      color: '#6B7280'
-    });
-    writeText(`#${invoice.number}`, invoiceNumberX + 45, y, { 
-      fontSize: 14,
-      isBold: true,
-      color: '#1E40AF'
+    // Invoice number and date
+    writeText('INVOICE', rightColumnX, rightY, { 
+      fontSize: 16,
+      color: '#1E40AF',
+      isBold: true
     });
 
-    // Right-aligned dates
-    const dateX = pageWidth - margin - 60;
-    writeText(`Date: ${new Date(invoice.date).toLocaleDateString()}`, dateX, y, { 
-      fontSize: 10,
-      align: 'right',
+    rightY += lineHeight * 1.2;
+    writeText(`#${invoice.number}`, rightColumnX, rightY, { 
+      fontSize: 12,
       color: '#374151'
     });
-    y += lineHeight;
+
+    rightY += lineHeight * 1.5;
+    writeText(`Date: ${new Date(invoice.date).toLocaleDateString()}`, rightColumnX, rightY, { 
+      fontSize: 9,
+      color: '#4B5563'
+    });
 
     if (invoice.dueDate) {
-      writeText(`Due: ${new Date(invoice.dueDate).toLocaleDateString()}`, dateX, y, { 
-        fontSize: 10,
-        align: 'right',
-        color: invoice.status === 'overdue' ? '#DC2626' : '#374151'
+      rightY += lineHeight;
+      writeText(`Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`, rightColumnX, rightY, { 
+        fontSize: 9,
+        color: invoice.status === 'overdue' ? '#DC2626' : '#4B5563'
       });
     }
 
-    // Bill To Section with improved spacing
-    y += lineHeight * 3;
-    drawRect(doc, margin, y, contentWidth, lineHeight * 5, '#FFFFFF', 6);
-    drawLine(doc, margin, y, margin + contentWidth, y, '#E5E7EB', 0.5);
-    y += lineHeight;
-
-    writeText('BILL TO', margin + 10, y, { 
-      fontSize: 12,
+    // Bill To Section (Right column, below invoice details)
+    rightY += lineHeight * 2;
+    writeText('BILL TO', rightColumnX, rightY, { 
+      fontSize: 10,
       color: '#6B7280',
       isBold: true
     });
-    y += lineHeight * 1.2;
 
-    writeText(client.name || '', margin + 10, y, { 
-      fontSize: 12,
+    rightY += lineHeight * 1.2;
+    writeText(client.name || '', rightColumnX, rightY, { 
+      fontSize: 11,
       isBold: true,
       color: '#111827'
     });
-    y += lineHeight;
 
     if (client.email) {
-      writeText(client.email, margin + 10, y, { 
-        fontSize: 10,
+      rightY += lineHeight;
+      writeText(client.email, rightColumnX, rightY, { 
+        fontSize: 9,
         color: '#4B5563'
       });
-      y += lineHeight;
     }
 
-    // Tasks Table with improved styling
-    y += lineHeight * 2;
+    // Move to main content section
+    y = Math.max(rightY, y) + lineHeight * 3;
     
-    // Table Header
-    drawRect(doc, margin, y, contentWidth, lineHeight * 1.5, '#F3F4F6', 4);
-    y += lineHeight * 0.75;
-    
-    // Column headers with proper alignment
-    const col1Width = contentWidth * 0.4; // Description
-    const col2Width = contentWidth * 0.2; // Hours
-    const col3Width = contentWidth * 0.2; // Rate
-    const col4Width = contentWidth * 0.2; // Amount
+    // Subtle separator line
+    drawLine(doc, margin, y - lineHeight, pageWidth - margin, y - lineHeight, '#E5E7EB', 0.5);
 
-    writeText('Description', margin + 5, y, {
-      fontSize: 10,
+    // Tasks Table
+    y += lineHeight;
+    
+    // Table Header with clean design
+    drawRect(doc, margin, y, contentWidth, lineHeight * 1.2, '#F8FAFC', 0);
+    
+    // Column definitions
+    const col1Width = contentWidth * 0.45; // Description
+    const col2Width = contentWidth * 0.15; // Hours
+    const col3Width = contentWidth * 0.20; // Rate
+    const col4Width = contentWidth * 0.20; // Amount
+
+    // Header text
+    writeText('Description', margin + 5, y + lineHeight * 0.8, {
+      fontSize: 9,
       isBold: true,
       color: '#374151'
     });
-    writeText('Hours', margin + col1Width + 5, y, {
-      fontSize: 10,
+    writeText('Hours', margin + col1Width + col2Width - 15, y + lineHeight * 0.8, {
+      fontSize: 9,
       isBold: true,
       color: '#374151',
       align: 'right'
     });
-    writeText('Rate', margin + col1Width + col2Width + 5, y, {
-      fontSize: 10,
+    writeText('Rate', margin + col1Width + col2Width + col3Width - 15, y + lineHeight * 0.8, {
+      fontSize: 9,
       isBold: true,
       color: '#374151',
       align: 'right'
     });
-    writeText('Amount', margin + col1Width + col2Width + col3Width + 5, y, {
-      fontSize: 10,
+    writeText('Amount', pageWidth - margin - 5, y + lineHeight * 0.8, {
+      fontSize: 9,
       isBold: true,
       color: '#374151',
       align: 'right'
     });
 
-    y += lineHeight * 1.25;
-    drawLine(doc, margin, y - lineHeight * 0.5, margin + contentWidth, y - lineHeight * 0.5, '#E5E7EB', 0.5);
+    y += lineHeight * 1.5;
 
-    // Table Content with zebra striping
+    // Table Content
     tasks.forEach((task, index) => {
       if (!task) return;
 
+      // Subtle alternating background
       if (index % 2 === 0) {
-        drawRect(doc, margin, y - lineHeight * 0.5, contentWidth, lineHeight * 1.5, '#F9FAFB', 0);
+        drawRect(doc, margin, y - lineHeight * 0.3, contentWidth, lineHeight * 1.2, '#F9FAFB', 0);
       }
 
       writeText(task.description || '', margin + 5, y, {
@@ -298,42 +294,41 @@ export async function generateInvoicePDF(
         maxWidth: col1Width - 10
       });
 
-      writeText(String(task.hours || '0'), margin + col1Width + col2Width - 5, y, {
+      writeText(String(task.hours || '0'), margin + col1Width + col2Width - 15, y, {
         fontSize: 9,
         color: '#111827',
         align: 'right'
       });
 
-      writeText(formatCurrency(task.hourlyRate || 0), margin + col1Width + col2Width + col3Width - 5, y, {
+      writeText(formatCurrency(task.hourlyRate || 0), margin + col1Width + col2Width + col3Width - 15, y, {
         fontSize: 9,
         color: '#111827',
         align: 'right'
       });
 
       const amount = (task.hours || 0) * (task.hourlyRate || 0);
-      writeText(formatCurrency(amount), margin + contentWidth - 5, y, {
+      writeText(formatCurrency(amount), pageWidth - margin - 5, y, {
         fontSize: 9,
         color: '#111827',
         align: 'right'
       });
 
-      y += lineHeight * 1.5;
+      y += lineHeight * 1.4;
     });
 
-    // Totals section with clean styling
+    // Totals section
     y += lineHeight;
-    const totalsWidth = (col3Width + col4Width) * 1.2;
+    const totalsWidth = contentWidth * 0.35;
     const totalsX = pageWidth - margin - totalsWidth;
 
     // Subtotal
     drawLine(doc, totalsX, y - 2, pageWidth - margin, y - 2, '#E5E7EB', 0.5);
-    y += lineHeight;
     writeText('Subtotal', totalsX, y, {
-      fontSize: 10,
+      fontSize: 9,
       color: '#6B7280'
     });
     writeText(formatCurrency(invoice.subtotal || 0), pageWidth - margin - 5, y, {
-      fontSize: 10,
+      fontSize: 9,
       align: 'right',
       color: '#374151'
     });
@@ -342,7 +337,7 @@ export async function generateInvoicePDF(
     if (invoice.tax) {
       y += lineHeight;
       writeText(`Tax (${invoice.tax}%)`, totalsX, y, {
-        fontSize: 10,
+        fontSize: 9,
         color: '#6B7280'
       });
       writeText(
@@ -350,23 +345,23 @@ export async function generateInvoicePDF(
         pageWidth - margin - 5,
         y,
         {
-          fontSize: 10,
+          fontSize: 9,
           align: 'right',
           color: '#374151'
         }
       );
     }
 
-    // Total Due with emphasis
+    // Total Due
     y += lineHeight * 1.5;
-    drawRect(doc, totalsX - 5, y - lineHeight * 0.75, totalsWidth + 10, lineHeight * 2, '#EEF2FF', 4);
+    drawRect(doc, totalsX - 5, y - lineHeight * 0.5, totalsWidth + 10, lineHeight * 1.5, '#F8FAFC', 3);
     writeText('Total Due', totalsX, y, {
-      fontSize: 12,
+      fontSize: 10,
       isBold: true,
       color: '#1E40AF'
     });
     writeText(formatCurrency(invoice.total || 0), pageWidth - margin - 5, y, {
-      fontSize: 12,
+      fontSize: 10,
       isBold: true,
       align: 'right',
       color: '#1E40AF'
@@ -375,16 +370,16 @@ export async function generateInvoicePDF(
     // Payment Instructions
     if (userData?.paymentInstructions) {
       y += lineHeight * 3;
-      drawRect(doc, margin, y, contentWidth, lineHeight * 4, '#F9FAFB', 4);
+      drawRect(doc, margin, y, contentWidth, lineHeight * 2.5, '#F9FAFB', 3);
       y += lineHeight;
       writeText('PAYMENT INSTRUCTIONS', margin + 5, y, {
-        fontSize: 10,
+        fontSize: 9,
         color: '#6B7280',
         isBold: true
       });
       y += lineHeight;
       writeText(userData.paymentInstructions, margin + 5, y, {
-        fontSize: 9,
+        fontSize: 8,
         color: '#4B5563',
         maxWidth: contentWidth - 10
       });

@@ -97,7 +97,10 @@ export const update = mutation({
 export const getRecentTasks = query({
   args: {},
   async handler(ctx) {
-    const identity = await getUser(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return [];
+    }
 
     return await ctx.db
       .query("tasks_v2")
@@ -113,7 +116,16 @@ export const getRecentTasks = query({
 export const getDashboardStats = query({
   args: {},
   async handler(ctx) {
-    const identity = await getUser(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return {
+        unbilledAmount: 0,
+        unbilledHours: 0,
+        recentTasksCount: 0,
+        activeClients: 0,
+      };
+    }
+
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 

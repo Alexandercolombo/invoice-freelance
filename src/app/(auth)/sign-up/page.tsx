@@ -16,7 +16,6 @@ export default function SignUpPage() {
             formFieldLabel: "text-gray-700 dark:text-gray-300",
           },
         }}
-        path="/sign-up"
         signInUrl="/sign-in"
         afterSignUpUrl="/onboarding"
       />

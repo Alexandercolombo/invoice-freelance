@@ -7,6 +7,10 @@ import { BrowserCompatibilityProvider } from '@/components/providers/browser-com
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { useEffect, useState } from 'react'
 
+if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+  throw new Error('Missing Clerk Publishable Key')
+}
+
 export default function Providers({
   children,
 }: {
@@ -28,6 +32,7 @@ export default function Providers({
 
   return (
     <ClerkProvider
+      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
       appearance={{
         baseTheme: dark,
         elements: {

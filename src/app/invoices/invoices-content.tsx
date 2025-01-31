@@ -65,19 +65,32 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   const { isAuthenticated, isLoading: isConvexLoading } = useConvexAuth();
   const { isLoaded: isClerkLoaded, isSignedIn } = useAuth();
   
+  // Don't make any queries if we're not authenticated
+  const shouldFetchData = isAuthenticated && isSignedIn && !isConvexLoading && isClerkLoaded;
+  
   const deleteInvoice = useMutation(api.invoices.deleteInvoice);
   
-  const invoices = useQuery(api.invoices.getAllInvoices, {
-    paginationOpts: {
-      numToSkip: 0,
-      numToTake: 100
-    }
-  });
+  const invoices = useQuery(
+    api.invoices.getAllInvoices,
+    shouldFetchData ? {
+      paginationOpts: {
+        numToSkip: 0,
+        numToTake: 100
+      }
+    } : "skip"
+  );
 
-  const tasks = useQuery(api.tasks.getRecentTasks) ?? [];
-  const clients = useQuery(api.clients.getAll, {
-    paginationOpts: { numToSkip: 0, numToTake: 100 }
-  }) ?? { clients: [], totalCount: 0 };
+  const tasks = useQuery(
+    api.tasks.getRecentTasks,
+    shouldFetchData ? {} : "skip"
+  ) ?? [];
+
+  const clients = useQuery(
+    api.clients.getAll,
+    shouldFetchData ? {
+      paginationOpts: { numToSkip: 0, numToTake: 100 }
+    } : "skip"
+  ) ?? { clients: [], totalCount: 0 };
 
   // Show loading state while authentication is being checked
   if (isConvexLoading || !isClerkLoaded) {
@@ -93,12 +106,17 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   if (!isAuthenticated || !isSignedIn) {
     return (
       <div className="h-screen flex flex-col items-center justify-center space-y-4">
-        <p className="text-red-500">Authentication required. Please sign in to view invoices.</p>
+        <p className="text-red-500">Please sign in to view invoices.</p>
         <Button onClick={() => window.location.href = '/sign-in'}>
           Sign In
         </Button>
       </div>
     );
+  }
+
+  // Handle case where queries were skipped
+  if (!shouldFetchData) {
+    return null;
   }
 
   if (invoices === undefined) {

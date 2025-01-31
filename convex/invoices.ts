@@ -225,57 +225,65 @@ export const getAllInvoices = query({
     }),
   },
   async handler(ctx, args) {
-    const identity = await getUser(ctx);
-    console.log("[Debug] getAllInvoices: Starting query for user", identity.subject);
+    try {
+      const identity = await getUser(ctx);
+      console.log("[Debug] getAllInvoices: Starting query for user", identity.subject);
 
-    // Get paginated invoices with basic data
-    const invoices = await ctx.db
-      .query("invoices")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
-      .order("desc")
-      .collect();
-    
-    console.log("[Debug] getAllInvoices: Found", invoices.length, "invoices");
+      // Get paginated invoices with basic data
+      const invoices = await ctx.db
+        .query("invoices")
+        .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+        .order("desc")
+        .collect();
+      
+      console.log("[Debug] getAllInvoices: Found", invoices.length, "invoices");
 
-    // Get client details for each invoice efficiently
-    const clientIds = new Set(invoices.map(invoice => invoice.clientId));
-    console.log("[Debug] getAllInvoices: Unique clients to fetch:", clientIds.size);
-    
-    const clientsPromises = Array.from(clientIds).map(async (clientId) => {
-      const client = await ctx.db.get(clientId);
-      return { clientId, client };
-    });
-    
-    const clientsResults = await Promise.all(clientsPromises);
-    const clientsMap = new Map(
-      clientsResults
-        .filter(result => result.client !== null)
-        .map(result => [result.clientId, result.client])
-    );
-    
-    console.log("[Debug] getAllInvoices: Successfully fetched", clientsMap.size, "clients");
+      // Get client details for each invoice efficiently
+      const clientIds = new Set(invoices.map(invoice => invoice.clientId));
+      console.log("[Debug] getAllInvoices: Unique clients to fetch:", clientIds.size);
+      
+      const clientsPromises = Array.from(clientIds).map(async (clientId) => {
+        const client = await ctx.db.get(clientId);
+        return { clientId, client };
+      });
+      
+      const clientsResults = await Promise.all(clientsPromises);
+      const clientsMap = new Map(
+        clientsResults
+          .filter(result => result.client !== null)
+          .map(result => [result.clientId, result.client])
+      );
+      
+      console.log("[Debug] getAllInvoices: Successfully fetched", clientsMap.size, "clients");
 
-    // Map the invoices with their client data
-    const invoicesWithDetails = invoices.map(invoice => {
-      const client = clientsMap.get(invoice.clientId);
-      return {
-        _id: invoice._id,
-        number: invoice.number,
-        date: invoice.date,
-        dueDate: invoice.dueDate,
-        status: invoice.status,
-        total: invoice.total,
-        client: client ? {
-          name: client.name || '',
-          email: client.email || '',
-          hourlyRate: client.hourlyRate || 0
-        } : null
-      };
-    });
+      // Map the invoices with their client data
+      const invoicesWithDetails = invoices.map(invoice => {
+        const client = clientsMap.get(invoice.clientId);
+        return {
+          _id: invoice._id,
+          number: invoice.number,
+          date: invoice.date,
+          dueDate: invoice.dueDate,
+          status: invoice.status,
+          total: invoice.total,
+          client: client ? {
+            name: client.name || '',
+            email: client.email || '',
+            hourlyRate: client.hourlyRate || 0
+          } : null
+        };
+      });
 
-    console.log("[Debug] getAllInvoices: Completed processing all invoices");
-    return invoicesWithDetails;
-  },
+      console.log("[Debug] getAllInvoices: Completed processing all invoices");
+      return invoicesWithDetails;
+    } catch (error) {
+      console.error("[Error] getAllInvoices:", error);
+      if (error instanceof Error) {
+        throw new Error(`Failed to fetch invoices: ${error.message}`);
+      }
+      throw new Error("Failed to fetch invoices: Unknown error");
+    }
+  }
 });
 
 export const updateInvoice = mutation({

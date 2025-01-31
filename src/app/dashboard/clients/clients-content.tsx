@@ -10,31 +10,35 @@ import { ClientCard } from "@/components/clients/client-card";
 import { LoadingState } from "@/components/loading-state";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import { useConvexAuth } from "convex/react";
+import { Button } from "@/components/ui/button";
 
 interface ClientsContentProps {
   searchParams: { [key: string]: string | string[] | undefined };
 }
 
 export function ClientsContent({ searchParams }: ClientsContentProps) {
-  const { isLoaded, userId } = useAuth();
+  const { isLoaded: isClerkLoaded, userId } = useAuth();
+  const { isAuthenticated, isLoading: isConvexLoading } = useConvexAuth();
   const router = useRouter();
-  const clientsResponse = useQuery(api.clients.getAll, {
-    paginationOpts: {
-      numToSkip: 0,
-      numToTake: 100
-    }
-  });
+  
+  // Don't make any queries if we're not authenticated
+  const shouldFetchData = isAuthenticated && userId && !isConvexLoading && isClerkLoaded;
+  
+  const clientsResponse = useQuery(
+    api.clients.getAll,
+    shouldFetchData ? {
+      paginationOpts: {
+        numToSkip: 0,
+        numToTake: 100
+      }
+    } : "skip"
+  );
   const clients = clientsResponse?.clients || [];
 
   const [isOpen, setIsOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<Id<"clients"> | null>(null);
   const [showDetails, setShowDetails] = useState(false);
-
-  useEffect(() => {
-    if (isLoaded && !userId) {
-      router.push("/sign-in");
-    }
-  }, [isLoaded, userId, router]);
 
   // Handle URL parameter for client details
   useEffect(() => {
@@ -45,11 +49,30 @@ export function ClientsContent({ searchParams }: ClientsContentProps) {
     }
   }, [searchParams]);
 
-  if (!isLoaded) {
-    return <LoadingState fullScreen={true} />;
+  // Show loading state while authentication is being checked
+  if (isConvexLoading || !isClerkLoaded) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center space-y-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+        <p className="text-gray-600 dark:text-gray-400">Loading Client Data...</p>
+      </div>
+    );
   }
 
-  if (!userId) {
+  // Show auth error if not authenticated
+  if (!isAuthenticated || !userId) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center space-y-4">
+        <p className="text-red-500">Please sign in to view clients.</p>
+        <Button onClick={() => router.push('/sign-in')}>
+          Sign In
+        </Button>
+      </div>
+    );
+  }
+
+  // Handle case where queries were skipped
+  if (!shouldFetchData) {
     return null;
   }
 

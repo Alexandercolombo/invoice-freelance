@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { UploadButton } from "@/components/ui/upload-button";
 import Image from "next/image";
+import { useConvexAuth } from "convex/react";
 
 interface BusinessSettings {
   businessName: string;
@@ -25,8 +26,13 @@ interface BusinessSettings {
 
 export function SettingsContent() {
   const router = useRouter();
-  const { isLoaded, isSignedIn } = useAuth();
-  const user = useQuery(api.users.get, isSignedIn ? undefined : "skip");
+  const { isLoaded: isClerkLoaded, isSignedIn } = useAuth();
+  const { isAuthenticated, isLoading: isConvexLoading } = useConvexAuth();
+  
+  // Don't make any queries if we're not authenticated
+  const shouldFetchData = isAuthenticated && isSignedIn && !isConvexLoading && isClerkLoaded;
+  
+  const user = useQuery(api.users.get, shouldFetchData ? undefined : "skip");
   const updateUser = useMutation(api.users.update);
 
   const [settings, setSettings] = useState<BusinessSettings>({
@@ -44,23 +50,31 @@ export function SettingsContent() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // Show loading state while auth is loading
-  if (!isLoaded) {
+  // Show loading state while authentication is being checked
+  if (isConvexLoading || !isClerkLoaded) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white" />
+      <div className="h-screen flex flex-col items-center justify-center space-y-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+        <p className="text-gray-600 dark:text-gray-400">Loading Settings...</p>
       </div>
     );
   }
 
-  // Redirect if not signed in
-  if (!isSignedIn) {
-    router.push("/sign-in");
+  // Show auth error if not authenticated
+  if (!isAuthenticated || !isSignedIn) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div>Redirecting to sign in...</div>
+      <div className="h-screen flex flex-col items-center justify-center space-y-4">
+        <p className="text-red-500">Please sign in to view settings.</p>
+        <Button onClick={() => router.push('/sign-in')}>
+          Sign In
+        </Button>
       </div>
     );
+  }
+
+  // Handle case where queries were skipped
+  if (!shouldFetchData) {
+    return null;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

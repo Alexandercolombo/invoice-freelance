@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
+import { useAuth } from "@clerk/clerk-react";
 import { api } from "../../../convex/_generated/api";
 import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,28 @@ type Invoice = {
   } | null;
 };
 
+function AuthDebugger() {
+  const convexAuth = useConvexAuth();
+  const clerkAuth = useAuth();
+  
+  useEffect(() => {
+    console.log('Auth Debug State:', {
+      convex: {
+        isLoading: convexAuth.isLoading,
+        isAuthenticated: convexAuth.isAuthenticated
+      },
+      clerk: {
+        isLoaded: clerkAuth.isLoaded,
+        isSignedIn: clerkAuth.isSignedIn,
+        userId: clerkAuth.userId,
+        sessionId: clerkAuth.sessionId
+      }
+    });
+  }, [convexAuth.isLoading, convexAuth.isAuthenticated, clerkAuth.isLoaded, clerkAuth.isSignedIn, clerkAuth.userId, clerkAuth.sessionId]);
+  
+  return null;
+}
+
 export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState<Set<Id<"tasks_v2">>>(new Set());
@@ -53,7 +76,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     paginationOpts: { numToSkip: 0, numToTake: 100 }
   }) ?? { clients: [], totalCount: 0 };
 
-  if (invoices === undefined || tasks === undefined || clients.clients === undefined) {
+  if (invoices === undefined) {
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
@@ -69,19 +92,23 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     );
   }
 
-  if (!invoices || !tasks || !clients.clients) {
+  if (!invoices) {
     return (
       <div className="h-screen flex items-center justify-center">
-        <p className="text-red-500">Failed to load required data</p>
+        <p className="text-red-500">Failed to load invoices. Please try refreshing the page.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
+      <AuthDebugger />
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Invoices</h1>
-        <Button onClick={() => setIsCreateModalOpen(true)}>
+        <Button 
+          onClick={() => setIsCreateModalOpen(true)}
+          disabled={!tasks || !clients.clients}
+        >
           <Plus className="w-4 h-4 mr-2" />
           Create Invoice
         </Button>
@@ -174,23 +201,27 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
         </motion.div>
       )}
 
-      <CreateInvoiceModal 
-        isOpen={isCreateModalOpen}
-        onClose={() => {
-          setIsCreateModalOpen(false);
-          setSelectedTasks(new Set());
-        }}
-        selectedTasks={selectedTasks}
-        tasks={tasks}
-        clients={clients.clients}
-      />
+      {tasks && clients.clients && (
+        <>
+          <CreateInvoiceModal 
+            isOpen={isCreateModalOpen}
+            onClose={() => {
+              setIsCreateModalOpen(false);
+              setSelectedTasks(new Set());
+            }}
+            selectedTasks={selectedTasks}
+            tasks={tasks}
+            clients={clients.clients}
+          />
 
-      {editingInvoice && (
-        <EditInvoiceModal
-          isOpen={true}
-          onClose={() => setEditingInvoice(null)}
-          invoice={editingInvoice}
-        />
+          {editingInvoice && (
+            <EditInvoiceModal
+              isOpen={true}
+              onClose={() => setEditingInvoice(null)}
+              invoice={editingInvoice}
+            />
+          )}
+        </>
       )}
     </div>
   );

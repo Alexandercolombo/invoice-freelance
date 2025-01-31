@@ -81,7 +81,7 @@ export const GET = async (request: NextRequest) => {
 
       // Format the date for the filename
       const formattedDate = new Date().toISOString().split('T')[0];
-      const safeBusinessName = userData.businessName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+      const safeBusinessName = (userData.businessName || 'invoice').replace(/[^a-z0-9]/gi, '-').toLowerCase();
       const safeInvoiceNumber = invoiceData.number.replace(/[^a-z0-9]/gi, '-');
       
       // Create a professional filename

@@ -15,8 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Send } from "lucide-react";
-import { getGmailAuthUrl } from "@/lib/gmail";
+import { Mail } from "lucide-react";
 
 interface SendInvoiceModalProps {
   invoice: {
@@ -39,7 +38,6 @@ export function SendInvoiceModal({
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [isSending, setIsSending] = useState(false);
   const [emailSubject, setEmailSubject] = useState(
     `Invoice ${invoice.number} from Your Business`
   );
@@ -67,50 +65,6 @@ export function SendInvoiceModal({
     setIsOpen(false);
     if (onSuccess) {
       onSuccess();
-    }
-  };
-
-  const handleSendViaGmail = async () => {
-    try {
-      setIsSending(true);
-      const response = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          to: invoice.client.email,
-          subject: emailSubject,
-          body: emailBody,
-          pdfUrl: `/api/invoices/${invoice._id}/pdf`
-        })
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        if (data.error === 'Gmail not connected') {
-          // Redirect to Gmail OAuth
-          window.location.href = getGmailAuthUrl();
-          return;
-        }
-        throw new Error(data.error || 'Failed to send email');
-      }
-
-      toast({
-        title: "Email sent successfully",
-        description: `Invoice ${invoice.number} has been sent to ${invoice.client.email}`,
-      });
-      setIsOpen(false);
-      onSuccess?.();
-    } catch (error) {
-      console.error('Send email error:', error);
-      toast({
-        title: "Failed to send email",
-        description: error instanceof Error ? error.message : "Please try again",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSending(false);
     }
   };
 
@@ -196,25 +150,8 @@ export function SendInvoiceModal({
           >
             Download & Copy
           </Button>
-          <Button
-            onClick={handleSendViaGmail}
-            disabled={isSending}
-            className="gap-2"
-          >
-            {isSending ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Sending...
-              </>
-            ) : (
-              <>
-                <Send className="h-4 w-4" />
-                Send via Gmail
-              </>
-            )}
-          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-} 
+}

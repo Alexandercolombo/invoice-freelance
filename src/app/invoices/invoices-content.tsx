@@ -62,6 +62,9 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   const [selectedTasks, setSelectedTasks] = useState<Set<Id<"tasks_v2">>>(new Set());
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   
+  const { isAuthenticated, isLoading: isConvexLoading } = useConvexAuth();
+  const { isLoaded: isClerkLoaded, isSignedIn } = useAuth();
+  
   const deleteInvoice = useMutation(api.invoices.deleteInvoice);
   
   const invoices = useQuery(api.invoices.getAllInvoices, {
@@ -75,6 +78,28 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   const clients = useQuery(api.clients.getAll, {
     paginationOpts: { numToSkip: 0, numToTake: 100 }
   }) ?? { clients: [], totalCount: 0 };
+
+  // Show loading state while authentication is being checked
+  if (isConvexLoading || !isClerkLoaded) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center space-y-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+        <p className="text-gray-600 dark:text-gray-400">Loading Invoice Data...</p>
+      </div>
+    );
+  }
+
+  // Show auth error if not authenticated
+  if (!isAuthenticated || !isSignedIn) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center space-y-4">
+        <p className="text-red-500">Authentication required. Please sign in to view invoices.</p>
+        <Button onClick={() => window.location.href = '/sign-in'}>
+          Sign In
+        </Button>
+      </div>
+    );
+  }
 
   if (invoices === undefined) {
     return (

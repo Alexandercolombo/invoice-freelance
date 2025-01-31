@@ -34,6 +34,7 @@
     "convex": "^1.17.4",
     "date-fns": "^4.1.0",
     "framer-motion": "^11.0.3",
+    "googleapis": "^144.0.0",
     "iconv-lite": "^0.6.3",
     "jspdf": "^2.5.2",
     "lucide-react": "^0.303.0",

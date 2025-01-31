@@ -83,4 +83,47 @@ export const update = mutation({
     await ctx.db.patch(user._id, args);
     return await ctx.db.get(user._id);
   },
+});
+
+export const updateGmailToken = mutation({
+  args: {
+    refreshToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await getUser(ctx);
+    if (!identity) throw new Error("Not authenticated");
+
+    const user = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("tokenIdentifier"), identity.tokenIdentifier))
+      .first();
+
+    if (!user) throw new Error("User not found");
+
+    await ctx.db.patch(user._id, {
+      gmailRefreshToken: args.refreshToken,
+      gmailConnected: true,
+    });
+
+    return { success: true };
+  },
+});
+
+export const getGmailToken = query({
+  handler: async (ctx) => {
+    const identity = await getUser(ctx);
+    if (!identity) return null;
+
+    const user = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("tokenIdentifier"), identity.tokenIdentifier))
+      .first();
+
+    if (!user) return null;
+
+    return {
+      gmailRefreshToken: user.gmailRefreshToken,
+      gmailConnected: user.gmailConnected,
+    };
+  },
 }); 

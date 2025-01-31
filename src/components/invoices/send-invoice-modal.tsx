@@ -14,6 +14,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, Mail, Send } from "lucide-react";
+import { getGmailAuthUrl } from "@/lib/gmail";
 
 interface SendInvoiceModalProps {
   invoice: {
@@ -33,8 +36,10 @@ export function SendInvoiceModal({
   trigger,
   onSuccess,
 }: SendInvoiceModalProps) {
+  const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [emailSubject, setEmailSubject] = useState(
     `Invoice ${invoice.number} from Your Business`
   );
@@ -63,6 +68,55 @@ export function SendInvoiceModal({
     if (onSuccess) {
       onSuccess();
     }
+  };
+
+  const handleSendViaGmail = async () => {
+    try {
+      setIsSending(true);
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: invoice.client.email,
+          subject: emailSubject,
+          body: emailBody,
+          pdfUrl: `/api/invoices/${invoice._id}/pdf`
+        })
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        if (data.error === 'Gmail not connected') {
+          // Redirect to Gmail OAuth
+          window.location.href = getGmailAuthUrl();
+          return;
+        }
+        throw new Error(data.error || 'Failed to send email');
+      }
+
+      toast({
+        title: "Email sent successfully",
+        description: `Invoice ${invoice.number} has been sent to ${invoice.client.email}`,
+      });
+      setIsOpen(false);
+      onSuccess?.();
+    } catch (error) {
+      console.error('Send email error:', error);
+      toast({
+        title: "Failed to send email",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleOpenMailClient = () => {
+    const mailtoLink = `mailto:${invoice.client.email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+    window.open(mailtoLink);
   };
 
   return (
@@ -126,36 +180,38 @@ export function SendInvoiceModal({
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2">
           <Button
-            type="button"
             variant="outline"
-            onClick={() => setIsOpen(false)}
+            onClick={handleOpenMailClient}
+            className="gap-2"
           >
-            Cancel
+            <Mail className="h-4 w-4" />
+            Open Email Client
           </Button>
           <Button
-            type="button"
+            variant="outline"
             onClick={handleDownloadAndCopy}
             className="gap-2"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="feather feather-download"
-            >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            Download PDF & Copy Email
+            Download & Copy
+          </Button>
+          <Button
+            onClick={handleSendViaGmail}
+            disabled={isSending}
+            className="gap-2"
+          >
+            {isSending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Sending...
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4" />
+                Send via Gmail
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

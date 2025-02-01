@@ -110,12 +110,18 @@ function EmptyState() {
 
 export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   const router = useRouter();
-  const invoices = useQuery(api.invoices.getAllInvoices, {
+  const rawInvoices = useQuery(api.invoices.getAllInvoices, {
     paginationOpts: {
       numToSkip: 0,
       numToTake: 100
     }
   });
+
+  const invoices = (
+    rawInvoices && 
+    Array.isArray(rawInvoices) && 
+    rawInvoices.length >= 0
+  ) ? rawInvoices : [];
 
   const [filters, setFilters] = useState({
     search: "",
@@ -168,31 +174,35 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  // Add debug logging for invoice state
+  // Update debug logging to show both raw and processed data
   useEffect(() => {
     console.log('Dashboard Invoice State:', {
-      invoices: {
+      raw: {
+        value: rawInvoices,
+        type: typeof rawInvoices,
+        isArray: Array.isArray(rawInvoices),
+        isNull: rawInvoices === null,
+        isUndefined: rawInvoices === undefined
+      },
+      processed: {
         value: invoices,
-        type: typeof invoices,
-        isArray: Array.isArray(invoices),
-        isNull: invoices === null,
-        isUndefined: invoices === undefined,
-        length: Array.isArray(invoices) ? invoices.length : null
+        length: invoices.length,
+        isArray: Array.isArray(invoices)
       }
     });
-  }, [invoices]);
+  }, [rawInvoices, invoices]);
 
   // Memoize the filter values to prevent unnecessary recalculations
   const { search, status, sortBy, dateRange } = filters;
 
   // Handle invoices data without useMemo
   let filteredInvoices: InvoiceCardData[] = [];
-  if (invoices && Array.isArray(invoices)) {
+  if (invoices.length > 0) {
     filteredInvoices = invoices;
   }
 
-  // Show loading state while data is loading or null
-  if (invoices === undefined || invoices === null) {
+  // Show loading state while raw data is loading
+  if (rawInvoices === undefined || rawInvoices === null) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
@@ -228,7 +238,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   }
 
   // Show empty state if there are no invoices (after loading)
-  if (Array.isArray(invoices) && invoices.length === 0) {
+  if (invoices.length === 0) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">

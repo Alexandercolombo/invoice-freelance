@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Define public routes that don't require authentication
@@ -17,23 +18,44 @@ const isPublicRoute = createRouteMatcher([
 const isDashboardRoute = createRouteMatcher([
   '/dashboard(.*)',
   '/invoices(.*)',
-  '/settings(.*)'
+  '/settings/(?!account)(.*)'  // All settings except personal account
 ]);
 
-export default clerkMiddleware(async (auth, request) => {
+// Define personal account routes
+const isPersonalRoute = createRouteMatcher([
+  '/settings/account(.*)'  // Personal account settings
+]);
+
+export default clerkMiddleware((auth, request) => {
   // Check if it's a public route first
   if (isPublicRoute(request)) {
-    return;
+    return NextResponse.next();
   }
 
-  // Protect dashboard routes
+  // Handle dashboard routes
   if (isDashboardRoute(request)) {
-    await auth.protect();
-    return;
+    auth.protect();
+    return NextResponse.next();
+  }
+
+  // Handle personal account routes
+  if (isPersonalRoute(request)) {
+    auth.protect();
+    return NextResponse.next();
   }
 
   // By default, protect all other routes that aren't explicitly public
-  await auth.protect();
+  auth.protect();
+  return NextResponse.next();
+}, {
+  organizationSyncOptions: {
+    organizationPatterns: [
+      '/dashboard/:orgId(.*)',
+      '/invoices/:orgId(.*)',
+      '/settings/:orgId/(.*)'
+    ],
+    personalAccountPatterns: ['/settings/account(.*)']
+  }
 });
 
 export const config = {

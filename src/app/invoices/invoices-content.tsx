@@ -126,16 +126,16 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     shouldFetchData ? { paginationOpts: { numToSkip: 0, numToTake: 100 } } : "skip"
   );
 
-  // Simplify loading state check to focus on query completion
+  // Update loading check to handle null values
   const isQueriesLoading = shouldFetchData && (
     invoicesQuery === undefined || 
     tasksQuery === undefined || 
-    clientsQuery === undefined
+    (clientsQuery === undefined || clientsQuery === null)
   );
 
   const isLoading = isQueriesLoading || isAuthLoading;
 
-  // Validate and transform query responses with stricter checks
+  // Validate and transform query responses
   const invoices = Array.isArray(invoicesQuery) ? invoicesQuery : [];
   const tasks = Array.isArray(tasksQuery) ? tasksQuery : [];
   const clients = (
@@ -144,15 +144,14 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     Array.isArray(clientsQuery.clients)
   ) ? clientsQuery : { clients: [], totalCount: 0 };
 
-  // Update empty state detection to be more accurate
+  // Update empty state to focus on invoices only
   const isDataEmpty = !isLoading && 
     invoices.length === 0 && 
-    tasks.length === 0 && 
-    clients.clients.length === 0;
+    (tasks.length >= 0 || clients.clients.length >= 0);
 
-  // Add query state tracking
+  // Add detailed state tracking
   useEffect(() => {
-    console.log('Query State:', {
+    console.log('Invoice State:', {
       auth: {
         isAuthenticated,
         isSignedIn,
@@ -162,22 +161,26 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
       loading: {
         isQueriesLoading,
         isLoading,
-        queriesUndefined: {
-          invoices: invoicesQuery === undefined,
-          tasks: tasksQuery === undefined,
-          clients: clientsQuery === undefined
+        queriesState: {
+          invoices: invoicesQuery === undefined ? 'loading' : 'loaded',
+          tasks: tasksQuery === undefined ? 'loading' : 'loaded',
+          clients: clientsQuery === undefined ? 'loading' : clientsQuery === null ? 'null' : 'loaded'
         }
       },
       data: {
-        invoicesLength: invoices.length,
-        tasksLength: tasks.length,
-        clientsLength: clients.clients.length,
-        rawClients: clientsQuery
+        hasInvoices: invoices.length > 0,
+        hasTasks: tasks.length > 0,
+        hasClients: clients.clients.length > 0,
+        counts: {
+          invoices: invoices.length,
+          tasks: tasks.length,
+          clients: clients.clients.length
+        }
       },
       emptyState: {
-        isDataEmpty,
-        allQueriesResolved: !isQueriesLoading,
-        allEmpty: invoices.length === 0 && tasks.length === 0 && clients.clients.length === 0
+        condition: isDataEmpty,
+        reason: invoices.length === 0 ? 'no invoices' : 'has data',
+        canCreate: tasks.length > 0 && clients.clients.length > 0
       }
     });
   }, [
@@ -233,7 +236,10 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
       <div className="h-screen flex flex-col items-center justify-center space-y-4">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
         <p className="text-gray-600 dark:text-gray-400">
-          {isAuthLoading ? "Checking authentication..." : "Loading data..."}
+          {isAuthLoading ? "Checking authentication..." : "Loading invoice data..."}
+        </p>
+        <p className="text-sm text-gray-500">
+          {isQueriesLoading ? "Fetching your data..." : "Almost ready..."}
         </p>
       </div>
     );

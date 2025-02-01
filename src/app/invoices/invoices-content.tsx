@@ -36,9 +36,9 @@ type Invoice = {
   } | null;
 };
 
-// Update type for clients response
+// Update type for clients response to be more explicit
 type ClientsResponse = {
-  clients: Client[];
+  clients: Array<Client>;
   totalCount: number;
 };
 
@@ -126,28 +126,36 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     shouldFetchData ? { paginationOpts: { numToSkip: 0, numToTake: 100 } } : "skip"
   );
 
-  // Update loading state check to be more precise
+  // Update loading state check to be more granular
   const isQueriesLoading = shouldFetchData && (
     invoicesQuery === undefined || 
     tasksQuery === undefined || 
-    clientsQuery === undefined
+    (clientsQuery === undefined || (typeof clientsQuery === 'object' && !('clients' in clientsQuery)))
   );
 
   const isLoading = isQueriesLoading || isAuthLoading;
 
-  // Add type safety and proper fallback for queries with validation
+  // Add strict validation for query responses
   const invoices = Array.isArray(invoicesQuery) ? invoicesQuery : [];
   const tasks = Array.isArray(tasksQuery) ? tasksQuery : [];
-  const clients = (clientsQuery && typeof clientsQuery === 'object' && 'clients' in clientsQuery) 
-    ? clientsQuery as ClientsResponse 
+  const clients = (
+    clientsQuery && 
+    typeof clientsQuery === 'object' && 
+    'clients' in clientsQuery && 
+    Array.isArray(clientsQuery.clients) && 
+    'totalCount' in clientsQuery && 
+    typeof clientsQuery.totalCount === 'number'
+  ) 
+    ? clientsQuery 
     : { clients: [], totalCount: 0 };
 
-  // Add comprehensive data validation
+  // Add comprehensive data validation with specific checks
   const hasValidData = shouldFetchData && !isLoading && 
     Array.isArray(invoices) &&
     Array.isArray(tasks) &&
     clients?.clients &&
-    Array.isArray(clients.clients);
+    Array.isArray(clients.clients) &&
+    typeof clients.totalCount === 'number';
 
   // Debug logging
   useEffect(() => {
@@ -180,56 +188,19 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     });
   }, [invoicesQuery, tasksQuery, clientsQuery, isAuthenticated, isSignedIn, isConvexLoading, isClerkLoaded, isAuthLoading, shouldFetchData]);
 
-  // Add detailed debug logging
+  // Add more detailed debug logging for clients data structure
   useEffect(() => {
-    console.log('Detailed Debug State:', {
-      auth: {
-        isAuthenticated,
-        isSignedIn,
-        isConvexLoading,
-        isClerkLoaded,
-        isAuthLoading,
-        shouldFetchData
-      },
-      queries: {
-        invoices: {
-          isUndefined: invoicesQuery === undefined,
-          isNull: invoicesQuery === null,
-          value: invoicesQuery,
-          length: Array.isArray(invoicesQuery) ? invoicesQuery.length : null
-        },
-        tasks: {
-          isUndefined: tasksQuery === undefined,
-          isNull: tasksQuery === null,
-          value: tasksQuery,
-          length: Array.isArray(tasksQuery) ? tasksQuery.length : null
-        },
-        clients: {
-          isUndefined: clientsQuery === undefined,
-          isNull: clientsQuery === null,
-          value: clientsQuery,
-          hasClientsArray: clientsQuery?.clients !== undefined,
-          isClientsArray: Array.isArray(clientsQuery?.clients),
-          clientsLength: Array.isArray(clientsQuery?.clients) ? clientsQuery.clients.length : null
-        }
-      },
-      loadingState: {
-        isLoading,
-        condition: `${shouldFetchData && (invoicesQuery === undefined || tasksQuery === undefined || clientsQuery === undefined)} || ${isAuthLoading}`
-      }
-    });
-  }, [
-    invoicesQuery,
-    tasksQuery,
-    clientsQuery,
-    isAuthenticated,
-    isSignedIn,
-    isConvexLoading,
-    isClerkLoaded,
-    isAuthLoading,
-    shouldFetchData,
-    isLoading
-  ]);
+    if (clientsQuery !== undefined) {
+      console.log('Clients Query Structure:', {
+        type: typeof clientsQuery,
+        hasClientsArray: 'clients' in clientsQuery,
+        isClientsArray: clientsQuery && 'clients' in clientsQuery && Array.isArray(clientsQuery.clients),
+        hasTotalCount: clientsQuery && 'totalCount' in clientsQuery,
+        totalCountType: clientsQuery && 'totalCount' in clientsQuery ? typeof clientsQuery.totalCount : 'undefined',
+        rawValue: clientsQuery
+      });
+    }
+  }, [clientsQuery]);
 
   // Show loading state while authentication or data is loading
   if (isLoading) {

@@ -236,7 +236,8 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   }
 
   // Show empty state only when we have confirmed there are no invoices
-  if (rawInvoices !== undefined && invoices.length === 0) {
+  // and the query has completed successfully (not null)
+  if (rawInvoices !== undefined && rawInvoices !== null && invoices.length === 0) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">

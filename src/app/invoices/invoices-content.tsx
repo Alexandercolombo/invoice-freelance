@@ -126,7 +126,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     shouldFetchData ? { paginationOpts: { numToSkip: 0, numToTake: 100 } } : "skip"
   );
 
-  // Simplify loading state check
+  // Simplify loading state check to focus on query completion
   const isQueriesLoading = shouldFetchData && (
     invoicesQuery === undefined || 
     tasksQuery === undefined || 
@@ -135,38 +135,50 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
 
   const isLoading = isQueriesLoading || isAuthLoading;
 
-  // Simplify data validation and handle empty states
+  // Validate and transform query responses
   const invoices = Array.isArray(invoicesQuery) ? invoicesQuery : [];
   const tasks = Array.isArray(tasksQuery) ? tasksQuery : [];
   const clients = (
     clientsQuery && 
     typeof clientsQuery === 'object' && 
-    Array.isArray(clientsQuery.clients) && 
-    typeof clientsQuery.totalCount === 'number'
+    'clients' in clientsQuery
   ) ? clientsQuery : { clients: [], totalCount: 0 };
 
-  // Add early return for empty state when queries are complete
+  // Simplify empty state detection to focus on data presence
   const isDataEmpty = !isLoading && 
-    Array.isArray(invoices) && invoices.length === 0 &&
-    Array.isArray(tasks) && 
-    Array.isArray(clients.clients);
+    invoices.length === 0 && 
+    tasks.length >= 0 &&  // Allow any valid length for tasks
+    clients.clients.length >= 0;  // Allow any valid length for clients
 
-  // Debug logging for empty state
+  // Add query resolution tracking
   useEffect(() => {
-    if (!isLoading && shouldFetchData) {
-      console.log('Empty State Debug:', {
-        isDataEmpty,
-        invoicesLength: invoices.length,
-        tasksLength: tasks.length,
-        clientsLength: clients.clients.length,
-        queriesComplete: {
-          invoices: invoicesQuery !== undefined,
-          tasks: tasksQuery !== undefined,
-          clients: clientsQuery !== undefined
+    console.log('Query Resolution State:', {
+      shouldFetchData,
+      isLoading,
+      queries: {
+        invoices: {
+          isDefined: invoicesQuery !== undefined,
+          isEmpty: invoices.length === 0
+        },
+        tasks: {
+          isDefined: tasksQuery !== undefined,
+          isEmpty: tasks.length === 0
+        },
+        clients: {
+          isDefined: clientsQuery !== undefined,
+          hasClients: Boolean(clients?.clients),
+          isEmpty: clients.clients.length === 0
         }
-      });
-    }
-  }, [isLoading, shouldFetchData, isDataEmpty, invoices.length, tasks.length, clients.clients.length, invoicesQuery, tasksQuery, clientsQuery]);
+      },
+      emptyState: {
+        condition: isDataEmpty,
+        loadingCheck: !isLoading,
+        invoicesEmpty: invoices.length === 0,
+        tasksValid: tasks.length >= 0,
+        clientsValid: clients.clients.length >= 0
+      }
+    });
+  }, [shouldFetchData, isLoading, invoicesQuery, tasksQuery, clientsQuery, isDataEmpty, invoices.length, tasks.length, clients.clients.length]);
 
   // Debug logging
   useEffect(() => {

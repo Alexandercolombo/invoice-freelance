@@ -15,6 +15,7 @@ import { Id } from "../../../convex/_generated/dataModel";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { Client } from "@/types";
 
 interface InvoicesContentProps {
   searchParams: { [key: string]: string | string[] | undefined };
@@ -33,6 +34,12 @@ type Invoice = {
     name: string;
     email: string;
   } | null;
+};
+
+// Update type for clients response
+type ClientsResponse = {
+  clients: Client[];
+  totalCount: number;
 };
 
 function LoadingSkeleton() {
@@ -119,11 +126,28 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     shouldFetchData ? { paginationOpts: { numToSkip: 0, numToTake: 100 } } : "skip"
   );
 
-  // Separate loading state from data validation
-  const isLoading = invoicesQuery === undefined || tasksQuery === undefined || clientsQuery === undefined || isAuthLoading;
-  const invoices = invoicesQuery ?? [];
-  const tasks = tasksQuery ?? [];
-  const clients = clientsQuery ?? { clients: [], totalCount: 0 };
+  // Update loading state check to be more precise
+  const isQueriesLoading = shouldFetchData && (
+    invoicesQuery === undefined || 
+    tasksQuery === undefined || 
+    clientsQuery === undefined
+  );
+
+  const isLoading = isQueriesLoading || isAuthLoading;
+
+  // Add type safety and proper fallback for queries with validation
+  const invoices = Array.isArray(invoicesQuery) ? invoicesQuery : [];
+  const tasks = Array.isArray(tasksQuery) ? tasksQuery : [];
+  const clients = (clientsQuery && typeof clientsQuery === 'object' && 'clients' in clientsQuery) 
+    ? clientsQuery as ClientsResponse 
+    : { clients: [], totalCount: 0 };
+
+  // Add comprehensive data validation
+  const hasValidData = shouldFetchData && !isLoading && 
+    Array.isArray(invoices) &&
+    Array.isArray(tasks) &&
+    clients?.clients &&
+    Array.isArray(clients.clients);
 
   // Debug logging
   useEffect(() => {
@@ -155,6 +179,57 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
       }
     });
   }, [invoicesQuery, tasksQuery, clientsQuery, isAuthenticated, isSignedIn, isConvexLoading, isClerkLoaded, isAuthLoading, shouldFetchData]);
+
+  // Add detailed debug logging
+  useEffect(() => {
+    console.log('Detailed Debug State:', {
+      auth: {
+        isAuthenticated,
+        isSignedIn,
+        isConvexLoading,
+        isClerkLoaded,
+        isAuthLoading,
+        shouldFetchData
+      },
+      queries: {
+        invoices: {
+          isUndefined: invoicesQuery === undefined,
+          isNull: invoicesQuery === null,
+          value: invoicesQuery,
+          length: Array.isArray(invoicesQuery) ? invoicesQuery.length : null
+        },
+        tasks: {
+          isUndefined: tasksQuery === undefined,
+          isNull: tasksQuery === null,
+          value: tasksQuery,
+          length: Array.isArray(tasksQuery) ? tasksQuery.length : null
+        },
+        clients: {
+          isUndefined: clientsQuery === undefined,
+          isNull: clientsQuery === null,
+          value: clientsQuery,
+          hasClientsArray: clientsQuery?.clients !== undefined,
+          isClientsArray: Array.isArray(clientsQuery?.clients),
+          clientsLength: Array.isArray(clientsQuery?.clients) ? clientsQuery.clients.length : null
+        }
+      },
+      loadingState: {
+        isLoading,
+        condition: `${shouldFetchData && (invoicesQuery === undefined || tasksQuery === undefined || clientsQuery === undefined)} || ${isAuthLoading}`
+      }
+    });
+  }, [
+    invoicesQuery,
+    tasksQuery,
+    clientsQuery,
+    isAuthenticated,
+    isSignedIn,
+    isConvexLoading,
+    isClerkLoaded,
+    isAuthLoading,
+    shouldFetchData,
+    isLoading
+  ]);
 
   // Show loading state while authentication or data is loading
   if (isLoading) {
@@ -192,9 +267,13 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     );
   }
 
-  // Validate data format
-  if (!Array.isArray(invoices)) {
-    console.error('Invalid invoice data format:', invoices);
+  // Show error state if data is invalid
+  if (shouldFetchData && !hasValidData) {
+    console.error('Invalid data structure:', {
+      invoices: !Array.isArray(invoices) ? 'Invalid invoices' : null,
+      tasks: !Array.isArray(tasks) ? 'Invalid tasks' : null,
+      clients: !clients?.clients || !Array.isArray(clients.clients) ? 'Invalid clients' : null
+    });
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="text-center space-y-4">

@@ -8,6 +8,24 @@ import { OnboardingFlow } from '@/components/onboarding/onboarding-flow';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 
+function LoadingSkeleton() {
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12">
+      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="mt-2 h-4 w-64" />
+        </div>
+        <div className="space-y-6">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function OnboardingContent() {
   const router = useRouter();
   const { isAuthenticated, isLoading: isConvexLoading } = useConvexAuth();
@@ -19,21 +37,7 @@ export function OnboardingContent() {
 
   // Show loading state while checking auth and user
   if (isConvexLoading || !isClerkLoaded) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-8">
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="mt-2 h-4 w-64" />
-          </div>
-          <div className="space-y-6">
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingSkeleton />;
   }
 
   // Show auth error if not authenticated
@@ -48,26 +52,12 @@ export function OnboardingContent() {
 
   // Handle case where queries were skipped
   if (!shouldFetchData) {
-    return null;
+    return <LoadingSkeleton />;
   }
 
   // Show loading state while checking for existing user
   if (user === undefined) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-8">
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="mt-2 h-4 w-64" />
-          </div>
-          <div className="space-y-6">
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingSkeleton />;
   }
 
   // If user already exists, redirect to dashboard
@@ -81,5 +71,6 @@ export function OnboardingContent() {
     );
   }
 
+  // If we get here, user is authenticated but hasn't completed onboarding
   return <OnboardingFlow />;
 } 

@@ -92,12 +92,21 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     } : "skip"
   ) ?? { clients: [], totalCount: 0 };
 
+  useEffect(() => {
+    console.log('Data Fetching State:', {
+      shouldFetchData,
+      invoicesState: invoices === undefined ? 'loading' : invoices === null ? 'error' : 'loaded',
+      tasksState: tasks === undefined ? 'loading' : tasks === null ? 'error' : 'loaded',
+      clientsState: clients === undefined ? 'loading' : clients === null ? 'error' : 'loaded'
+    });
+  }, [shouldFetchData, invoices, tasks, clients]);
+
   // Show loading state while authentication is being checked
   if (isConvexLoading || !isClerkLoaded) {
     return (
       <div className="h-screen flex flex-col items-center justify-center space-y-4">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-        <p className="text-gray-600 dark:text-gray-400">Loading Invoice Data...</p>
+        <p className="text-gray-600 dark:text-gray-400">Checking authentication...</p>
       </div>
     );
   }
@@ -116,10 +125,15 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
 
   // Handle case where queries were skipped
   if (!shouldFetchData) {
-    return null;
+    return (
+      <div className="h-screen flex flex-col items-center justify-center space-y-4">
+        <p className="text-red-500">Unable to fetch data. Please try refreshing the page.</p>
+      </div>
+    );
   }
 
-  if (invoices === undefined) {
+  // Show loading state while data is being fetched
+  if (invoices === undefined || tasks === undefined || clients === undefined) {
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
@@ -135,10 +149,16 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     );
   }
 
-  if (!invoices) {
+  // Show error state if data fetch failed
+  if (!invoices || !tasks || !clients) {
     return (
       <div className="h-screen flex items-center justify-center">
-        <p className="text-red-500">Failed to load invoices. Please try refreshing the page.</p>
+        <div className="text-center space-y-4">
+          <p className="text-red-500">Failed to load data. Please try refreshing the page.</p>
+          <Button onClick={() => window.location.reload()}>
+            Refresh Page
+          </Button>
+        </div>
       </div>
     );
   }

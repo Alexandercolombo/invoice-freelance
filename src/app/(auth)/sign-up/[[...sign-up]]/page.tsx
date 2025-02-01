@@ -7,19 +7,19 @@ import { Button } from "@/components/ui/button";
 import { AuthErrorBoundary } from "@/components/error-boundaries/auth-error-boundary";
 import { AuthWrapper } from "@/components/auth/auth-wrapper";
 
-type PageProps = {
+type SignUpPageProps = {
   params: {
     "sign-up": string[] | undefined;
   };
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Record<string, string | string[] | undefined>;
 }
 
-export default function SignUpPage({ params, searchParams }: PageProps) {
+export default function SignUpPage(props: SignUpPageProps) {
   const router = useRouter();
   const [error, setError] = useState<Error | null>(null);
 
   // Get the current path segment
-  const path = params?.["sign-up"]?.join("/") || "";
+  const path = props.params?.["sign-up"]?.join("/") || "";
 
   if (error) {
     return (

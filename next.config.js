@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ["jspdf"],
   experimental: {
     serverActions: {
       allowedOrigins: ["*"],
@@ -49,8 +48,6 @@ const nextConfig = {
       ],
     };
   },
-  // Specify which paths should not use Edge Runtime
-  serverComponentsExternalPackages: ['@clerk/nextjs'],
 };
 
 module.exports = nextConfig; 

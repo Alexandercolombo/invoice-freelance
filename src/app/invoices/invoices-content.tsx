@@ -130,23 +130,35 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
       invoicesState: {
         type: invoices === undefined ? 'loading' : invoices === null ? 'error' : 'loaded',
         data: invoices,
-        length: Array.isArray(invoices) ? invoices.length : null
+        isArray: Array.isArray(invoices),
+        length: Array.isArray(invoices) ? invoices.length : null,
+        rawValue: invoices // Log the raw value to see exactly what we're getting
       },
       tasksState: {
         type: tasks === undefined ? 'loading' : tasks === null ? 'error' : 'loaded',
         data: tasks,
+        isArray: Array.isArray(tasks),
         length: Array.isArray(tasks) ? tasks.length : null
       },
       clientsState: {
         type: clients === undefined ? 'loading' : clients === null ? 'error' : 'loaded',
         data: clients,
+        hasClients: Boolean(clients?.clients),
+        clientsLength: clients?.clients?.length,
         totalCount: clients?.totalCount
+      },
+      authState: {
+        isAuthenticated,
+        isSignedIn,
+        isConvexLoading,
+        isClerkLoaded
       }
     });
-  }, [shouldFetchData, invoices, tasks, clients]);
+  }, [shouldFetchData, invoices, tasks, clients, isAuthenticated, isSignedIn, isConvexLoading, isClerkLoaded]);
 
   // Show loading state while authentication is being checked
   if (isConvexLoading || !isClerkLoaded) {
+    console.log('Showing auth loading state');
     return (
       <div className="h-screen flex flex-col items-center justify-center space-y-4">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
@@ -157,6 +169,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
 
   // Show auth error if not authenticated
   if (!isAuthenticated || !isSignedIn) {
+    console.log('Showing auth error state');
     return (
       <div className="h-screen flex flex-col items-center justify-center space-y-4">
         <p className="text-red-500">Please sign in to view invoices.</p>
@@ -169,6 +182,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
 
   // Handle case where queries were skipped
   if (!shouldFetchData) {
+    console.log('Queries were skipped');
     return (
       <div className="h-screen flex flex-col items-center justify-center space-y-4">
         <p className="text-red-500">Unable to fetch data. Please try refreshing the page.</p>
@@ -181,11 +195,13 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
 
   // Show loading state while data is being fetched
   if (invoices === undefined || tasks === undefined || clients === undefined) {
+    console.log('Showing data loading state');
     return <LoadingSkeleton />;
   }
 
   // Show error state if data fetch failed
   if (invoices === null || tasks === null || clients === null) {
+    console.log('Showing data error state');
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -198,15 +214,61 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     );
   }
 
+  // Add explicit type check for invoices array
+  if (!Array.isArray(invoices)) {
+    console.log('Invalid invoice data format:', invoices);
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <p className="text-red-500">Invalid invoice data format. Please contact support.</p>
+          <Button onClick={() => window.location.reload()}>
+            Refresh Page
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Add explicit type check for tasks array
+  if (!Array.isArray(tasks)) {
+    console.log('Invalid tasks data format:', tasks);
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <p className="text-red-500">Invalid tasks data format. Please contact support.</p>
+          <Button onClick={() => window.location.reload()}>
+            Refresh Page
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Add explicit type check for clients
+  if (!clients?.clients || !Array.isArray(clients.clients)) {
+    console.log('Invalid clients data format:', clients);
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <p className="text-red-500">Invalid clients data format. Please contact support.</p>
+          <Button onClick={() => window.location.reload()}>
+            Refresh Page
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   // Show empty state if no invoices
   if (invoices.length === 0) {
+    console.log('Showing empty state');
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Invoices</h1>
           <Button 
             onClick={() => setIsCreateModalOpen(true)}
-            disabled={!tasks || tasks.length === 0 || !clients.clients || clients.clients.length === 0}
+            disabled={tasks.length === 0 || clients.clients.length === 0}
           >
             <Plus className="w-4 h-4 mr-2" />
             Create Invoice
@@ -217,6 +279,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     );
   }
 
+  console.log('Rendering invoice list with', invoices.length, 'invoices');
   return (
     <div className="space-y-4">
       <AuthDebugger />

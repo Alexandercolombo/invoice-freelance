@@ -5,6 +5,8 @@ const nextConfig = {
     serverActions: {
       allowedOrigins: ["*"],
     },
+    // Configure middleware to run on specific paths
+    middleware: true,
   },
   webpack: (config) => {
     // Exclude client-side modules from server bundle
@@ -48,11 +50,6 @@ const nextConfig = {
         },
       ],
     };
-  },
-  // Configure middleware to run on specific paths
-  experimental: {
-    ...nextConfig.experimental,
-    middleware: true,
   },
   // Specify which paths should not use Edge Runtime
   serverComponentsExternalPackages: ['@clerk/nextjs'],

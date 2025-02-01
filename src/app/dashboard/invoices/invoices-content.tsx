@@ -168,6 +168,20 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
+  // Add debug logging for invoice state
+  useEffect(() => {
+    console.log('Dashboard Invoice State:', {
+      invoices: {
+        value: invoices,
+        type: typeof invoices,
+        isArray: Array.isArray(invoices),
+        isNull: invoices === null,
+        isUndefined: invoices === undefined,
+        length: Array.isArray(invoices) ? invoices.length : null
+      }
+    });
+  }, [invoices]);
+
   // Memoize the filter values to prevent unnecessary recalculations
   const { search, status, sortBy, dateRange } = filters;
 
@@ -177,8 +191,8 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     filteredInvoices = invoices;
   }
 
-  // Show loading state while data is loading
-  if (invoices === undefined) {
+  // Show loading state while data is loading or null
+  if (invoices === undefined || invoices === null) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
@@ -213,8 +227,8 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     );
   }
 
-  // Show empty state if there are no invoices
-  if (invoices && invoices.length === 0) {
+  // Show empty state if there are no invoices (after loading)
+  if (Array.isArray(invoices) && invoices.length === 0) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">

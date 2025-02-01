@@ -1,8 +1,24 @@
 'use client';
 
 import { SignUp } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export default function SignUpPage() {
+  const router = useRouter();
+  const [error, setError] = useState<Error | null>(null);
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 space-y-4">
+        <div className="text-red-500">Something went wrong during sign up.</div>
+        <Button onClick={() => window.location.href = '/'}>Return Home</Button>
+        <Button variant="outline" onClick={() => setError(null)}>Try Again</Button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center justify-center min-h-screen p-4">
       <SignUp
@@ -18,6 +34,8 @@ export default function SignUpPage() {
         }}
         signInUrl="/sign-in"
         afterSignUpUrl="/onboarding"
+        routing="path"
+        path="/sign-up"
       />
     </div>
   );

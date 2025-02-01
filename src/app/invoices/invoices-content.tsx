@@ -97,79 +97,79 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   const { isAuthenticated, isLoading: isConvexLoading } = useConvexAuth();
   const { isLoaded: isClerkLoaded, isSignedIn } = useAuth();
   
-  // Don't make any queries if we're not authenticated
-  const shouldFetchData = isAuthenticated && isSignedIn && !isConvexLoading && isClerkLoaded;
+  // Add explicit loading state tracking
+  const isAuthLoading = isConvexLoading || !isClerkLoaded;
+  const shouldFetchData = isAuthenticated && isSignedIn && !isAuthLoading;
   
   const deleteInvoice = useMutation(api.invoices.deleteInvoice);
   
-  const invoices = useQuery(
+  // Fetch data with proper loading states
+  const invoicesQuery = useQuery(
     api.invoices.getAllInvoices,
-    shouldFetchData ? {
-      paginationOpts: {
-        numToSkip: 0,
-        numToTake: 100
-      }
-    } : "skip"
+    shouldFetchData ? { paginationOpts: { numToSkip: 0, numToTake: 100 } } : "skip"
   );
 
-  const tasks = useQuery(
+  const tasksQuery = useQuery(
     api.tasks.getRecentTasks,
     shouldFetchData ? {} : "skip"
-  ) ?? [];
+  );
 
-  const clients = useQuery(
+  const clientsQuery = useQuery(
     api.clients.getAll,
-    shouldFetchData ? {
-      paginationOpts: { numToSkip: 0, numToTake: 100 }
-    } : "skip"
-  ) ?? { clients: [], totalCount: 0 };
+    shouldFetchData ? { paginationOpts: { numToSkip: 0, numToTake: 100 } } : "skip"
+  );
 
+  // Separate loading state from data validation
+  const isLoading = invoicesQuery === undefined || tasksQuery === undefined || clientsQuery === undefined || isAuthLoading;
+  const invoices = invoicesQuery ?? [];
+  const tasks = tasksQuery ?? [];
+  const clients = clientsQuery ?? { clients: [], totalCount: 0 };
+
+  // Debug logging
   useEffect(() => {
     console.log('Data Fetching Debug State:', {
-      shouldFetchData,
-      invoicesState: {
-        type: invoices === undefined ? 'loading' : invoices === null ? 'error' : 'loaded',
-        data: invoices,
-        isArray: Array.isArray(invoices),
-        length: Array.isArray(invoices) ? invoices.length : null,
-        rawValue: invoices // Log the raw value to see exactly what we're getting
-      },
-      tasksState: {
-        type: tasks === undefined ? 'loading' : tasks === null ? 'error' : 'loaded',
-        data: tasks,
-        isArray: Array.isArray(tasks),
-        length: Array.isArray(tasks) ? tasks.length : null
-      },
-      clientsState: {
-        type: clients === undefined ? 'loading' : clients === null ? 'error' : 'loaded',
-        data: clients,
-        hasClients: Boolean(clients?.clients),
-        clientsLength: clients?.clients?.length,
-        totalCount: clients?.totalCount
-      },
       authState: {
         isAuthenticated,
         isSignedIn,
         isConvexLoading,
-        isClerkLoaded
+        isClerkLoaded,
+        isAuthLoading,
+        shouldFetchData
+      },
+      dataState: {
+        invoices: {
+          isLoading: invoicesQuery === undefined,
+          data: invoicesQuery,
+          length: Array.isArray(invoicesQuery) ? invoicesQuery.length : null
+        },
+        tasks: {
+          isLoading: tasksQuery === undefined,
+          data: tasksQuery,
+          length: Array.isArray(tasksQuery) ? tasksQuery.length : null
+        },
+        clients: {
+          isLoading: clientsQuery === undefined,
+          data: clientsQuery,
+          totalCount: clientsQuery?.totalCount
+        }
       }
     });
-  }, [shouldFetchData, invoices, tasks, clients, isAuthenticated, isSignedIn, isConvexLoading, isClerkLoaded]);
+  }, [invoicesQuery, tasksQuery, clientsQuery, isAuthenticated, isSignedIn, isConvexLoading, isClerkLoaded, isAuthLoading, shouldFetchData]);
 
-  // Show loading state while authentication is being checked
-  if (isConvexLoading || !isClerkLoaded) {
-    console.log('Showing auth loading state');
+  // Show loading state while authentication or data is loading
+  if (isLoading) {
     return (
       <div className="h-screen flex flex-col items-center justify-center space-y-4">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-        <p className="text-gray-600 dark:text-gray-400">Checking authentication...</p>
+        <p className="text-gray-600 dark:text-gray-400">
+          {isAuthLoading ? "Checking authentication..." : "Loading data..."}
+        </p>
       </div>
     );
   }
 
   // Show auth error if not authenticated
   if (!isAuthenticated || !isSignedIn) {
-    console.log('Showing auth error state');
     return (
       <div className="h-screen flex flex-col items-center justify-center space-y-4">
         <p className="text-red-500">Please sign in to view invoices.</p>
@@ -182,7 +182,6 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
 
   // Handle case where queries were skipped
   if (!shouldFetchData) {
-    console.log('Queries were skipped');
     return (
       <div className="h-screen flex flex-col items-center justify-center space-y-4">
         <p className="text-red-500">Unable to fetch data. Please try refreshing the page.</p>
@@ -193,64 +192,13 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     );
   }
 
-  // Show loading state while data is being fetched
-  if (invoices === undefined || tasks === undefined || clients === undefined) {
-    console.log('Showing data loading state');
-    return <LoadingSkeleton />;
-  }
-
-  // Show error state if data fetch failed
-  if (invoices === null || tasks === null || clients === null) {
-    console.log('Showing data error state');
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <p className="text-red-500">Failed to load data. Please try refreshing the page.</p>
-          <Button onClick={() => window.location.reload()}>
-            Refresh Page
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Add explicit type check for invoices array
+  // Validate data format
   if (!Array.isArray(invoices)) {
-    console.log('Invalid invoice data format:', invoices);
+    console.error('Invalid invoice data format:', invoices);
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
-          <p className="text-red-500">Invalid invoice data format. Please contact support.</p>
-          <Button onClick={() => window.location.reload()}>
-            Refresh Page
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Add explicit type check for tasks array
-  if (!Array.isArray(tasks)) {
-    console.log('Invalid tasks data format:', tasks);
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <p className="text-red-500">Invalid tasks data format. Please contact support.</p>
-          <Button onClick={() => window.location.reload()}>
-            Refresh Page
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Add explicit type check for clients
-  if (!clients?.clients || !Array.isArray(clients.clients)) {
-    console.log('Invalid clients data format:', clients);
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <p className="text-red-500">Invalid clients data format. Please contact support.</p>
+          <p className="text-red-500">Invalid data format. Please try refreshing the page.</p>
           <Button onClick={() => window.location.reload()}>
             Refresh Page
           </Button>

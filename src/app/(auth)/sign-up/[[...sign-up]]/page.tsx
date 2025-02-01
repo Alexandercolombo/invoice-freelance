@@ -7,11 +7,14 @@ import { Button } from "@/components/ui/button";
 import { AuthErrorBoundary } from "@/components/error-boundaries/auth-error-boundary";
 import { AuthWrapper } from "@/components/auth/auth-wrapper";
 
-interface SignUpPageProps {
-  params: { "sign-up": string[] | undefined };
+interface PageProps {
+  params: {
+    "sign-up": string[] | undefined;
+  };
+  searchParams: { [key: string]: string | string[] | undefined };
 }
 
-export default function SignUpPage({ params }: SignUpPageProps) {
+export default function SignUpPage({ params, searchParams }: PageProps) {
   const router = useRouter();
   const [error, setError] = useState<Error | null>(null);
 

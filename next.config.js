@@ -49,6 +49,13 @@ const nextConfig = {
       ],
     };
   },
+  // Configure middleware to run on specific paths
+  experimental: {
+    ...nextConfig.experimental,
+    middleware: true,
+  },
+  // Specify which paths should not use Edge Runtime
+  serverComponentsExternalPackages: ['@clerk/nextjs'],
 };
 
 module.exports = nextConfig; 

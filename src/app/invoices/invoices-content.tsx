@@ -126,16 +126,20 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     shouldFetchData ? { paginationOpts: { numToSkip: 0, numToTake: 100 } } : "skip"
   );
 
-  // Separate loading states for different queries
-  const isInvoicesLoading = shouldFetchData && invoicesQuery === undefined;
+  // Update loading check to handle null values
+  const isInvoicesLoading = shouldFetchData && (invoicesQuery === undefined || invoicesQuery === null);
   const isTasksLoading = shouldFetchData && tasksQuery === undefined;
   const isClientsLoading = shouldFetchData && (clientsQuery === undefined || clientsQuery === null);
 
   // Only block on invoices loading
   const isLoading = isInvoicesLoading || isAuthLoading;
 
-  // Validate and transform query responses
-  const invoices = Array.isArray(invoicesQuery) ? invoicesQuery : [];
+  // Validate and transform query responses with stricter checks
+  const invoices = (
+    invoicesQuery && 
+    Array.isArray(invoicesQuery) && 
+    invoicesQuery.length >= 0
+  ) ? invoicesQuery : [];
   const tasks = Array.isArray(tasksQuery) ? tasksQuery : [];
   const clients = (
     clientsQuery && 
@@ -143,61 +147,59 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     Array.isArray(clientsQuery.clients)
   ) ? clientsQuery : { clients: [], totalCount: 0 };
 
-  // Simplify empty state to only check invoices
-  const isDataEmpty = !isLoading && invoices.length === 0;
+  // Update empty state to handle null responses
+  const isDataEmpty = !isLoading && invoices.length === 0 && invoicesQuery !== null;
 
-  // Add detailed state tracking
+  // Add more detailed query state tracking
   useEffect(() => {
-    console.log('Invoice State:', {
+    console.log('Invoice Query State:', {
       auth: {
         isAuthenticated,
         isSignedIn,
         isAuthLoading,
         shouldFetchData
       },
-      loading: {
-        isInvoicesLoading,
-        isTasksLoading,
-        isClientsLoading,
+      queries: {
+        invoices: {
+          value: invoicesQuery,
+          type: typeof invoicesQuery,
+          isArray: Array.isArray(invoicesQuery),
+          isNull: invoicesQuery === null,
+          isUndefined: invoicesQuery === undefined,
+          length: Array.isArray(invoicesQuery) ? invoicesQuery.length : null
+        },
+        tasks: {
+          value: tasksQuery,
+          isArray: Array.isArray(tasksQuery),
+          length: Array.isArray(tasksQuery) ? tasksQuery.length : null
+        },
+        clients: {
+          value: clientsQuery,
+          hasClients: Boolean(clientsQuery?.clients),
+          isArray: Array.isArray(clientsQuery?.clients),
+          length: Array.isArray(clientsQuery?.clients) ? clientsQuery.clients.length : null
+        }
+      },
+      state: {
         isLoading,
-        queriesState: {
-          invoices: invoicesQuery === undefined ? 'loading' : 'loaded',
-          tasks: tasksQuery === undefined ? 'loading' : 'loaded',
-          clients: clientsQuery === undefined ? 'loading' : clientsQuery === null ? 'null' : 'loaded'
-        }
-      },
-      data: {
-        hasInvoices: invoices.length > 0,
-        hasTasks: tasks.length > 0,
-        hasClients: clients.clients.length > 0,
-        counts: {
-          invoices: invoices.length,
-          tasks: tasks.length,
-          clients: clients.clients.length
-        }
-      },
-      emptyState: {
-        condition: isDataEmpty,
-        reason: invoices.length === 0 ? 'no invoices' : 'has data',
-        canCreate: !isTasksLoading && !isClientsLoading && tasks.length > 0 && clients.clients.length > 0
+        isInvoicesLoading,
+        isDataEmpty,
+        invoicesLength: invoices.length,
+        canShowEmpty: !isLoading && invoices.length === 0 && invoicesQuery !== null
       }
     });
   }, [
-    isAuthenticated, 
-    isSignedIn, 
-    isAuthLoading, 
+    isAuthenticated,
+    isSignedIn,
+    isAuthLoading,
     shouldFetchData,
-    isInvoicesLoading,
-    isTasksLoading,
-    isClientsLoading,
-    isLoading,
     invoicesQuery,
     tasksQuery,
     clientsQuery,
-    invoices.length,
-    tasks.length,
-    clients.clients.length,
-    isDataEmpty
+    isLoading,
+    isInvoicesLoading,
+    isDataEmpty,
+    invoices.length
   ]);
 
   // Debug logging
@@ -231,7 +233,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     });
   }, [invoicesQuery, tasksQuery, clientsQuery, isAuthenticated, isSignedIn, isConvexLoading, isClerkLoaded, isAuthLoading, shouldFetchData]);
 
-  // Show loading state while authentication or invoices are loading
+  // Show loading state with more detailed messages
   if (isLoading) {
     return (
       <div className="h-screen flex flex-col items-center justify-center space-y-4">
@@ -240,7 +242,11 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
           {isAuthLoading ? "Checking authentication..." : "Loading invoices..."}
         </p>
         {isInvoicesLoading && (
-          <p className="text-sm text-gray-500">Fetching your invoice data...</p>
+          <p className="text-sm text-gray-500">
+            {invoicesQuery === null 
+              ? "Initializing invoice data..."
+              : "Fetching your invoice data..."}
+          </p>
         )}
       </div>
     );

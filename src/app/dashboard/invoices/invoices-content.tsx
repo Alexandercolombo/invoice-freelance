@@ -110,12 +110,21 @@ function EmptyState() {
 
 export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+  
   const rawInvoices = useQuery(api.invoices.getAllInvoices, {
     paginationOpts: {
       numToSkip: 0,
       numToTake: 100
     }
   });
+
+  // Track loading state based on query status
+  useEffect(() => {
+    if (rawInvoices !== undefined) {
+      setIsLoading(false);
+    }
+  }, [rawInvoices]);
 
   // Improved data validation
   const invoices = (
@@ -198,9 +207,8 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   // Simplified filtered invoices logic - no need for length check since we handle empty state separately
   const filteredInvoices: InvoiceCardData[] = invoices;
 
-  // Only show loading state when data is undefined (initial load)
-  // null means query completed but returned no results
-  if (rawInvoices === undefined) {
+  // Only show loading state during initial data fetch
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
@@ -235,9 +243,8 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     );
   }
 
-  // Show empty state only when we have confirmed there are no invoices
-  // and the query has completed successfully (not null)
-  if (rawInvoices !== undefined && rawInvoices !== null && invoices.length === 0) {
+  // Show empty state when query returns null or no invoices
+  if ((rawInvoices === null || invoices.length === 0) && !isLoading) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">

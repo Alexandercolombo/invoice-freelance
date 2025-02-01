@@ -5,8 +5,6 @@ const nextConfig = {
     serverActions: {
       allowedOrigins: ["*"],
     },
-    // Configure middleware to run on specific paths
-    middleware: true,
   },
   webpack: (config) => {
     // Exclude client-side modules from server bundle

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { AuthErrorBoundary } from "@/components/error-boundaries/auth-error-boundary";
 import { AuthWrapper } from "@/components/auth/auth-wrapper";
 
-interface PageProps {
+type PageProps = {
   params: {
     "sign-up": string[] | undefined;
   };

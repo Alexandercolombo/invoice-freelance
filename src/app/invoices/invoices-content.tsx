@@ -126,36 +126,47 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     shouldFetchData ? { paginationOpts: { numToSkip: 0, numToTake: 100 } } : "skip"
   );
 
-  // Update loading state check to be more granular
+  // Simplify loading state check
   const isQueriesLoading = shouldFetchData && (
     invoicesQuery === undefined || 
     tasksQuery === undefined || 
-    (clientsQuery === undefined || (typeof clientsQuery === 'object' && !('clients' in clientsQuery)))
+    clientsQuery === undefined
   );
 
   const isLoading = isQueriesLoading || isAuthLoading;
 
-  // Add strict validation for query responses
+  // Simplify data validation and handle empty states
   const invoices = Array.isArray(invoicesQuery) ? invoicesQuery : [];
   const tasks = Array.isArray(tasksQuery) ? tasksQuery : [];
   const clients = (
     clientsQuery && 
     typeof clientsQuery === 'object' && 
-    'clients' in clientsQuery && 
     Array.isArray(clientsQuery.clients) && 
-    'totalCount' in clientsQuery && 
     typeof clientsQuery.totalCount === 'number'
-  ) 
-    ? clientsQuery 
-    : { clients: [], totalCount: 0 };
+  ) ? clientsQuery : { clients: [], totalCount: 0 };
 
-  // Add comprehensive data validation with specific checks
-  const hasValidData = shouldFetchData && !isLoading && 
-    Array.isArray(invoices) &&
-    Array.isArray(tasks) &&
-    clients?.clients &&
-    Array.isArray(clients.clients) &&
-    typeof clients.totalCount === 'number';
+  // Add early return for empty state when queries are complete
+  const isDataEmpty = !isLoading && 
+    Array.isArray(invoices) && invoices.length === 0 &&
+    Array.isArray(tasks) && 
+    Array.isArray(clients.clients);
+
+  // Debug logging for empty state
+  useEffect(() => {
+    if (!isLoading && shouldFetchData) {
+      console.log('Empty State Debug:', {
+        isDataEmpty,
+        invoicesLength: invoices.length,
+        tasksLength: tasks.length,
+        clientsLength: clients.clients.length,
+        queriesComplete: {
+          invoices: invoicesQuery !== undefined,
+          tasks: tasksQuery !== undefined,
+          clients: clientsQuery !== undefined
+        }
+      });
+    }
+  }, [isLoading, shouldFetchData, isDataEmpty, invoices.length, tasks.length, clients.clients.length, invoicesQuery, tasksQuery, clientsQuery]);
 
   // Debug logging
   useEffect(() => {
@@ -187,20 +198,6 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
       }
     });
   }, [invoicesQuery, tasksQuery, clientsQuery, isAuthenticated, isSignedIn, isConvexLoading, isClerkLoaded, isAuthLoading, shouldFetchData]);
-
-  // Add more detailed debug logging for clients data structure
-  useEffect(() => {
-    if (clientsQuery !== undefined) {
-      console.log('Clients Query Structure:', {
-        type: typeof clientsQuery,
-        hasClientsArray: 'clients' in clientsQuery,
-        isClientsArray: clientsQuery && 'clients' in clientsQuery && Array.isArray(clientsQuery.clients),
-        hasTotalCount: clientsQuery && 'totalCount' in clientsQuery,
-        totalCountType: clientsQuery && 'totalCount' in clientsQuery ? typeof clientsQuery.totalCount : 'undefined',
-        rawValue: clientsQuery
-      });
-    }
-  }, [clientsQuery]);
 
   // Show loading state while authentication or data is loading
   if (isLoading) {
@@ -238,28 +235,9 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     );
   }
 
-  // Show error state if data is invalid
-  if (shouldFetchData && !hasValidData) {
-    console.error('Invalid data structure:', {
-      invoices: !Array.isArray(invoices) ? 'Invalid invoices' : null,
-      tasks: !Array.isArray(tasks) ? 'Invalid tasks' : null,
-      clients: !clients?.clients || !Array.isArray(clients.clients) ? 'Invalid clients' : null
-    });
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <p className="text-red-500">Invalid data format. Please try refreshing the page.</p>
-          <Button onClick={() => window.location.reload()}>
-            Refresh Page
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Show empty state if no invoices
-  if (invoices.length === 0) {
-    console.log('Showing empty state');
+  // Show empty state as soon as we confirm data is empty
+  if (isDataEmpty) {
+    console.log('Rendering empty state');
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
@@ -270,6 +248,11 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
           >
             <Plus className="w-4 h-4 mr-2" />
             Create Invoice
+            {(tasks.length === 0 || clients.clients.length === 0) && 
+              <span className="ml-2 text-xs">
+                (Need {tasks.length === 0 ? 'tasks' : 'clients'} first)
+              </span>
+            }
           </Button>
         </div>
         <EmptyState />

@@ -7,9 +7,16 @@ import { Button } from "@/components/ui/button";
 import { AuthErrorBoundary } from "@/components/error-boundaries/auth-error-boundary";
 import { AuthWrapper } from "@/components/auth/auth-wrapper";
 
-export default function SignUpPage() {
+interface SignUpPageProps {
+  params: { "sign-up": string[] | undefined };
+}
+
+export default function SignUpPage({ params }: SignUpPageProps) {
   const router = useRouter();
   const [error, setError] = useState<Error | null>(null);
+
+  // Get the current path segment
+  const path = params?.["sign-up"]?.join("/") || "";
 
   if (error) {
     return (
@@ -39,7 +46,7 @@ export default function SignUpPage() {
             signInUrl="/sign-in"
             afterSignUpUrl="/onboarding"
             routing="path"
-            path="/sign-up"
+            path={`/sign-up${path ? `/${path}` : ""}`}
           />
         </div>
       </AuthWrapper>

@@ -34,6 +34,21 @@ const nextConfig = {
       },
     ];
   },
+  // Add rewrites for Clerk auth routes
+  async rewrites() {
+    return {
+      beforeFiles: [
+        {
+          source: '/sign-up/:path*',
+          destination: '/sign-up/[[...sign-up]]',
+        },
+        {
+          source: '/sign-in/:path*',
+          destination: '/sign-in/[[...sign-in]]',
+        },
+      ],
+    };
+  },
 };
 
 module.exports = nextConfig; 

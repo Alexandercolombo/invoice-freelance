@@ -2,9 +2,6 @@
 const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['@clerk/nextjs'],
-    serverActions: {
-      allowedOrigins: ['localhost:3000', 'invoice-freelance.vercel.app'],
-    },
   },
   webpack: (config) => {
     config.resolve.alias = {
@@ -16,7 +13,8 @@ const nextConfig = {
   },
   transpilePackages: ['convex', '@react-pdf/renderer'],
   typescript: {
-    ignoreBuildErrors: true,
+    // Only enable type checking in development
+    ignoreBuildErrors: process.env.NODE_ENV === 'production',
   },
   // Add middleware configuration
   middleware: {

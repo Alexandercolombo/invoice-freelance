@@ -126,14 +126,13 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     shouldFetchData ? { paginationOpts: { numToSkip: 0, numToTake: 100 } } : "skip"
   );
 
-  // Update loading check to handle null values
-  const isQueriesLoading = shouldFetchData && (
-    invoicesQuery === undefined || 
-    tasksQuery === undefined || 
-    (clientsQuery === undefined || clientsQuery === null)
-  );
+  // Separate loading states for different queries
+  const isInvoicesLoading = shouldFetchData && invoicesQuery === undefined;
+  const isTasksLoading = shouldFetchData && tasksQuery === undefined;
+  const isClientsLoading = shouldFetchData && (clientsQuery === undefined || clientsQuery === null);
 
-  const isLoading = isQueriesLoading || isAuthLoading;
+  // Only block on invoices loading
+  const isLoading = isInvoicesLoading || isAuthLoading;
 
   // Validate and transform query responses
   const invoices = Array.isArray(invoicesQuery) ? invoicesQuery : [];
@@ -144,10 +143,8 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     Array.isArray(clientsQuery.clients)
   ) ? clientsQuery : { clients: [], totalCount: 0 };
 
-  // Update empty state to focus on invoices only
-  const isDataEmpty = !isLoading && 
-    invoices.length === 0 && 
-    (tasks.length >= 0 || clients.clients.length >= 0);
+  // Simplify empty state to only check invoices
+  const isDataEmpty = !isLoading && invoices.length === 0;
 
   // Add detailed state tracking
   useEffect(() => {
@@ -159,7 +156,9 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
         shouldFetchData
       },
       loading: {
-        isQueriesLoading,
+        isInvoicesLoading,
+        isTasksLoading,
+        isClientsLoading,
         isLoading,
         queriesState: {
           invoices: invoicesQuery === undefined ? 'loading' : 'loaded',
@@ -180,7 +179,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
       emptyState: {
         condition: isDataEmpty,
         reason: invoices.length === 0 ? 'no invoices' : 'has data',
-        canCreate: tasks.length > 0 && clients.clients.length > 0
+        canCreate: !isTasksLoading && !isClientsLoading && tasks.length > 0 && clients.clients.length > 0
       }
     });
   }, [
@@ -188,7 +187,9 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     isSignedIn, 
     isAuthLoading, 
     shouldFetchData,
-    isQueriesLoading,
+    isInvoicesLoading,
+    isTasksLoading,
+    isClientsLoading,
     isLoading,
     invoicesQuery,
     tasksQuery,
@@ -230,17 +231,17 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     });
   }, [invoicesQuery, tasksQuery, clientsQuery, isAuthenticated, isSignedIn, isConvexLoading, isClerkLoaded, isAuthLoading, shouldFetchData]);
 
-  // Show loading state while authentication or data is loading
+  // Show loading state while authentication or invoices are loading
   if (isLoading) {
     return (
       <div className="h-screen flex flex-col items-center justify-center space-y-4">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
         <p className="text-gray-600 dark:text-gray-400">
-          {isAuthLoading ? "Checking authentication..." : "Loading invoice data..."}
+          {isAuthLoading ? "Checking authentication..." : "Loading invoices..."}
         </p>
-        <p className="text-sm text-gray-500">
-          {isQueriesLoading ? "Fetching your data..." : "Almost ready..."}
-        </p>
+        {isInvoicesLoading && (
+          <p className="text-sm text-gray-500">Fetching your invoice data...</p>
+        )}
       </div>
     );
   }
@@ -269,7 +270,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     );
   }
 
-  // Show empty state as soon as we confirm data is empty
+  // Update empty state render to handle background loading
   if (isDataEmpty) {
     console.log('Rendering empty state');
     return (
@@ -278,15 +279,17 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
           <h1 className="text-2xl font-bold">Invoices</h1>
           <Button 
             onClick={() => setIsCreateModalOpen(true)}
-            disabled={tasks.length === 0 || clients.clients.length === 0}
+            disabled={isTasksLoading || isClientsLoading || tasks.length === 0 || clients.clients.length === 0}
           >
             <Plus className="w-4 h-4 mr-2" />
             Create Invoice
-            {(tasks.length === 0 || clients.clients.length === 0) && 
+            {(isTasksLoading || isClientsLoading) ? (
+              <span className="ml-2 text-xs">(Loading data...)</span>
+            ) : (tasks.length === 0 || clients.clients.length === 0) && (
               <span className="ml-2 text-xs">
                 (Need {tasks.length === 0 ? 'tasks' : 'clients'} first)
               </span>
-            }
+            )}
           </Button>
         </div>
         <EmptyState />

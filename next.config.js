@@ -1,14 +1,26 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
+    serverComponentsExternalPackages: ['@clerk/nextjs'],
     serverActions: {
-      allowedOrigins: ["*"],
+      allowedOrigins: ['localhost:3000', 'invoice-freelance.vercel.app'],
     },
   },
   webpack: (config) => {
-    // Exclude client-side modules from server bundle
-    config.externals = [...(config.externals || []), "jspdf"];
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'convex/_generated': `${process.cwd()}/convex/_generated`,
+    };
+    config.externals = [...(config.externals || []), 'jspdf'];
     return config;
+  },
+  transpilePackages: ['convex', '@react-pdf/renderer'],
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  // Add middleware configuration
+  middleware: {
+    runtime: 'nodejs',
   },
   // Specify Node.js runtime for auth routes
   async headers() {

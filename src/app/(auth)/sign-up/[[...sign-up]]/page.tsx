@@ -2,9 +2,18 @@
 
 import { SignUp } from "@clerk/nextjs";
 
+function AuthDebug() {
+  console.log('Clerk Environment:', {
+    key: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.slice(0, 6),
+    env: process.env.NODE_ENV
+  });
+  return null;
+}
+
 export default function Page() {
   return (
     <div className="flex items-center justify-center min-h-screen p-4">
+      <AuthDebug />
       <SignUp
         appearance={{
           elements: {
@@ -18,8 +27,6 @@ export default function Page() {
         }}
         signInUrl="/sign-in"
         afterSignUpUrl="/onboarding"
-        routing="path"
-        path="/sign-up"
       />
     </div>
   );

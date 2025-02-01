@@ -35,6 +35,38 @@ type Invoice = {
   } | null;
 };
 
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Invoices</h1>
+        <Skeleton className="h-10 w-32" />
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-48 rounded-lg" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg"
+    >
+      <div className="mb-4 text-gray-400">📄</div>
+      <h3 className="text-lg font-semibold">No Invoices Yet</h3>
+      <p className="text-gray-500 mt-2">
+        Get started by creating your first invoice
+      </p>
+    </motion.div>
+  );
+}
+
 function AuthDebugger() {
   const convexAuth = useConvexAuth();
   const clerkAuth = useAuth();
@@ -93,11 +125,23 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   ) ?? { clients: [], totalCount: 0 };
 
   useEffect(() => {
-    console.log('Data Fetching State:', {
+    console.log('Data Fetching Debug State:', {
       shouldFetchData,
-      invoicesState: invoices === undefined ? 'loading' : invoices === null ? 'error' : 'loaded',
-      tasksState: tasks === undefined ? 'loading' : tasks === null ? 'error' : 'loaded',
-      clientsState: clients === undefined ? 'loading' : clients === null ? 'error' : 'loaded'
+      invoicesState: {
+        type: invoices === undefined ? 'loading' : invoices === null ? 'error' : 'loaded',
+        data: invoices,
+        length: Array.isArray(invoices) ? invoices.length : null
+      },
+      tasksState: {
+        type: tasks === undefined ? 'loading' : tasks === null ? 'error' : 'loaded',
+        data: tasks,
+        length: Array.isArray(tasks) ? tasks.length : null
+      },
+      clientsState: {
+        type: clients === undefined ? 'loading' : clients === null ? 'error' : 'loaded',
+        data: clients,
+        totalCount: clients?.totalCount
+      }
     });
   }, [shouldFetchData, invoices, tasks, clients]);
 
@@ -128,29 +172,20 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     return (
       <div className="h-screen flex flex-col items-center justify-center space-y-4">
         <p className="text-red-500">Unable to fetch data. Please try refreshing the page.</p>
+        <Button onClick={() => window.location.reload()}>
+          Refresh Page
+        </Button>
       </div>
     );
   }
 
   // Show loading state while data is being fetched
   if (invoices === undefined || tasks === undefined || clients === undefined) {
-    return (
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Invoices</h1>
-          <Skeleton className="h-10 w-32" />
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-48 rounded-lg" />
-          ))}
-        </div>
-      </div>
-    );
+    return <LoadingSkeleton />;
   }
 
   // Show error state if data fetch failed
-  if (!invoices || !tasks || !clients) {
+  if (invoices === null || tasks === null || clients === null) {
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -159,6 +194,25 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
             Refresh Page
           </Button>
         </div>
+      </div>
+    );
+  }
+
+  // Show empty state if no invoices
+  if (invoices.length === 0) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Invoices</h1>
+          <Button 
+            onClick={() => setIsCreateModalOpen(true)}
+            disabled={!tasks || tasks.length === 0 || !clients.clients || clients.clients.length === 0}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Invoice
+          </Button>
+        </div>
+        <EmptyState />
       </div>
     );
   }
@@ -249,20 +303,6 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
           );
         })}
       </div>
-
-      {invoices.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center py-12"
-        >
-          <div className="mb-4 text-gray-400">📄</div>
-          <h3 className="text-lg font-semibold">No Invoices Yet</h3>
-          <p className="text-gray-500 mt-2">
-            Get started by creating your first invoice
-          </p>
-        </motion.div>
-      )}
 
       {tasks && clients.clients && (
         <>

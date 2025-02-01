@@ -9,9 +9,9 @@ import { AuthWrapper } from "@/components/auth/auth-wrapper";
 
 type SignUpPageProps = {
   params: {
-    "sign-up": string[] | undefined;
+    "sign-up"?: string[];
   };
-  searchParams: Record<string, string | string[] | undefined>;
+  searchParams?: { [key: string]: string | string[] | undefined };
 }
 
 export default function SignUpPage(props: SignUpPageProps) {

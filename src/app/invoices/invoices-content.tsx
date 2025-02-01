@@ -135,50 +135,66 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
 
   const isLoading = isQueriesLoading || isAuthLoading;
 
-  // Validate and transform query responses
+  // Validate and transform query responses with stricter checks
   const invoices = Array.isArray(invoicesQuery) ? invoicesQuery : [];
   const tasks = Array.isArray(tasksQuery) ? tasksQuery : [];
   const clients = (
     clientsQuery && 
-    typeof clientsQuery === 'object' && 
-    'clients' in clientsQuery
+    clientsQuery.clients && 
+    Array.isArray(clientsQuery.clients)
   ) ? clientsQuery : { clients: [], totalCount: 0 };
 
-  // Simplify empty state detection to focus on data presence
+  // Update empty state detection to be more accurate
   const isDataEmpty = !isLoading && 
     invoices.length === 0 && 
-    tasks.length >= 0 &&  // Allow any valid length for tasks
-    clients.clients.length >= 0;  // Allow any valid length for clients
+    tasks.length === 0 && 
+    clients.clients.length === 0;
 
-  // Add query resolution tracking
+  // Add query state tracking
   useEffect(() => {
-    console.log('Query Resolution State:', {
-      shouldFetchData,
-      isLoading,
-      queries: {
-        invoices: {
-          isDefined: invoicesQuery !== undefined,
-          isEmpty: invoices.length === 0
-        },
-        tasks: {
-          isDefined: tasksQuery !== undefined,
-          isEmpty: tasks.length === 0
-        },
-        clients: {
-          isDefined: clientsQuery !== undefined,
-          hasClients: Boolean(clients?.clients),
-          isEmpty: clients.clients.length === 0
+    console.log('Query State:', {
+      auth: {
+        isAuthenticated,
+        isSignedIn,
+        isAuthLoading,
+        shouldFetchData
+      },
+      loading: {
+        isQueriesLoading,
+        isLoading,
+        queriesUndefined: {
+          invoices: invoicesQuery === undefined,
+          tasks: tasksQuery === undefined,
+          clients: clientsQuery === undefined
         }
       },
+      data: {
+        invoicesLength: invoices.length,
+        tasksLength: tasks.length,
+        clientsLength: clients.clients.length,
+        rawClients: clientsQuery
+      },
       emptyState: {
-        condition: isDataEmpty,
-        loadingCheck: !isLoading,
-        invoicesEmpty: invoices.length === 0,
-        tasksValid: tasks.length >= 0,
-        clientsValid: clients.clients.length >= 0
+        isDataEmpty,
+        allQueriesResolved: !isQueriesLoading,
+        allEmpty: invoices.length === 0 && tasks.length === 0 && clients.clients.length === 0
       }
     });
-  }, [shouldFetchData, isLoading, invoicesQuery, tasksQuery, clientsQuery, isDataEmpty, invoices.length, tasks.length, clients.clients.length]);
+  }, [
+    isAuthenticated, 
+    isSignedIn, 
+    isAuthLoading, 
+    shouldFetchData,
+    isQueriesLoading,
+    isLoading,
+    invoicesQuery,
+    tasksQuery,
+    clientsQuery,
+    invoices.length,
+    tasks.length,
+    clients.clients.length,
+    isDataEmpty
+  ]);
 
   // Debug logging
   useEffect(() => {

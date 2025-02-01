@@ -117,10 +117,10 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     }
   });
 
+  // Improved data validation
   const invoices = (
     rawInvoices && 
-    Array.isArray(rawInvoices) && 
-    rawInvoices.length >= 0
+    Array.isArray(rawInvoices)
   ) ? rawInvoices : [];
 
   const [filters, setFilters] = useState({
@@ -195,14 +195,12 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   // Memoize the filter values to prevent unnecessary recalculations
   const { search, status, sortBy, dateRange } = filters;
 
-  // Handle invoices data without useMemo
-  let filteredInvoices: InvoiceCardData[] = [];
-  if (invoices.length > 0) {
-    filteredInvoices = invoices;
-  }
+  // Simplified filtered invoices logic - no need for length check since we handle empty state separately
+  const filteredInvoices: InvoiceCardData[] = invoices;
 
-  // Show loading state while raw data is loading
-  if (rawInvoices === undefined || rawInvoices === null) {
+  // Only show loading state when data is undefined (initial load)
+  // null means query completed but returned no results
+  if (rawInvoices === undefined) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
@@ -237,8 +235,8 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     );
   }
 
-  // Show empty state if there are no invoices (after loading)
-  if (invoices.length === 0) {
+  // Show empty state only when we have confirmed there are no invoices
+  if (rawInvoices !== undefined && invoices.length === 0) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">

@@ -4,6 +4,9 @@ import { Doc, Id } from "./_generated/dataModel";
 import { ConvexError } from "convex/values";
 import { getUser } from "./auth";
 
+type Invoice = Doc<"invoices">;
+type Client = Doc<"clients">;
+
 export const getInvoices = query({
   args: { clientId: v.id("clients") },
   async handler(ctx, args) {
@@ -219,27 +222,39 @@ export const getInvoice = query({
 
 export const getAllInvoices = query({
   args: {
-    paginationOpts: v.object({
-      numToSkip: v.number(),
-      numToTake: v.number(),
-    }),
+    paginationOpts: v.optional(
+      v.object({
+        numToSkip: v.number(),
+        numToTake: v.number(),
+      })
+    ),
   },
   async handler(ctx, args) {
     try {
       const identity = await getUser(ctx);
       console.log("[Debug] getAllInvoices: Starting query for user", identity.subject);
 
-      // Get paginated invoices with basic data
-      const invoices = await ctx.db
+      // Get invoices with basic data
+      const query = ctx.db
         .query("invoices")
         .withIndex("by_user", (q) => q.eq("userId", identity.subject))
-        .order("desc")
-        .collect();
+        .order("desc");
+
+      // Get all invoices (we'll handle pagination in memory for now)
+      const invoices = await query.collect();
       
-      console.log("[Debug] getAllInvoices: Found", invoices.length, "invoices");
+      // Apply pagination in memory if needed
+      const paginatedInvoices = args.paginationOpts
+        ? invoices.slice(
+            args.paginationOpts.numToSkip,
+            args.paginationOpts.numToSkip + args.paginationOpts.numToTake
+          )
+        : invoices;
+      
+      console.log("[Debug] getAllInvoices: Found", paginatedInvoices.length, "invoices");
 
       // Get client details for each invoice efficiently
-      const clientIds = new Set(invoices.map(invoice => invoice.clientId));
+      const clientIds = new Set(paginatedInvoices.map(invoice => invoice.clientId));
       console.log("[Debug] getAllInvoices: Unique clients to fetch:", clientIds.size);
       
       const clientsPromises = Array.from(clientIds).map(async (clientId) => {
@@ -250,29 +265,37 @@ export const getAllInvoices = query({
       const clientsResults = await Promise.all(clientsPromises);
       const clientsMap = new Map(
         clientsResults
-          .filter(result => result.client !== null)
+          .filter((result): result is { clientId: Id<"clients">; client: NonNullable<Client> } => 
+            result.client !== null
+          )
           .map(result => [result.clientId, result.client])
       );
       
       console.log("[Debug] getAllInvoices: Successfully fetched", clientsMap.size, "clients");
 
       // Map the invoices with their client data
-      const invoicesWithDetails = invoices.map(invoice => {
-        const client = clientsMap.get(invoice.clientId);
-        return {
-          _id: invoice._id,
-          number: invoice.number,
-          date: invoice.date,
-          dueDate: invoice.dueDate,
-          status: invoice.status,
-          total: invoice.total,
-          client: client ? {
-            name: client.name || '',
-            email: client.email || '',
-            hourlyRate: client.hourlyRate || 0
-          } : null
-        };
-      });
+      const invoicesWithDetails = paginatedInvoices
+        .map((invoice) => {
+          const client = clientsMap.get(invoice.clientId);
+          if (!client) return null;
+          
+          return {
+            _id: invoice._id,
+            number: invoice.number,
+            date: invoice.date,
+            dueDate: invoice.dueDate,
+            status: invoice.status,
+            total: invoice.total,
+            tax: invoice.tax,
+            notes: invoice.notes,
+            client: {
+              name: client.name,
+              email: client.email,
+              hourlyRate: client.hourlyRate
+            }
+          };
+        })
+        .filter((invoice): invoice is NonNullable<typeof invoice> => invoice !== null);
 
       console.log("[Debug] getAllInvoices: Completed processing all invoices");
       return invoicesWithDetails;

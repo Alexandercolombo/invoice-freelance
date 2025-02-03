@@ -13,7 +13,7 @@ import { motion } from "framer-motion";
 import { InvoiceCard } from '@/components/invoices/invoice-card';
 import { Invoice } from '@/types';
 import { Skeleton } from "@/components/ui/skeleton";
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Search } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface InvoiceCardData {
@@ -104,6 +104,22 @@ function EmptyState() {
       >
         Create Your First Invoice
       </Button>
+    </div>
+  );
+}
+
+function SearchEmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center p-8 text-center bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700">
+      <div className="w-16 h-16 mb-4 text-gray-400 dark:text-gray-600">
+        <Search className="w-full h-full" />
+      </div>
+      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+        No matching invoices
+      </h3>
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 max-w-sm">
+        Try adjusting your search filters or create a new invoice.
+      </p>
     </div>
   );
 }
@@ -243,8 +259,8 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     );
   }
 
-  // Show empty state when query returns null or no invoices
-  if ((rawInvoices === null || invoices.length === 0) && !isLoading) {
+  // Show empty state only when query returns explicit null
+  if (rawInvoices === null && !isLoading) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
@@ -260,6 +276,43 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
               </div>
             </div>
             <EmptyState />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show empty search results state when filtered list is empty
+  if (invoices.length === 0 && !isLoading) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-gray-900">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col gap-8">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                  Invoices
+                </h1>
+                <p className="text-base text-gray-600 dark:text-gray-400">
+                  A list of all your invoices including their status and total amount.
+                </p>
+              </div>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  onClick={() => router.push("/dashboard/invoices/new")}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  size="lg"
+                >
+                  Create Invoice
+                </Button>
+              </motion.div>
+            </div>
+
+            <Card className="p-6">
+              <InvoiceFilters onFilterChange={setFilters} />
+            </Card>
+
+            <SearchEmptyState />
           </div>
         </div>
       </div>

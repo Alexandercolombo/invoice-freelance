@@ -126,6 +126,13 @@ function SearchEmptyState() {
 
 export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   const router = useRouter();
+  const [filters, setFilters] = useState({
+    search: "",
+    status: "all",
+    sortBy: "date-desc",
+    dateRange: "all",
+  });
+  const [showShortcuts, setShowShortcuts] = useState(false);
   
   const rawInvoices = useQuery(api.invoices.getAllInvoices, {
     paginationOpts: {
@@ -148,6 +155,50 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
       timestamp: new Date().toISOString()
     });
   }, [rawInvoices]);
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Ignore if target is an input or textarea
+    if (
+      e.target instanceof HTMLInputElement ||
+      e.target instanceof HTMLTextAreaElement
+    ) {
+      return;
+    }
+
+    switch (e.key.toLowerCase()) {
+      case 'n':
+        router.push("/dashboard/invoices/new");
+        break;
+      case '/':
+        e.preventDefault();
+        const searchInput = document.querySelector('input[type="search"]') as HTMLInputElement;
+        if (searchInput) {
+          searchInput.focus();
+        }
+        break;
+      case 'escape':
+        setFilters({
+          search: "",
+          status: "all",
+          sortBy: "date-desc",
+          dateRange: "all",
+        });
+        break;
+      case '?':
+        if (e.shiftKey) {
+          setShowShortcuts(true);
+        }
+        break;
+    }
+  }, [router]);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
+  // Ensure we have an array of invoices
+  const invoices = Array.isArray(rawInvoices) ? rawInvoices : [];
 
   // Handle loading state
   if (rawInvoices === undefined) {
@@ -205,60 +256,6 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
       </div>
     );
   }
-
-  // Ensure we have an array of invoices
-  const invoices = Array.isArray(rawInvoices) ? rawInvoices : [];
-
-  const [filters, setFilters] = useState({
-    search: "",
-    status: "all",
-    sortBy: "date-desc",
-    dateRange: "all",
-  });
-
-  // Add keyboard shortcuts
-  const [showShortcuts, setShowShortcuts] = useState(false);
-
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    // Ignore if target is an input or textarea
-    if (
-      e.target instanceof HTMLInputElement ||
-      e.target instanceof HTMLTextAreaElement
-    ) {
-      return;
-    }
-
-    switch (e.key.toLowerCase()) {
-      case 'n':
-        router.push("/dashboard/invoices/new");
-        break;
-      case '/':
-        e.preventDefault();
-        const searchInput = document.querySelector('input[type="search"]') as HTMLInputElement;
-        if (searchInput) {
-          searchInput.focus();
-        }
-        break;
-      case 'escape':
-        setFilters({
-          search: "",
-          status: "all",
-          sortBy: "date-desc",
-          dateRange: "all",
-        });
-        break;
-      case '?':
-        if (e.shiftKey) {
-          setShowShortcuts(true);
-        }
-        break;
-    }
-  }, [router]);
-
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
 
   // Memoize the filter values to prevent unnecessary recalculations
   const { search, status, sortBy, dateRange } = filters;

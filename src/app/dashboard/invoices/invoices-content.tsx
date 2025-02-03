@@ -15,6 +15,8 @@ import { Invoice } from '@/types';
 import { Skeleton } from "@/components/ui/skeleton";
 import { PlusCircle, Search } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Suspense } from "react";
+import { ErrorBoundary } from "react-error-boundary";
 
 interface InvoiceCardData {
   _id: Id<"invoices">;
@@ -124,7 +126,37 @@ function SearchEmptyState() {
   );
 }
 
-export function InvoicesContent({ searchParams }: InvoicesContentProps) {
+// Loading component
+function LoadingState() {
+  return (
+    <div className="min-h-screen bg-white dark:bg-gray-900">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col gap-8">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                Invoices
+              </h1>
+              <p className="text-base text-gray-600 dark:text-gray-400">
+                Loading your invoices...
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="animate-pulse">
+                <div className="bg-gray-200 dark:bg-gray-700 h-48 rounded-lg"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main content component
+function InvoicesList() {
   const router = useRouter();
   const [filters, setFilters] = useState({
     search: "",
@@ -134,7 +166,6 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   });
   const [showShortcuts, setShowShortcuts] = useState(false);
   
-  // Simplified query without auth checks
   const rawInvoices = useQuery(api.invoices.getAllInvoices, {
     paginationOpts: {
       numToSkip: 0,
@@ -142,7 +173,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     }
   });
 
-  // Enhanced debug logging to track query state
+  // Debug logging
   useEffect(() => {
     console.log("Invoice Query Debug:", {
       rawInvoices: {
@@ -157,7 +188,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     });
   }, [rawInvoices]);
 
-  // Keyboard shortcuts handler
+  // Keyboard shortcuts
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
       return;
@@ -195,67 +226,15 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  // Simplified loading check - only based on rawInvoices
-  if (rawInvoices === undefined) {
-    return (
-      <div className="min-h-screen bg-white dark:bg-gray-900">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col gap-8">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                  Invoices
-                </h1>
-                <p className="text-base text-gray-600 dark:text-gray-400">
-                  Loading your invoices...
-                </p>
-              </div>
-            </div>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="bg-gray-200 dark:bg-gray-700 h-48 rounded-lg"></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Handle error state
   if (rawInvoices === null) {
-    return (
-      <div className="min-h-screen bg-white dark:bg-gray-900">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col gap-8">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                  Invoices
-                </h1>
-                <p className="text-base text-red-600 dark:text-red-400">
-                  Error loading invoices. Please try again.
-                </p>
-              </div>
-              <Button
-                onClick={() => window.location.reload()}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                Retry
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    throw new Error("Failed to load invoices");
   }
 
   // Ensure we have an array of invoices
   const invoices = Array.isArray(rawInvoices) ? rawInvoices : [];
 
-  // Empty state when no invoices exist
+  // Empty state
   if (invoices.length === 0) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900">
@@ -290,50 +269,48 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   const filteredInvoices: InvoiceCardData[] = invoices;
 
   return (
-    <>
-      <div className="min-h-screen bg-white dark:bg-gray-900">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col gap-8">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                  Invoices
-                </h1>
-                <p className="text-base text-gray-600 dark:text-gray-400">
-                  A list of all your invoices including their status and total amount.
-                </p>
-              </div>
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Button
-                  onClick={() => router.push("/dashboard/invoices/new")}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                  size="lg"
-                >
-                  Create Invoice
-                </Button>
-              </motion.div>
+    <div className="min-h-screen bg-white dark:bg-gray-900">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col gap-8">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                Invoices
+              </h1>
+              <p className="text-base text-gray-600 dark:text-gray-400">
+                A list of all your invoices including their status and total amount.
+              </p>
             </div>
-
-            <Card className="p-6">
-              <InvoiceFilters onFilterChange={setFilters} />
-            </Card>
-
-            <motion.div 
-              className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
-              variants={container}
-              initial="hidden"
-              animate="show"
-            >
-              {filteredInvoices.map((invoice) => (
-                <motion.div
-                  key={invoice._id}
-                  variants={item}
-                >
-                  <InvoiceCard invoice={invoice} />
-                </motion.div>
-              ))}
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                onClick={() => router.push("/dashboard/invoices/new")}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                size="lg"
+              >
+                Create Invoice
+              </Button>
             </motion.div>
           </div>
+
+          <Card className="p-6">
+            <InvoiceFilters onFilterChange={setFilters} />
+          </Card>
+
+          <motion.div 
+            className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+            variants={container}
+            initial="hidden"
+            animate="show"
+          >
+            {filteredInvoices.map((invoice) => (
+              <motion.div
+                key={invoice._id}
+                variants={item}
+              >
+                <InvoiceCard invoice={invoice} />
+              </motion.div>
+            ))}
+          </motion.div>
         </div>
       </div>
 
@@ -362,6 +339,45 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
+  );
+}
+
+// Error boundary component
+function ErrorState() {
+  return (
+    <div className="min-h-screen bg-white dark:bg-gray-900">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col gap-8">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                Invoices
+              </h1>
+              <p className="text-base text-red-600 dark:text-red-400">
+                Error loading invoices. Please try again.
+              </p>
+            </div>
+            <Button
+              onClick={() => window.location.reload()}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Retry
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main export with Suspense boundary
+export function InvoicesContent({ searchParams }: InvoicesContentProps) {
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <ErrorBoundary fallback={<ErrorState />}>
+        <InvoicesList />
+      </ErrorBoundary>
+    </Suspense>
   );
 } 

@@ -134,6 +134,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   });
   const [showShortcuts, setShowShortcuts] = useState(false);
   
+  // Simplified query without auth checks
   const rawInvoices = useQuery(api.invoices.getAllInvoices, {
     paginationOpts: {
       numToSkip: 0,
@@ -141,7 +142,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     }
   });
 
-  // Enhanced debug logging to track query state and auth
+  // Enhanced debug logging to track query state
   useEffect(() => {
     console.log("Invoice Query Debug:", {
       rawInvoices: {
@@ -156,12 +157,9 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     });
   }, [rawInvoices]);
 
+  // Keyboard shortcuts handler
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    // Ignore if target is an input or textarea
-    if (
-      e.target instanceof HTMLInputElement ||
-      e.target instanceof HTMLTextAreaElement
-    ) {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
       return;
     }
 
@@ -197,10 +195,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  // Ensure we have an array of invoices
-  const invoices = Array.isArray(rawInvoices) ? rawInvoices : [];
-
-  // Handle loading state
+  // Simplified loading check - only based on rawInvoices
   if (rawInvoices === undefined) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900">
@@ -257,13 +252,10 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     );
   }
 
-  // Memoize the filter values to prevent unnecessary recalculations
-  const { search, status, sortBy, dateRange } = filters;
+  // Ensure we have an array of invoices
+  const invoices = Array.isArray(rawInvoices) ? rawInvoices : [];
 
-  // Simplified filtered invoices logic - no need for length check since we handle empty state separately
-  const filteredInvoices: InvoiceCardData[] = invoices;
-
-  // Show empty state if there are no invoices
+  // Empty state when no invoices exist
   if (invoices.length === 0) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900">
@@ -275,25 +267,27 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
                   Invoices
                 </h1>
                 <p className="text-base text-gray-600 dark:text-gray-400">
-                  Create and manage your invoices here.
+                  No invoices found. Create your first invoice to get started.
                 </p>
               </div>
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Button
-                  onClick={() => router.push("/dashboard/invoices/new")}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                  size="lg"
-                >
-                  Create Invoice
-                </Button>
-              </motion.div>
+              <Button
+                onClick={() => router.push("/dashboard/invoices/new")}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Create Invoice
+              </Button>
             </div>
-            <EmptyState />
           </div>
         </div>
       </div>
     );
   }
+
+  // Memoize the filter values to prevent unnecessary recalculations
+  const { search, status, sortBy, dateRange } = filters;
+
+  // Simplified filtered invoices logic - no need for length check since we handle empty state separately
+  const filteredInvoices: InvoiceCardData[] = invoices;
 
   return (
     <>

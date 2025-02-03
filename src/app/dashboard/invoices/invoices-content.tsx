@@ -260,8 +260,8 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     );
   }
 
-  // Show empty state only when query returns explicit null
-  if (rawInvoices === null && !isLoading) {
+  // Show empty state when query completes with no data
+  if (!isLoading && invoices.length === 0 && rawInvoices !== null && rawInvoices !== undefined) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
@@ -275,6 +275,15 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
                   Create and manage your invoices here.
                 </p>
               </div>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  onClick={() => router.push("/dashboard/invoices/new")}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  size="lg"
+                >
+                  Create Invoice
+                </Button>
+              </motion.div>
             </div>
             <EmptyState />
           </div>
@@ -283,8 +292,8 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     );
   }
 
-  // Show empty search results state when filtered list is empty
-  if (!isLoading && invoices.length === 0 && rawInvoices !== null) {
+  // Show search empty state when filters return no results
+  if (filteredInvoices.length === 0) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">

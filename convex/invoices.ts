@@ -231,14 +231,10 @@ export const getAllInvoices = query({
   },
   async handler(ctx, args) {
     try {
-      // Get user identity and handle authentication
-      const identity = await ctx.auth.getUserIdentity();
-      if (!identity) {
-        console.log("[Debug] getAllInvoices: No user identity found");
-        return [];
-      }
-
+      // Get user identity using the getUser helper
+      const identity = await getUser(ctx);
       const userId = identity.subject;
+      
       console.log("[Debug] getAllInvoices: Starting query for user", userId);
 
       // Get invoices with basic data

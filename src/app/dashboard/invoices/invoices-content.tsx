@@ -126,7 +126,6 @@ function SearchEmptyState() {
 
 export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
   
   const rawInvoices = useQuery(api.invoices.getAllInvoices, {
     paginationOpts: {
@@ -135,19 +134,21 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     }
   });
 
-  // Track loading state based on query status
+  // Debug logging to help diagnose query response
   useEffect(() => {
-    if (rawInvoices !== undefined) {
-      setIsLoading(false);
-    }
+    console.log('Dashboard Invoice State:', {
+      raw: {
+        value: rawInvoices,
+        type: typeof rawInvoices,
+        isArray: Array.isArray(rawInvoices),
+        isNull: rawInvoices === null,
+        isUndefined: rawInvoices === undefined
+      }
+    });
   }, [rawInvoices]);
 
-  // Improved data validation to match main component exactly
-  const invoices = (
-    rawInvoices && 
-    Array.isArray(rawInvoices) && 
-    rawInvoices.length >= 0
-  ) ? rawInvoices : [];
+  // Simplified data validation - let Suspense handle loading
+  const invoices = rawInvoices && Array.isArray(rawInvoices) ? rawInvoices : [];
 
   const [filters, setFilters] = useState({
     search: "",
@@ -200,68 +201,14 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  // Update debug logging to show both raw and processed data
-  useEffect(() => {
-    console.log('Dashboard Invoice State:', {
-      raw: {
-        value: rawInvoices,
-        type: typeof rawInvoices,
-        isArray: Array.isArray(rawInvoices),
-        isNull: rawInvoices === null,
-        isUndefined: rawInvoices === undefined
-      },
-      processed: {
-        value: invoices,
-        length: invoices.length,
-        isArray: Array.isArray(invoices)
-      }
-    });
-  }, [rawInvoices, invoices]);
-
   // Memoize the filter values to prevent unnecessary recalculations
   const { search, status, sortBy, dateRange } = filters;
 
   // Simplified filtered invoices logic - no need for length check since we handle empty state separately
   const filteredInvoices: InvoiceCardData[] = invoices;
 
-  // Only show loading state during initial data fetch
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-white dark:bg-gray-900">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col gap-8">
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <Skeleton className="h-8 w-48" />
-                <Skeleton className="h-4 w-96" />
-              </div>
-              <Skeleton className="h-10 w-32 rounded-lg" />
-            </div>
-
-            <Card className="p-6">
-              <div className="space-y-4">
-                <div className="grid grid-cols-4 gap-4">
-                  <Skeleton className="h-10 rounded-lg" />
-                  <Skeleton className="h-10 rounded-lg" />
-                  <Skeleton className="h-10 rounded-lg" />
-                  <Skeleton className="h-10 rounded-lg" />
-                </div>
-              </div>
-            </Card>
-
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <InvoiceCardSkeleton key={index} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show empty state when query completes with no data (matches main component)
-  if (!isLoading && invoices.length === 0 && rawInvoices !== null) {
+  // Show empty state if there are no invoices
+  if (invoices.length === 0) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
@@ -286,43 +233,6 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
               </motion.div>
             </div>
             <EmptyState />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show search empty state only when filters return no results from existing data
-  if (filteredInvoices.length === 0 && invoices.length > 0) {
-    return (
-      <div className="min-h-screen bg-white dark:bg-gray-900">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col gap-8">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                  Invoices
-                </h1>
-                <p className="text-base text-gray-600 dark:text-gray-400">
-                  A list of all your invoices including their status and total amount.
-                </p>
-              </div>
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Button
-                  onClick={() => router.push("/dashboard/invoices/new")}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                  size="lg"
-                >
-                  Create Invoice
-                </Button>
-              </motion.div>
-            </div>
-
-            <Card className="p-6">
-              <InvoiceFilters onFilterChange={setFilters} />
-            </Card>
-
-            <SearchEmptyState />
           </div>
         </div>
       </div>

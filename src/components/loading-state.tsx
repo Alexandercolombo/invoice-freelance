@@ -1,32 +1,25 @@
 import { Loader2 } from "lucide-react";
 
 export interface LoadingStateProps {
-  message?: string;
-  size?: 'sm' | 'md' | 'lg';
   fullScreen?: boolean;
+  message?: string;
 }
 
-export function LoadingState({ message = "Loading...", size = 'md', fullScreen = false }: LoadingStateProps) {
-  const sizeClasses = {
-    sm: 'w-4 h-4',
-    md: 'w-8 h-8',
-    lg: 'w-12 h-12'
-  };
-
-  const containerClasses = fullScreen 
-    ? "fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-    : "flex items-center justify-center h-[60vh]";
-
-  return (
-    <div className={containerClasses}>
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
-        <div className="flex flex-col items-center justify-center gap-4">
-          <Loader2 className={`${sizeClasses[size]} animate-spin`} />
-          {message && (
-            <p className="text-sm text-gray-500 dark:text-gray-400">{message}</p>
-          )}
-        </div>
-      </div>
+export function LoadingState({ fullScreen, message = "Loading..." }: LoadingStateProps) {
+  const content = (
+    <div className="flex flex-col items-center justify-center space-y-4">
+      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-blue-500"></div>
+      <p className="text-sm text-gray-600 dark:text-gray-400">{message}</p>
     </div>
   );
+
+  if (fullScreen) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        {content}
+      </div>
+    );
+  }
+
+  return content;
 } 

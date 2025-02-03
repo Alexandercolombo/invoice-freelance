@@ -142,10 +142,11 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     }
   }, [rawInvoices]);
 
-  // Improved data validation
+  // Improved data validation to match main component
   const invoices = (
-    rawInvoices && 
-    Array.isArray(rawInvoices)
+    rawInvoices &&
+    Array.isArray(rawInvoices) && 
+    rawInvoices.length >= 0
   ) ? rawInvoices : [];
 
   const [filters, setFilters] = useState({
@@ -283,7 +284,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   }
 
   // Show empty search results state when filtered list is empty
-  if (invoices.length === 0 && !isLoading) {
+  if (!isLoading && invoices.length === 0 && rawInvoices !== null) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
@@ -313,58 +314,6 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
             </Card>
 
             <SearchEmptyState />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show empty search results state
-  if (filteredInvoices.length === 0) {
-    return (
-      <div className="min-h-screen bg-white dark:bg-gray-900">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col gap-8">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                  Invoices
-                </h1>
-                <p className="text-base text-gray-600 dark:text-gray-400">
-                  A list of all your invoices including their status and total amount.
-                </p>
-              </div>
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Button
-                  onClick={() => router.push("/dashboard/invoices/new")}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                  size="lg"
-                >
-                  Create Invoice
-                </Button>
-              </motion.div>
-            </div>
-
-            <Card className="p-6">
-              <InvoiceFilters onFilterChange={setFilters} />
-            </Card>
-
-            <div className="flex flex-col items-center justify-center p-8 text-center">
-              <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
-                No invoices found matching your filters.
-              </p>
-              <Button
-                variant="outline"
-                onClick={() => setFilters({
-                  search: "",
-                  status: "all",
-                  sortBy: "date-desc",
-                  dateRange: "all",
-                })}
-              >
-                Clear Filters
-              </Button>
-            </div>
           </div>
         </div>
       </div>

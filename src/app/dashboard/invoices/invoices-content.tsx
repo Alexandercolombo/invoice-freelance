@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { motion } from "framer-motion";
@@ -11,6 +11,7 @@ import { InvoiceCard } from "@/components/invoices/invoice-card";
 import { InvoiceFilters } from "@/components/invoices/invoice-filters";
 import { useRouter } from "next/navigation";
 import { useState, useCallback, useEffect } from "react";
+import { useAuth } from "@clerk/nextjs";
 
 interface Invoice {
   _id: Id<"invoices">;
@@ -48,6 +49,9 @@ interface InvoicesContentProps {
 
 export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   const router = useRouter();
+  const { isAuthenticated, isLoading: isConvexLoading } = useConvexAuth();
+  const { isLoaded: isClerkLoaded, isSignedIn } = useAuth();
+  
   const [filters, setFilters] = useState({
     search: "",
     status: "all",
@@ -56,11 +60,24 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   });
   const [showShortcuts, setShowShortcuts] = useState(false);
 
-  const invoices = useQuery(api.invoices.getAllInvoices, {}) as Invoice[] | undefined;
+  // Add explicit loading state tracking
+  const isAuthLoading = isConvexLoading || !isClerkLoaded;
+  const shouldFetchData = isAuthenticated && isSignedIn && !isAuthLoading;
+
+  const invoices = useQuery(
+    api.invoices.getAllInvoices,
+    shouldFetchData ? {} : "skip"
+  ) as Invoice[] | undefined;
 
   // Debug logging
   useEffect(() => {
     console.log("Invoice Query Debug:", {
+      auth: {
+        isAuthenticated,
+        isSignedIn,
+        isAuthLoading,
+        shouldFetchData
+      },
       invoices: {
         value: invoices,
         type: typeof invoices,
@@ -69,7 +86,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
       },
       timestamp: new Date().toISOString()
     });
-  }, [invoices]);
+  }, [invoices, isAuthenticated, isSignedIn, isAuthLoading, shouldFetchData]);
 
   // Keyboard shortcuts
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -108,6 +125,63 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
+
+  // Show auth loading state
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-gray-900">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col gap-8">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                  Invoices
+                </h1>
+                <p className="text-base text-gray-600 dark:text-gray-400">
+                  Checking authentication...
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="bg-gray-200 dark:bg-gray-700 h-48 rounded-lg"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show auth error if not authenticated
+  if (!isAuthenticated || !isSignedIn) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-gray-900">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col gap-8">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                  Authentication Required
+                </h1>
+                <p className="text-base text-red-600 dark:text-red-400">
+                  Please sign in to view invoices.
+                </p>
+              </div>
+              <Button
+                onClick={() => router.push("/sign-in")}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Sign In
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Loading state
   if (invoices === undefined) {

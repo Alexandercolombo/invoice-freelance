@@ -244,8 +244,7 @@ export const getAllInvoices = query({
       // Get invoices with basic data
       const query = ctx.db
         .query("invoices")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
-        .order("desc");
+        .withIndex("by_user", (q) => q.eq("userId", userId));
 
       // Get all invoices (we'll handle pagination in memory for now)
       const invoices = await query.collect();

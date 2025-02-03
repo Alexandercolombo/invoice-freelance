@@ -224,8 +224,8 @@ export const getAllInvoices = query({
   args: {
     paginationOpts: v.optional(
       v.object({
-        numToSkip: v.number(),
-        numToTake: v.number(),
+        numToSkip: v.float64(),
+        numToTake: v.float64(),
       })
     ),
   },

@@ -132,8 +132,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     paginationOpts: {
       numToSkip: 0,
       numToTake: 100
-    },
-    suspense: true  // Enable suspense to properly handle loading state
+    }
   });
 
   // Enhanced debug logging to track query state and auth

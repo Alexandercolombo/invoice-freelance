@@ -127,24 +127,25 @@ function SearchEmptyState() {
 export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   const router = useRouter();
   
-  // Remove skip logic and always fetch data
+  // Enable suspense so that the hook waits until data is ready
   const rawInvoices = useQuery(api.invoices.getAllInvoices, {
     paginationOpts: {
       numToSkip: 0,
       numToTake: 100
-    }
+    },
+    suspense: true  // Enable suspense to properly handle loading state
   });
 
   // Enhanced debug logging to track query state and auth
   useEffect(() => {
-    console.log('Invoice Query Debug:', {
+    console.log("Invoice Query Debug:", {
       rawInvoices: {
         value: rawInvoices,
         type: typeof rawInvoices,
         isArray: Array.isArray(rawInvoices),
         isNull: rawInvoices === null,
         isUndefined: rawInvoices === undefined,
-        length: Array.isArray(rawInvoices) ? rawInvoices.length : 'N/A'
+        length: Array.isArray(rawInvoices) ? rawInvoices.length : "N/A"
       },
       timestamp: new Date().toISOString()
     });

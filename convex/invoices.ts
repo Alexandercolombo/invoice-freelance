@@ -240,13 +240,14 @@ export const getAllInvoices = query({
         tokenIdentifier: identity.tokenIdentifier
       });
 
-      const userId = identity.subject;
-      console.log("[Debug] getAllInvoices: Using userId", userId);
-
-      // Get invoices with basic data - temporarily remove index to test
+      // Get invoices with proper index and filtering
       console.log("[Debug] getAllInvoices: Querying invoices");
       const invoices = await ctx.db
         .query("invoices")
+        .withIndex("by_user_and_date", (q) => 
+          q.eq("userId", identity.subject)
+        )
+        .order("desc")
         .collect();
       
       console.log("[Debug] getAllInvoices: Raw query result", {
@@ -258,26 +259,19 @@ export const getAllInvoices = query({
         } : null
       });
 
-      // Filter for user's invoices in memory temporarily
-      const userInvoices = invoices.filter(inv => inv.userId === userId);
-      console.log("[Debug] getAllInvoices: Filtered to user invoices", {
-        totalCount: invoices.length,
-        userCount: userInvoices.length
-      });
-
       // Return empty array if no invoices found
-      if (!userInvoices || userInvoices.length === 0) {
+      if (!invoices || invoices.length === 0) {
         console.log("[Debug] getAllInvoices: No invoices found for user");
         return [];
       }
-      
-      // Apply pagination in memory if needed
+
+      // Apply pagination if needed
       const paginatedInvoices = args.paginationOpts
-        ? userInvoices.slice(
+        ? invoices.slice(
             args.paginationOpts.numToSkip,
             args.paginationOpts.numToSkip + args.paginationOpts.numToTake
           )
-        : userInvoices;
+        : invoices;
       
       console.log("[Debug] getAllInvoices: Paginated to", paginatedInvoices.length, "invoices");
 
@@ -304,7 +298,7 @@ export const getAllInvoices = query({
             )
             .map(result => [result.clientId, result.client])
         );
-        
+
         console.log("[Debug] getAllInvoices: Successfully fetched", clientsMap.size, "clients");
 
         // Map the invoices with their client data
@@ -328,8 +322,7 @@ export const getAllInvoices = query({
                 notes: invoice.notes,
                 client: {
                   name: client.name,
-                  email: client.email,
-                  hourlyRate: client.hourlyRate
+                  email: client.email
                 }
               };
             } catch (err) {
@@ -341,7 +334,6 @@ export const getAllInvoices = query({
 
         console.log("[Debug] getAllInvoices: Final result", {
           totalInvoices: invoices.length,
-          userInvoices: userInvoices.length,
           paginatedCount: paginatedInvoices.length,
           processedCount: invoicesWithDetails.length
         });

@@ -228,26 +228,22 @@ export function InvoicePreviewContent({ params, searchParams }: InvoicePreviewCo
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {validTasks.map((task) => {
-                    const hourlyRate = invoice.client?.hourlyRate || 0;
-                    const amount = task.hours * hourlyRate;
-                    return (
-                      <tr key={task._id}>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                          {task.description}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-right text-sm text-gray-900">
-                          {task.hours}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-right text-sm text-gray-900">
-                          {formatCurrency(hourlyRate)}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-right text-sm text-gray-900">
-                          {formatCurrency(amount)}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {validTasks.map((task) => (
+                    <tr key={task._id}>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                        {task.description}
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-right text-sm text-gray-900">
+                        {task.hours}
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-right text-sm text-gray-900">
+                        {formatCurrency(task.hourlyRate)}
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-right text-sm text-gray-900">
+                        {formatCurrency(task.amount)}
+                      </td>
+                    </tr>
+                  ))}
                   <tr className="bg-gray-50">
                     <td
                       colSpan={3}

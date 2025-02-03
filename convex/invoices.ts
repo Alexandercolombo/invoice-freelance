@@ -201,11 +201,21 @@ export const getInvoice = query({
       return null;
     }
 
-    // Get tasks
+    // Get tasks with proper hourly rate and amount calculations
     const tasks = await Promise.all(
       invoice.tasks.map(async (taskId) => {
         const task = await ctx.db.get(taskId);
-        return task;
+        if (!task) return null;
+        
+        // Use task's hourly rate if available, otherwise use client's rate
+        const hourlyRate = task.hourlyRate ?? client.hourlyRate;
+        const amount = task.hours * hourlyRate;
+        
+        return {
+          ...task,
+          hourlyRate,
+          amount
+        };
       })
     );
 

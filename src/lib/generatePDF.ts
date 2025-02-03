@@ -31,6 +31,9 @@ interface PDFInvoice {
   total: number;
 }
 
+// Constants for PDF generation
+const lineHeight = 7;
+
 // Helper functions for PDF styling
 function drawLine(doc: jsPDF, startX: number, startY: number, endX: number, endY: number, color: string = "#E2E8F0", width: number = 0.1) {
   try {
@@ -59,6 +62,43 @@ function setTextStyle(doc: jsPDF, fontSize: number, color: string, isBold: boole
   doc.setTextColor(color);
   doc.setFont('helvetica', isBold ? 'bold' : 'normal');
 }
+
+// Helper function to write text safely with proper styling
+const writeText = (doc: jsPDF, text: string, x: number, yPos: number, options: any = {}) => {
+  try {
+    const { 
+      fontSize = 10,
+      color = "#1F2937",
+      align = 'left',
+      isBold = false,
+      maxWidth
+    } = options;
+    
+    setTextStyle(doc, fontSize, color, isBold);
+    
+    const processedText = String(text || '').replace(/[\u0080-\uffff]/g, (ch) => {
+      return '\\u' + ('0000' + ch.charCodeAt(0).toString(16)).slice(-4);
+    });
+
+    if (maxWidth) {
+      doc.text(processedText, x, yPos, { align, maxWidth });
+    } else {
+      doc.text(processedText, x, yPos, { align });
+    }
+    
+    return yPos + lineHeight;
+  } catch (error) {
+    console.error('Error writing text:', { text, x, yPos, options, error });
+    try {
+      const fallbackText = String(text || '').replace(/[^\x00-\x7F]/g, '');
+      doc.text(fallbackText, x, yPos, { align: 'left' });
+      return yPos + lineHeight;
+    } catch (fallbackError) {
+      console.error('Fallback text also failed:', fallbackError);
+      throw error;
+    }
+  }
+};
 
 export async function generateInvoicePDF(
   invoice: any,
@@ -102,59 +142,21 @@ export async function generateInvoicePDF(
     const margin = 20;
     const contentWidth = pageWidth - (margin * 2);
     let y = margin;
-    const lineHeight = 7;
 
     // Clean white background
     doc.setFillColor(255, 255, 255);
     doc.rect(0, 0, pageWidth, pageHeight, 'F');
 
-    // Helper function to write text safely with proper styling
-    const writeText = (text: string, x: number, yPos: number, options: any = {}) => {
-      try {
-        const { 
-          fontSize = 10,
-          color = "#1F2937",
-          align = 'left',
-          isBold = false,
-          maxWidth
-        } = options;
-        
-        setTextStyle(doc, fontSize, color, isBold);
-        
-        const processedText = String(text || '').replace(/[\u0080-\uffff]/g, (ch) => {
-          return '\\u' + ('0000' + ch.charCodeAt(0).toString(16)).slice(-4);
-        });
-
-        if (maxWidth) {
-          doc.text(processedText, x, yPos, { align, maxWidth });
-        } else {
-          doc.text(processedText, x, yPos, { align });
-        }
-        
-        return yPos + lineHeight;
-      } catch (error) {
-        console.error('Error writing text:', { text, x, yPos, options, error });
-        try {
-          const fallbackText = String(text || '').replace(/[^\x00-\x7F]/g, '');
-          doc.text(fallbackText, x, yPos, { align: 'left' });
-          return yPos + lineHeight;
-        } catch (fallbackError) {
-          console.error('Fallback text also failed:', fallbackError);
-          throw error;
-        }
-      }
-    };
-
     // Header Section with refined design
     // Company name and invoice number in a clean layout
-    writeText(userData?.businessName || '', margin + 2, y + 6, { 
+    writeText(doc, userData?.businessName || '', margin + 2, y + 6, { 
       fontSize: 20, 
       color: '#111827',
       isBold: true 
     });
 
     // Invoice number with improved positioning
-    writeText('INVOICE', pageWidth - margin - 40, y + 6, { 
+    writeText(doc, 'INVOICE', pageWidth - margin - 40, y + 6, { 
       fontSize: 16,
       color: '#111827',
       isBold: true,
@@ -162,7 +164,7 @@ export async function generateInvoicePDF(
     });
 
     y += lineHeight + 2;
-    writeText(`#${invoice.number}`, pageWidth - margin, y + 4, { 
+    writeText(doc, `#${invoice.number}`, pageWidth - margin, y + 4, { 
       fontSize: 12,
       color: '#4B5563',
       align: 'right'
@@ -170,7 +172,7 @@ export async function generateInvoicePDF(
 
     // Date information with better spacing
     y += lineHeight + 2;
-    writeText(`Date: ${new Date(invoice.date).toLocaleDateString()}`, pageWidth - margin, y + 2, { 
+    writeText(doc, `Date: ${new Date(invoice.date).toLocaleDateString()}`, pageWidth - margin, y + 2, { 
       fontSize: 10,
       color: '#4B5563',
       align: 'right'
@@ -187,14 +189,14 @@ export async function generateInvoicePDF(
     const rightColX = pageWidth / 2 + 5;
 
     // From section header
-    writeText('FROM', leftColX, y + 6, { 
+    writeText(doc, 'FROM', leftColX, y + 6, { 
       fontSize: 10,
       color: '#6B7280',
       isBold: true
     });
 
     y += lineHeight * 1.5;
-    writeText(userData?.businessName || '', leftColX, y + 6, { 
+    writeText(doc, userData?.businessName || '', leftColX, y + 6, { 
       fontSize: 12,
       color: '#111827',
       isBold: true
@@ -202,7 +204,7 @@ export async function generateInvoicePDF(
 
     if (userData?.address) {
       y += lineHeight;
-      writeText(userData.address, leftColX, y + 6, { 
+      writeText(doc, userData.address, leftColX, y + 6, { 
         color: '#4B5563',
         fontSize: 10,
         maxWidth: contentWidth / 2 - 20
@@ -210,21 +212,21 @@ export async function generateInvoicePDF(
     }
 
     y += lineHeight;
-    writeText(userData?.email || '', leftColX, y + 6, { 
+    writeText(doc, userData?.email || '', leftColX, y + 6, { 
       color: '#4B5563',
       fontSize: 10
     });
 
     // Bill To section with matching hierarchy
     let billToY = margin + 35;
-    writeText('BILL TO', rightColX, billToY + 6, { 
+    writeText(doc, 'BILL TO', rightColX, billToY + 6, { 
       fontSize: 10,
       color: '#6B7280',
       isBold: true
     });
 
     billToY += lineHeight * 1.5;
-    writeText(client.name || '', rightColX, billToY + 6, { 
+    writeText(doc, client.name || '', rightColX, billToY + 6, { 
       fontSize: 12,
       isBold: true,
       color: '#111827'
@@ -232,7 +234,7 @@ export async function generateInvoicePDF(
 
     if (client.email) {
       billToY += lineHeight;
-      writeText(client.email, rightColX, billToY + 6, { 
+      writeText(doc, client.email, rightColX, billToY + 6, { 
         fontSize: 10,
         color: '#4B5563'
       });
@@ -246,33 +248,33 @@ export async function generateInvoicePDF(
     drawRect(doc, margin, y, contentWidth, lineHeight * 1.8, '#F8FAFC', 3);
 
     // Column definitions with improved proportions
-    const col1Width = contentWidth * 0.45; // Description
+    const col1Width = contentWidth * 0.45;
     const col2Width = contentWidth * 0.15; // Hours
     const col3Width = contentWidth * 0.20; // Rate
     const col4Width = contentWidth * 0.20; // Amount
 
     // Table headers with refined styling
-    writeText('Description', margin + 5, y + 5, {
+    writeText(doc, 'Description', margin + 5, y + 5, {
       fontSize: 10,
       isBold: true,
       color: '#6B7280'
     });
 
-    writeText('Hours', margin + col1Width + 15, y + 5, {
+    writeText(doc, 'Hours', margin + col1Width + 15, y + 5, {
       fontSize: 10,
       isBold: true,
       color: '#6B7280',
       align: 'right'
     });
 
-    writeText('Rate', margin + col1Width + col2Width + 15, y + 5, {
+    writeText(doc, 'Rate', margin + col1Width + col2Width + 15, y + 5, {
       fontSize: 10,
       isBold: true,
       color: '#6B7280',
       align: 'right'
     });
 
-    writeText('Amount', pageWidth - margin - 5, y + 5, {
+    writeText(doc, 'Amount', pageWidth - margin - 5, y + 5, {
       fontSize: 10,
       isBold: true,
       color: '#6B7280',
@@ -290,26 +292,25 @@ export async function generateInvoicePDF(
         drawRect(doc, margin, y - 3, contentWidth, lineHeight * 1.4, '#F9FAFB', 0);
       }
 
-      writeText(task.description || '', margin + 5, y, {
+      writeText(doc, task.description || '', margin + 5, y, {
         fontSize: 10,
         color: '#111827',
         maxWidth: col1Width - 10
       });
 
-      writeText(String(task.hours || '0'), margin + col1Width + 15, y, {
+      writeText(doc, String(task.hours || '0'), margin + col1Width + 15, y, {
         fontSize: 10,
         color: '#111827',
         align: 'right'
       });
 
-      writeText(formatCurrency(task.hourlyRate || 0), margin + col1Width + col2Width + 15, y, {
+      writeText(doc, formatCurrency(task.hourlyRate || 0), margin + col1Width + col2Width + 15, y, {
         fontSize: 10,
         color: '#111827',
         align: 'right'
       });
 
-      const amount = (task.hours || 0) * (task.hourlyRate || 0);
-      writeText(formatCurrency(amount), pageWidth - margin - 5, y, {
+      writeText(doc, formatCurrency(task.amount || 0), pageWidth - margin - 5, y, {
         fontSize: 10,
         color: '#111827',
         align: 'right'
@@ -327,11 +328,11 @@ export async function generateInvoicePDF(
     drawRect(doc, totalsX - 5, y - 2, totalsWidth + 5, lineHeight * 4.5, '#F8FAFC', 3);
 
     // Subtotal
-    writeText('Subtotal', totalsX + 5, y + 2, {
+    writeText(doc, 'Subtotal', totalsX + 5, y + 2, {
       fontSize: 10,
       color: '#6B7280'
     });
-    writeText(formatCurrency(invoice.subtotal || 0), pageWidth - margin - 5, y + 2, {
+    writeText(doc, formatCurrency(invoice.subtotal || 0), pageWidth - margin - 5, y + 2, {
       fontSize: 10,
       align: 'right',
       color: '#111827'
@@ -340,11 +341,12 @@ export async function generateInvoicePDF(
     // Tax if applicable
     if (invoice.tax) {
       y += lineHeight * 1.2;
-      writeText(`Tax (${invoice.tax}%)`, totalsX + 5, y + 2, {
+      writeText(doc, `Tax (${invoice.tax}%)`, totalsX + 5, y + 2, {
         fontSize: 10,
         color: '#6B7280'
       });
       writeText(
+        doc,
         formatCurrency((invoice.subtotal || 0) * (invoice.tax / 100)),
         pageWidth - margin - 5,
         y + 2,
@@ -360,12 +362,12 @@ export async function generateInvoicePDF(
     y += lineHeight * 1.5;
     // Draw a special background for the total
     drawRect(doc, totalsX - 5, y - 2, totalsWidth + 5, lineHeight * 1.8, '#EBF5FF', 0);
-    writeText('Total Due', totalsX + 5, y + 2, {
+    writeText(doc, 'Total Due', totalsX + 5, y + 2, {
       fontSize: 12,
       isBold: true,
       color: '#2563EB'
     });
-    writeText(formatCurrency(invoice.total || 0), pageWidth - margin - 5, y + 2, {
+    writeText(doc, formatCurrency(invoice.total || 0), pageWidth - margin - 5, y + 2, {
       fontSize: 12,
       isBold: true,
       align: 'right',
@@ -377,13 +379,13 @@ export async function generateInvoicePDF(
       y += lineHeight * 4;
       drawRect(doc, margin, y, contentWidth, lineHeight * 4, '#F8FAFC', 3);
       y += lineHeight;
-      writeText('PAYMENT INSTRUCTIONS', margin + 5, y, {
+      writeText(doc, 'PAYMENT INSTRUCTIONS', margin + 5, y, {
         fontSize: 9,
         color: '#6B7280',
         isBold: true
       });
       y += lineHeight;
-      writeText(userData.paymentInstructions, margin + 5, y, {
+      writeText(doc, userData.paymentInstructions, margin + 5, y, {
         fontSize: 9,
         color: '#4B5563',
         maxWidth: contentWidth - 10
@@ -393,11 +395,11 @@ export async function generateInvoicePDF(
     // Footer with refined styling
     const footerY = pageHeight - 15;
     drawLine(doc, margin, footerY - 5, pageWidth - margin, footerY - 5, '#E5E7EB', 0.5);
-    writeText('Thank you for your business', margin, footerY, {
+    writeText(doc, 'Thank you for your business', margin, footerY, {
       fontSize: 8,
       color: '#6B7280'
     });
-    writeText(`Generated on ${new Date().toLocaleDateString()}`, pageWidth - margin, footerY, {
+    writeText(doc, `Generated on ${new Date().toLocaleDateString()}`, pageWidth - margin, footerY, {
       fontSize: 8,
       align: 'right',
       color: '#6B7280'

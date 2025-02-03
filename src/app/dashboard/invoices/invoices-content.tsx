@@ -145,8 +145,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   // Improved data validation to match main component
   const invoices = (
     rawInvoices &&
-    Array.isArray(rawInvoices) && 
-    rawInvoices.length >= 0
+    Array.isArray(rawInvoices)
   ) ? rawInvoices : [];
 
   const [filters, setFilters] = useState({
@@ -261,7 +260,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   }
 
   // Show empty state when query completes with no data
-  if (!isLoading && invoices.length === 0 && rawInvoices !== null && rawInvoices !== undefined) {
+  if (!isLoading && invoices.length === 0 && rawInvoices !== null) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
@@ -285,7 +284,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
                 </Button>
               </motion.div>
             </div>
-            <EmptyState />
+            {rawInvoices === null ? <EmptyState /> : <SearchEmptyState />}
           </div>
         </div>
       </div>

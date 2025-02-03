@@ -127,6 +127,7 @@ function SearchEmptyState() {
 export function InvoicesContent({ searchParams }: InvoicesContentProps) {
   const router = useRouter();
   
+  // Remove skip logic and always fetch data
   const rawInvoices = useQuery(api.invoices.getAllInvoices, {
     paginationOpts: {
       numToSkip: 0,
@@ -134,21 +135,23 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     }
   });
 
-  // Debug logging to help diagnose query response
+  // Enhanced debug logging to track query state and auth
   useEffect(() => {
-    console.log('Dashboard Invoice State:', {
-      raw: {
+    console.log('Invoice Query Debug:', {
+      rawInvoices: {
         value: rawInvoices,
         type: typeof rawInvoices,
         isArray: Array.isArray(rawInvoices),
         isNull: rawInvoices === null,
-        isUndefined: rawInvoices === undefined
-      }
+        isUndefined: rawInvoices === undefined,
+        length: Array.isArray(rawInvoices) ? rawInvoices.length : 'N/A'
+      },
+      timestamp: new Date().toISOString()
     });
   }, [rawInvoices]);
 
-  // Simplified data validation - let Suspense handle loading
-  const invoices = rawInvoices && Array.isArray(rawInvoices) ? rawInvoices : [];
+  // Simplified data validation ensuring array type
+  const invoices = Array.isArray(rawInvoices) ? rawInvoices : [];
 
   const [filters, setFilters] = useState({
     search: "",

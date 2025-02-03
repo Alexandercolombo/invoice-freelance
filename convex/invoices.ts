@@ -231,18 +231,20 @@ export const getAllInvoices = query({
   },
   async handler(ctx, args) {
     try {
-      const identity = await getUser(ctx);
+      // Get user identity and handle authentication
+      const identity = await ctx.auth.getUserIdentity();
       if (!identity) {
         console.log("[Debug] getAllInvoices: No user identity found");
         return [];
       }
 
-      console.log("[Debug] getAllInvoices: Starting query for user", identity.subject);
+      const userId = identity.subject;
+      console.log("[Debug] getAllInvoices: Starting query for user", userId);
 
       // Get invoices with basic data
       const query = ctx.db
         .query("invoices")
-        .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+        .withIndex("by_user", (q) => q.eq("userId", userId))
         .order("desc");
 
       // Get all invoices (we'll handle pagination in memory for now)
@@ -264,61 +266,85 @@ export const getAllInvoices = query({
       
       console.log("[Debug] getAllInvoices: Found", paginatedInvoices.length, "invoices");
 
-      // Get client details for each invoice efficiently
-      const clientIds = new Set(paginatedInvoices.map(invoice => invoice.clientId));
-      console.log("[Debug] getAllInvoices: Unique clients to fetch:", clientIds.size);
-      
-      const clientsPromises = Array.from(clientIds).map(async (clientId) => {
-        const client = await ctx.db.get(clientId);
-        return { clientId, client };
-      });
-      
-      const clientsResults = await Promise.all(clientsPromises);
-      const clientsMap = new Map(
-        clientsResults
-          .filter((result): result is { clientId: Id<"clients">; client: NonNullable<Client> } => 
-            result.client !== null
-          )
-          .map(result => [result.clientId, result.client])
-      );
-      
-      console.log("[Debug] getAllInvoices: Successfully fetched", clientsMap.size, "clients");
-
-      // Map the invoices with their client data
-      const invoicesWithDetails = paginatedInvoices
-        .map((invoice) => {
-          const client = clientsMap.get(invoice.clientId);
-          if (!client) {
-            console.log("[Debug] getAllInvoices: No client found for invoice", invoice._id);
-            return null;
+      try {
+        // Get client details for each invoice efficiently
+        const clientIds = new Set(paginatedInvoices.map(invoice => invoice.clientId));
+        console.log("[Debug] getAllInvoices: Unique clients to fetch:", clientIds.size);
+        
+        const clientsPromises = Array.from(clientIds).map(async (clientId) => {
+          try {
+            const client = await ctx.db.get(clientId);
+            return { clientId, client };
+          } catch (err) {
+            console.error("[Error] getAllInvoices: Failed to fetch client", clientId, err);
+            return { clientId, client: null };
           }
-          
-          return {
-            _id: invoice._id,
-            number: invoice.number,
-            date: invoice.date,
-            dueDate: invoice.dueDate,
-            status: invoice.status,
-            total: invoice.total,
-            tax: invoice.tax,
-            notes: invoice.notes,
-            client: {
-              name: client.name,
-              email: client.email,
-              hourlyRate: client.hourlyRate
-            }
-          };
-        })
-        .filter((invoice): invoice is NonNullable<typeof invoice> => invoice !== null);
+        });
+        
+        const clientsResults = await Promise.all(clientsPromises);
+        const clientsMap = new Map(
+          clientsResults
+            .filter((result): result is { clientId: Id<"clients">; client: NonNullable<Client> } => 
+              result.client !== null
+            )
+            .map(result => [result.clientId, result.client])
+        );
+        
+        console.log("[Debug] getAllInvoices: Successfully fetched", clientsMap.size, "clients");
 
-      console.log("[Debug] getAllInvoices: Completed processing", invoicesWithDetails.length, "invoices with details");
-      return invoicesWithDetails;
+        // Map the invoices with their client data
+        const invoicesWithDetails = paginatedInvoices
+          .map((invoice) => {
+            try {
+              const client = clientsMap.get(invoice.clientId);
+              if (!client) {
+                console.log("[Debug] getAllInvoices: No client found for invoice", invoice._id);
+                return null;
+              }
+              
+              return {
+                _id: invoice._id,
+                number: invoice.number,
+                date: invoice.date,
+                dueDate: invoice.dueDate,
+                status: invoice.status,
+                total: invoice.total,
+                tax: invoice.tax,
+                notes: invoice.notes,
+                client: {
+                  name: client.name,
+                  email: client.email,
+                  hourlyRate: client.hourlyRate
+                }
+              };
+            } catch (err) {
+              console.error("[Error] getAllInvoices: Failed to process invoice", invoice._id, err);
+              return null;
+            }
+          })
+          .filter((invoice): invoice is NonNullable<typeof invoice> => invoice !== null);
+
+        console.log("[Debug] getAllInvoices: Completed processing", invoicesWithDetails.length, "invoices with details");
+        return invoicesWithDetails;
+      } catch (clientError) {
+        console.error("[Error] getAllInvoices: Failed to process clients", clientError);
+        // Return basic invoice data without client details if client processing fails
+        return paginatedInvoices.map(invoice => ({
+          _id: invoice._id,
+          number: invoice.number,
+          date: invoice.date,
+          dueDate: invoice.dueDate,
+          status: invoice.status,
+          total: invoice.total,
+          tax: invoice.tax,
+          notes: invoice.notes,
+          client: null
+        }));
+      }
     } catch (error) {
       console.error("[Error] getAllInvoices:", error);
-      if (error instanceof Error) {
-        throw new Error(`Failed to fetch invoices: ${error.message}`);
-      }
-      throw new Error("Failed to fetch invoices: Unknown error");
+      // Return an empty array instead of throwing to prevent UI from breaking
+      return [];
     }
   }
 });

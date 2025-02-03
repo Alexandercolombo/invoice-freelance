@@ -142,10 +142,11 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     }
   }, [rawInvoices]);
 
-  // Improved data validation to match main component
+  // Improved data validation to match main component exactly
   const invoices = (
-    rawInvoices &&
-    Array.isArray(rawInvoices)
+    rawInvoices && 
+    Array.isArray(rawInvoices) && 
+    rawInvoices.length >= 0
   ) ? rawInvoices : [];
 
   const [filters, setFilters] = useState({
@@ -259,7 +260,7 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
     );
   }
 
-  // Show empty state when query completes with no data
+  // Show empty state when query completes with no data (matches main component)
   if (!isLoading && invoices.length === 0 && rawInvoices !== null) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900">
@@ -284,15 +285,15 @@ export function InvoicesContent({ searchParams }: InvoicesContentProps) {
                 </Button>
               </motion.div>
             </div>
-            {rawInvoices === null ? <EmptyState /> : <SearchEmptyState />}
+            <EmptyState />
           </div>
         </div>
       </div>
     );
   }
 
-  // Show search empty state when filters return no results
-  if (filteredInvoices.length === 0) {
+  // Show search empty state only when filters return no results from existing data
+  if (filteredInvoices.length === 0 && invoices.length > 0) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">

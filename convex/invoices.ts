@@ -231,40 +231,60 @@ export const getAllInvoices = query({
   },
   async handler(ctx, args) {
     try {
+      console.log("[Debug] getAllInvoices: Starting query execution");
+      
       // Get user identity using the getUser helper
       const identity = await getUser(ctx);
+      console.log("[Debug] getAllInvoices: Got user identity", {
+        subject: identity.subject,
+        tokenIdentifier: identity.tokenIdentifier
+      });
+
       const userId = identity.subject;
-      
-      console.log("[Debug] getAllInvoices: Starting query for user", userId);
+      console.log("[Debug] getAllInvoices: Using userId", userId);
 
-      // Get invoices with basic data
-      const query = ctx.db
+      // Get invoices with basic data - temporarily remove index to test
+      console.log("[Debug] getAllInvoices: Querying invoices");
+      const invoices = await ctx.db
         .query("invoices")
-        .withIndex("by_user", (q) => q.eq("userId", userId));
-
-      // Get all invoices (we'll handle pagination in memory for now)
-      const invoices = await query.collect();
+        .collect();
       
+      console.log("[Debug] getAllInvoices: Raw query result", {
+        count: invoices.length,
+        hasResults: invoices.length > 0,
+        firstInvoice: invoices[0] ? { 
+          id: invoices[0]._id,
+          userId: invoices[0].userId
+        } : null
+      });
+
+      // Filter for user's invoices in memory temporarily
+      const userInvoices = invoices.filter(inv => inv.userId === userId);
+      console.log("[Debug] getAllInvoices: Filtered to user invoices", {
+        totalCount: invoices.length,
+        userCount: userInvoices.length
+      });
+
       // Return empty array if no invoices found
-      if (!invoices || invoices.length === 0) {
+      if (!userInvoices || userInvoices.length === 0) {
         console.log("[Debug] getAllInvoices: No invoices found for user");
         return [];
       }
       
       // Apply pagination in memory if needed
       const paginatedInvoices = args.paginationOpts
-        ? invoices.slice(
+        ? userInvoices.slice(
             args.paginationOpts.numToSkip,
             args.paginationOpts.numToSkip + args.paginationOpts.numToTake
           )
-        : invoices;
+        : userInvoices;
       
-      console.log("[Debug] getAllInvoices: Found", paginatedInvoices.length, "invoices");
+      console.log("[Debug] getAllInvoices: Paginated to", paginatedInvoices.length, "invoices");
 
       try {
         // Get client details for each invoice efficiently
         const clientIds = new Set(paginatedInvoices.map(invoice => invoice.clientId));
-        console.log("[Debug] getAllInvoices: Unique clients to fetch:", clientIds.size);
+        console.log("[Debug] getAllInvoices: Fetching", clientIds.size, "unique clients");
         
         const clientsPromises = Array.from(clientIds).map(async (clientId) => {
           try {
@@ -319,11 +339,17 @@ export const getAllInvoices = query({
           })
           .filter((invoice): invoice is NonNullable<typeof invoice> => invoice !== null);
 
-        console.log("[Debug] getAllInvoices: Completed processing", invoicesWithDetails.length, "invoices with details");
+        console.log("[Debug] getAllInvoices: Final result", {
+          totalInvoices: invoices.length,
+          userInvoices: userInvoices.length,
+          paginatedCount: paginatedInvoices.length,
+          processedCount: invoicesWithDetails.length
+        });
+        
         return invoicesWithDetails;
       } catch (clientError) {
         console.error("[Error] getAllInvoices: Failed to process clients", clientError);
-        // Return basic invoice data without client details if client processing fails
+        // Return basic invoice data without client details
         return paginatedInvoices.map(invoice => ({
           _id: invoice._id,
           number: invoice.number,
@@ -337,8 +363,8 @@ export const getAllInvoices = query({
         }));
       }
     } catch (error) {
-      console.error("[Error] getAllInvoices:", error);
-      // Return an empty array instead of throwing to prevent UI from breaking
+      console.error("[Error] getAllInvoices: Top-level error", error);
+      // Return an empty array to prevent UI breakage
       return [];
     }
   }

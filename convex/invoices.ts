@@ -232,6 +232,11 @@ export const getAllInvoices = query({
   async handler(ctx, args) {
     try {
       const identity = await getUser(ctx);
+      if (!identity) {
+        console.log("[Debug] getAllInvoices: No user identity found");
+        return [];
+      }
+
       console.log("[Debug] getAllInvoices: Starting query for user", identity.subject);
 
       // Get invoices with basic data
@@ -242,6 +247,12 @@ export const getAllInvoices = query({
 
       // Get all invoices (we'll handle pagination in memory for now)
       const invoices = await query.collect();
+      
+      // Return empty array if no invoices found
+      if (!invoices || invoices.length === 0) {
+        console.log("[Debug] getAllInvoices: No invoices found for user");
+        return [];
+      }
       
       // Apply pagination in memory if needed
       const paginatedInvoices = args.paginationOpts
@@ -277,7 +288,10 @@ export const getAllInvoices = query({
       const invoicesWithDetails = paginatedInvoices
         .map((invoice) => {
           const client = clientsMap.get(invoice.clientId);
-          if (!client) return null;
+          if (!client) {
+            console.log("[Debug] getAllInvoices: No client found for invoice", invoice._id);
+            return null;
+          }
           
           return {
             _id: invoice._id,
@@ -297,7 +311,7 @@ export const getAllInvoices = query({
         })
         .filter((invoice): invoice is NonNullable<typeof invoice> => invoice !== null);
 
-      console.log("[Debug] getAllInvoices: Completed processing all invoices");
+      console.log("[Debug] getAllInvoices: Completed processing", invoicesWithDetails.length, "invoices with details");
       return invoicesWithDetails;
     } catch (error) {
       console.error("[Error] getAllInvoices:", error);

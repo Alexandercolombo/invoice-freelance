@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextRequest } from "next/server";
 import { auth } from '@clerk/nextjs/server';
 import { api } from 'convex/_generated/api';
@@ -74,8 +76,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Create Convex client with the auth token
-    const convexModule = await import('convex/server');
-    const client = convexModule.createServerClient(convexUrl, { token });
+    const convexModule = await import('convex/browser');
+    const { ConvexHttpClient } = convexModule;
+    const client = new ConvexHttpClient(convexUrl);
+    client.setAuth(token);
 
     // Fetch invoice and user data via the client
     const invoiceData = await client.query(api.invoices.getInvoice, { id: invoiceId });

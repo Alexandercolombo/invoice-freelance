@@ -3,18 +3,54 @@ import { auth } from '@clerk/nextjs/server';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from 'convex/_generated/api';
 import { Id } from 'convex/_generated/dataModel';
-import { generateInvoicePDF } from '@/lib/generatePDF';
+import jsPDF from 'jspdf';
+import { formatCurrency } from '@/lib/utils';
 
 // Remove Edge runtime as it might be incompatible with Convex
 export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
 
+// Helper function to write text
+function writeText(doc: jsPDF, text: string, x: number, y: number, options: {
+  fontSize?: number;
+  color?: string;
+  align?: 'left' | 'right' | 'center';
+  maxWidth?: number;
+  isBold?: boolean;
+} = {}) {
+  const { fontSize = 10, color = '#000000', align = 'left', maxWidth, isBold = false } = options;
+  
+  doc.setFontSize(fontSize);
+  doc.setTextColor(color);
+  doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+  
+  if (align === 'right') {
+    const textWidth = maxWidth || doc.getTextWidth(text);
+    doc.text(text, x - textWidth, y);
+  } else if (align === 'center') {
+    const textWidth = maxWidth || doc.getTextWidth(text);
+    doc.text(text, x - (textWidth / 2), y);
+  } else {
+    if (maxWidth) {
+      doc.text(text, x, y, { maxWidth });
+    } else {
+      doc.text(text, x, y);
+    }
+  }
+}
+
+// Helper function to draw rectangles
+function drawRect(doc: jsPDF, x: number, y: number, width: number, height: number, color: string = "#F8FAFC", radius: number = 2) {
+  doc.setFillColor(color);
+  doc.roundedRect(x, y, width, height, radius, radius, "F");
+}
+
 // Export GET as a named export for Next.js App Router
 export async function GET(request: NextRequest) {
   try {
     // Get Clerk auth
-    const authRequest = auth();
-    const { userId } = await authRequest;
+    const authRequest = await auth();
+    const { userId } = authRequest;
     if (!userId) {
       return new Response('Unauthorized', { status: 401 });
     }
@@ -38,7 +74,7 @@ export async function GET(request: NextRequest) {
     
     // Get Convex-specific JWT token from Clerk
     const token = await authRequest.getToken({
-      template: "convex"  // This must match the JWT template name in Clerk
+      template: "convex"
     });
     
     if (!token) {
@@ -73,21 +109,270 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      const pdfBuffer = await generateInvoicePDF(invoiceData, userData, invoiceClient, tasks);
+      // Create PDF document
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
 
-      if (!pdfBuffer || pdfBuffer.length === 0) {
-        throw new Error('Generated PDF is empty');
+      // Set up dimensions
+      const pageWidth = doc.internal.pageSize.width;
+      const pageHeight = doc.internal.pageSize.height;
+      const margin = 20;
+      const contentWidth = pageWidth - (margin * 2);
+      let y = margin;
+
+      // Header Section
+      writeText(doc, userData.businessName || '', margin + 2, y + 6, { 
+        fontSize: 20, 
+        color: '#111827',
+        isBold: true 
+      });
+
+      writeText(doc, 'INVOICE', pageWidth - margin - 40, y + 6, { 
+        fontSize: 16,
+        color: '#111827',
+        isBold: true,
+        align: 'right'
+      });
+
+      y += 9;
+      writeText(doc, `#${invoiceData.number}`, pageWidth - margin, y + 4, { 
+        fontSize: 12,
+        color: '#4B5563',
+        align: 'right'
+      });
+
+      // Date information
+      y += 9;
+      writeText(doc, `Date: ${new Date(invoiceData.date).toLocaleDateString()}`, pageWidth - margin, y + 2, { 
+        fontSize: 10,
+        color: '#4B5563',
+        align: 'right'
+      });
+
+      // Address sections
+      y = margin + 35;
+      drawRect(doc, margin, y, contentWidth, 50, '#F9FAFB');
+
+      // From section
+      const leftColX = margin + 10;
+      const rightColX = pageWidth / 2 + 5;
+
+      writeText(doc, 'FROM', leftColX, y + 6, { 
+        fontSize: 10,
+        color: '#6B7280',
+        isBold: true
+      });
+
+      y += 10;
+      writeText(doc, userData.businessName || '', leftColX, y + 6, { 
+        fontSize: 12,
+        color: '#111827',
+        isBold: true
+      });
+
+      if (userData.address) {
+        y += 7;
+        writeText(doc, userData.address, leftColX, y + 6, { 
+          color: '#4B5563',
+          fontSize: 10,
+          maxWidth: contentWidth / 2 - 20
+        });
       }
 
-      // Format the date for the filename
+      // Bill To section
+      let billToY = margin + 35;
+      writeText(doc, 'BILL TO', rightColX, billToY + 6, { 
+        fontSize: 10,
+        color: '#6B7280',
+        isBold: true
+      });
+
+      billToY += 10;
+      writeText(doc, invoiceClient.name, rightColX, billToY + 6, { 
+        fontSize: 12,
+        isBold: true,
+        color: '#111827'
+      });
+
+      if (invoiceClient.email) {
+        billToY += 7;
+        writeText(doc, invoiceClient.email, rightColX, billToY + 6, { 
+          fontSize: 10,
+          color: '#4B5563'
+        });
+      }
+
+      // Tasks section
+      y = margin + 95;
+      drawRect(doc, margin, y, contentWidth, 10, '#F8FAFC');
+
+      // Column headers
+      const col1Width = contentWidth * 0.45;
+      const col2Width = contentWidth * 0.15;
+      const col3Width = contentWidth * 0.20;
+      const col4Width = contentWidth * 0.20;
+
+      writeText(doc, 'Description', margin + 5, y + 7, {
+        fontSize: 10,
+        isBold: true,
+        color: '#6B7280'
+      });
+
+      writeText(doc, 'Hours', margin + col1Width + 15, y + 7, {
+        fontSize: 10,
+        isBold: true,
+        color: '#6B7280',
+        align: 'right'
+      });
+
+      writeText(doc, 'Rate', margin + col1Width + col2Width + 15, y + 7, {
+        fontSize: 10,
+        isBold: true,
+        color: '#6B7280',
+        align: 'right'
+      });
+
+      writeText(doc, 'Amount', pageWidth - margin - 5, y + 7, {
+        fontSize: 10,
+        isBold: true,
+        color: '#6B7280',
+        align: 'right'
+      });
+
+      y += 15;
+
+      // Task rows
+      tasks.forEach((task, index) => {
+        if (!task) return;
+
+        if (index % 2 === 0) {
+          drawRect(doc, margin, y - 3, contentWidth, 10, '#F9FAFB');
+        }
+
+        writeText(doc, task.description || '', margin + 5, y + 3, {
+          fontSize: 10,
+          color: '#111827',
+          maxWidth: col1Width - 10
+        });
+
+        writeText(doc, String(task.hours || '0'), margin + col1Width + 15, y + 3, {
+          fontSize: 10,
+          color: '#111827',
+          align: 'right'
+        });
+
+        writeText(doc, formatCurrency(task.hourlyRate || 0), margin + col1Width + col2Width + 15, y + 3, {
+          fontSize: 10,
+          color: '#111827',
+          align: 'right'
+        });
+
+        writeText(doc, formatCurrency(task.amount || 0), pageWidth - margin - 5, y + 3, {
+          fontSize: 10,
+          color: '#111827',
+          align: 'right'
+        });
+
+        y += 10;
+      });
+
+      // Totals section
+      y += 10;
+      const totalsWidth = contentWidth * 0.35;
+      const totalsX = pageWidth - margin - totalsWidth;
+
+      drawRect(doc, totalsX - 5, y - 2, totalsWidth + 5, 35, '#F8FAFC');
+
+      writeText(doc, 'Subtotal', totalsX + 5, y + 2, {
+        fontSize: 10,
+        color: '#6B7280'
+      });
+      writeText(doc, formatCurrency(invoiceData.subtotal || 0), pageWidth - margin - 5, y + 2, {
+        fontSize: 10,
+        align: 'right',
+        color: '#111827'
+      });
+
+      if (invoiceData.tax) {
+        y += 8;
+        writeText(doc, `Tax (${invoiceData.tax}%)`, totalsX + 5, y + 2, {
+          fontSize: 10,
+          color: '#6B7280'
+        });
+        writeText(
+          doc,
+          formatCurrency((invoiceData.subtotal || 0) * (invoiceData.tax / 100)),
+          pageWidth - margin - 5,
+          y + 2,
+          {
+            fontSize: 10,
+            align: 'right',
+            color: '#111827'
+          }
+        );
+      }
+
+      y += 10;
+      drawRect(doc, totalsX - 5, y - 2, totalsWidth + 5, 12, '#EBF5FF');
+      writeText(doc, 'Total Due', totalsX + 5, y + 2, {
+        fontSize: 12,
+        isBold: true,
+        color: '#2563EB'
+      });
+      writeText(doc, formatCurrency(invoiceData.total || 0), pageWidth - margin - 5, y + 2, {
+        fontSize: 12,
+        isBold: true,
+        align: 'right',
+        color: '#2563EB'
+      });
+
+      // Payment Instructions
+      if (userData.paymentInstructions) {
+        y += 30;
+        drawRect(doc, margin, y, contentWidth, 30, '#F8FAFC');
+        y += 7;
+        writeText(doc, 'PAYMENT INSTRUCTIONS', margin + 5, y, {
+          fontSize: 9,
+          color: '#6B7280',
+          isBold: true
+        });
+        y += 7;
+        writeText(doc, userData.paymentInstructions, margin + 5, y, {
+          fontSize: 9,
+          color: '#4B5563',
+          maxWidth: contentWidth - 10
+        });
+      }
+
+      // Footer
+      const footerY = pageHeight - 15;
+      doc.setDrawColor('#E5E7EB');
+      doc.setLineWidth(0.5);
+      doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5);
+      
+      writeText(doc, 'Thank you for your business', margin, footerY, {
+        fontSize: 8,
+        color: '#6B7280'
+      });
+      writeText(doc, `Generated on ${new Date().toLocaleDateString()}`, pageWidth - margin, footerY, {
+        fontSize: 8,
+        align: 'right',
+        color: '#6B7280'
+      });
+
+      // Generate PDF buffer
+      const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
+
+      // Format filename
       const formattedDate = new Date().toISOString().split('T')[0];
       const safeBusinessName = (userData.businessName || 'invoice').replace(/[^a-z0-9]/gi, '-').toLowerCase();
       const safeInvoiceNumber = invoiceData.number.replace(/[^a-z0-9]/gi, '-');
-      
-      // Create a professional filename
       const filename = `${safeBusinessName}-invoice-${safeInvoiceNumber}-${formattedDate}.pdf`;
 
-      // Return PDF as a downloadable file with appropriate headers
+      // Return PDF as downloadable file
       return new Response(pdfBuffer, {
         headers: {
           'Content-Type': 'application/pdf',

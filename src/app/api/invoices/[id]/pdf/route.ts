@@ -2,7 +2,7 @@ export const runtime = 'nodejs';
 
 import { NextRequest } from "next/server";
 import { auth } from '@clerk/nextjs/server';
-import { formatCurrency } from '@/lib/server-format-currency';
+import { formatCurrency } from '@/lib/shared-utils';
 
 // Remove Edge runtime as it might be incompatible with Convex
 export const dynamic = 'force-dynamic';

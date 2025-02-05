@@ -5,7 +5,7 @@ import { api } from "../../../../../convex/_generated/api";
 import { Id } from "convex/_generated/dataModel";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { formatCurrency } from "@/lib/client-format-currency";
+import { formatCurrency } from "@/lib/shared-utils";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";

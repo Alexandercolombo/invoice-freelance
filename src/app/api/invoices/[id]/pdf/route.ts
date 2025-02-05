@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
 
 // Export GET as a named export for Next.js App Router
-export const GET = async (request: NextRequest) => {
+export async function GET(request: NextRequest) {
   try {
     // Get Clerk auth
     const authRequest = auth();
@@ -127,4 +127,4 @@ export const GET = async (request: NextRequest) => {
       }
     });
   }
-}; 
+} 

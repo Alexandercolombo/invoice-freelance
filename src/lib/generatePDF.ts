@@ -63,49 +63,45 @@ function drawRect(doc: jsPDF, x: number, y: number, width: number, height: numbe
   }
 }
 
-// Helper function to set text style
-function setTextStyle(doc: jsPDF, fontSize: number, color: string, isBold: boolean = false) {
-  doc.setFontSize(fontSize);
-  doc.setTextColor(color);
-  doc.setFont('helvetica', isBold ? 'bold' : 'normal');
-}
-
-// Helper function to write text safely with proper styling
-const writeText = (doc: jsPDF, text: string, x: number, yPos: number, options: any = {}) => {
+function writeText(doc: jsPDF, text: string, x: number, y: number, options: {
+  fontSize?: number;
+  color?: string;
+  align?: 'left' | 'right' | 'center';
+  maxWidth?: number;
+  isBold?: boolean;
+} = {}) {
+  const { fontSize = 10, color = '#000000', align = 'left', maxWidth, isBold = false } = options;
+  
   try {
-    const { 
-      fontSize = 10,
-      color = "#1F2937",
-      align = 'left',
-      isBold = false,
-      maxWidth
-    } = options;
+    doc.setFontSize(fontSize);
+    doc.setTextColor(color);
     
-    setTextStyle(doc, fontSize, color, isBold);
-    
-    const processedText = String(text || '').replace(/[\u0080-\uffff]/g, (ch) => {
-      return '\\u' + ('0000' + ch.charCodeAt(0).toString(16)).slice(-4);
-    });
-
-    if (maxWidth) {
-      doc.text(processedText, x, yPos, { align, maxWidth });
+    // Set font style
+    if (isBold) {
+      doc.setFont('helvetica', 'bold');
     } else {
-      doc.text(processedText, x, yPos, { align });
+      doc.setFont('helvetica', 'normal');
     }
     
-    return yPos + lineHeight;
-  } catch (error) {
-    console.error('Error writing text:', { text, x, yPos, options, error });
-    try {
-      const fallbackText = String(text || '').replace(/[^\x00-\x7F]/g, '');
-      doc.text(fallbackText, x, yPos, { align: 'left' });
-      return yPos + lineHeight;
-    } catch (fallbackError) {
-      console.error('Fallback text also failed:', fallbackError);
-      throw error;
+    // Handle text alignment
+    if (align === 'right') {
+      const textWidth = maxWidth || doc.getTextWidth(text);
+      doc.text(text, x - textWidth, y);
+    } else if (align === 'center') {
+      const textWidth = maxWidth || doc.getTextWidth(text);
+      doc.text(text, x - (textWidth / 2), y);
+    } else {
+      if (maxWidth) {
+        doc.text(text, x, y, { maxWidth });
+      } else {
+        doc.text(text, x, y);
+      }
     }
+  } catch (error) {
+    console.error('Error writing text:', { text, x, y, options, error });
+    throw error;
   }
-};
+}
 
 export async function generateInvoicePDF(
   invoice: PDFInvoice,
@@ -129,7 +125,7 @@ export async function generateInvoicePDF(
 
     // Import jsPDF dynamically to ensure it's only loaded on the server
     const jsPDFModule = await import('jspdf');
-    const jsPDF = jsPDFModule.default || jsPDFModule;
+    const jsPDF = jsPDFModule.default;
     
     const doc = new jsPDF({
       orientation: 'portrait',

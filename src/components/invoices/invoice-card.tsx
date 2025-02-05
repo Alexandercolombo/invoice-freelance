@@ -50,7 +50,10 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
           description: `Preparing Invoice #${invoice.number} for download...`,
         });
         
-        const token = await session?.getToken();
+        const token = await session?.getToken({
+          template: "convex"  // Match the template used in the API
+        });
+        
         if (!token) {
           throw new Error('Authentication required. Please sign in again.');
         }
@@ -127,12 +130,12 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
           variant: "destructive",
         });
       } finally {
-        // Always reset loading state unless we're retrying
+        // Only reset loading state if we're not retrying
         if (retryCount >= maxRetries) {
           setIsDownloading(false);
         }
       }
-    }
+    };
 
     await attemptDownload();
     // Ensure loading state is reset even if retries fail

@@ -44,7 +44,7 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
 
   // Handle authentication loading state
   if (!isLoaded) {
-    return <LoadingState message="Loading authentication..." size="sm" fullScreen={true} />;
+    return <LoadingState message="Loading authentication..." fullScreen={true} />;
   }
 
   // Handle not authenticated state
@@ -64,7 +64,6 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
     return (
       <LoadingState 
         message="Loading invoice data..."
-        size="md"
         fullScreen={true}
       />
     );
@@ -100,7 +99,10 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
       });
 
       // Get the auth token
-      const token = await session?.getToken();
+      const token = await session?.getToken({
+        template: "convex"  // Match the template used in the API
+      });
+      
       if (!token) {
         throw new Error("Authentication required. Please sign in again.");
       }
@@ -114,7 +116,7 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to generate PDF');
+        throw new Error(errorData.message || errorData.error || 'Failed to generate PDF');
       }
 
       const blob = await response.blob();
@@ -131,16 +133,15 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
       try {
         document.body.appendChild(link);
         link.click();
+        toast({
+          title: "Download complete",
+          description: `Invoice #${invoice.number} has been downloaded successfully.`,
+          variant: "default",
+        });
       } finally {
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
       }
-
-      toast({
-        title: "Download complete",
-        description: `Invoice #${invoice.number} has been downloaded successfully.`,
-        variant: "default",
-      });
     } catch (error) {
       console.error("Error downloading invoice:", error);
       toast({

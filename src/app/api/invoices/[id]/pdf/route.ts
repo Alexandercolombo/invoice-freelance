@@ -13,8 +13,8 @@ export const revalidate = 3600;
 export const GET = async (request: NextRequest) => {
   try {
     // Get Clerk auth
-    const authRequest = await auth();
-    const { userId } = authRequest;
+    const authRequest = auth();
+    const { userId } = await authRequest;
     if (!userId) {
       return new Response('Unauthorized', { status: 401 });
     }
@@ -127,4 +127,4 @@ export const GET = async (request: NextRequest) => {
       }
     });
   }
-} 
+}; 

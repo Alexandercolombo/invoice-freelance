@@ -8,19 +8,24 @@ export const dynamic = 'force-dynamic';
 interface PDFTask {
   description: string;
   hours: number;
+  hourlyRate: number;
+  amount: number;
 }
 
 interface PDFClient {
   name: string;
   email: string;
   hourlyRate: number;
+  address?: string;
 }
 
 interface PDFUser {
   businessName: string;
   email: string;
   address?: string;
-  paymentInstructions: string;
+  paymentInstructions?: string;
+  phone?: string;
+  logoUrl?: string;
 }
 
 interface PDFInvoice {
@@ -29,6 +34,8 @@ interface PDFInvoice {
   dueDate?: string;
   notes?: string;
   total: number;
+  subtotal: number;
+  tax?: number;
 }
 
 // Constants for PDF generation
@@ -101,9 +108,9 @@ const writeText = (doc: jsPDF, text: string, x: number, yPos: number, options: a
 };
 
 export async function generateInvoicePDF(
-  invoice: any,
-  userData: any,
-  client: any,
+  invoice: PDFInvoice,
+  userData: PDFUser,
+  client: PDFClient,
   tasks: Task[]
 ): Promise<Buffer> {
   // Validate input data
@@ -120,7 +127,9 @@ export async function generateInvoicePDF(
       tasksCount: tasks.length
     });
 
-    const { jsPDF } = await import('jspdf');
+    // Import jsPDF dynamically to ensure it's only loaded on the server
+    const jsPDFModule = await import('jspdf');
+    const jsPDF = jsPDFModule.default || jsPDFModule;
     
     const doc = new jsPDF({
       orientation: 'portrait',

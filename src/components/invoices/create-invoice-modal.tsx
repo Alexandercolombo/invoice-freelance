@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { formatCurrency, cn } from "@/lib/client-utils";
+import { formatCurrency, cn } from "@/lib/shared-utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, Receipt, ArrowRight, ArrowLeft, Check, X } from "lucide-react";
 import { format } from "date-fns";

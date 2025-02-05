@@ -1,7 +1,7 @@
 "use client";
 
 import { Task } from "@/types";
-import { formatCurrency } from "@/lib/client-utils";
+import { formatCurrency } from "@/lib/shared-utils";
 import {
   Dialog,
   DialogContent,

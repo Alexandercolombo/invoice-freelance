@@ -2,8 +2,8 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Id } from "convex/_generated/dataModel";
-import { formatCurrency } from "@/lib/client-format-currency";
+import { Id } from "../../../convex/_generated/dataModel";
+import { formatCurrency } from "@/lib/shared-utils";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Download, ArrowLeft, Send, Edit, Copy } from "lucide-react";

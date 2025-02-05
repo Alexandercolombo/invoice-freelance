@@ -1,8 +1,10 @@
+"use client";
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { formatCurrency } from '@/lib/client-format-currency';
+import { formatCurrency } from '@/lib/shared-utils';
 import { Loader2, Download, Eye, Pencil, Trash2 } from 'lucide-react';
 import { Id } from '../../../convex/_generated/dataModel';
 import { useToast } from '@/hooks/use-toast';

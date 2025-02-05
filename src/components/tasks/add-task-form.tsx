@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { formatCurrency } from "@/lib/client-utils";
+import { formatCurrency } from "@/lib/shared-utils";
 import { Id } from "../../../convex/_generated/dataModel";
 
 type AddTaskFormProps = {

@@ -11,7 +11,7 @@ import { UploadButton } from '@/components/ui/upload-button';
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/server-utils';
 import { storage, validation, features } from '@/lib/browser-utils';
 
 const STORAGE_KEY = 'onboarding_progress';

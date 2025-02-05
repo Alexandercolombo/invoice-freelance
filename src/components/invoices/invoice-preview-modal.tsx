@@ -115,7 +115,10 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = await response.json().catch(() => ({ 
+          error: 'Failed to generate PDF',
+          message: 'An unexpected error occurred'
+        }));
         throw new Error(errorData.message || errorData.error || 'Failed to generate PDF');
       }
 

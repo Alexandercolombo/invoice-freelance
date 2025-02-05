@@ -3,7 +3,6 @@ import { auth } from '@clerk/nextjs/server';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from 'convex/_generated/api';
 import { Id } from 'convex/_generated/dataModel';
-import jsPDF from 'jspdf';
 import { formatCurrency } from '@/lib/utils';
 
 // Remove Edge runtime as it might be incompatible with Convex
@@ -11,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
 
 // Helper function to write text
-function writeText(doc: jsPDF, text: string, x: number, y: number, options: {
+async function writeText(doc: any, text: string, x: number, y: number, options: {
   fontSize?: number;
   color?: string;
   align?: 'left' | 'right' | 'center';
@@ -40,7 +39,7 @@ function writeText(doc: jsPDF, text: string, x: number, y: number, options: {
 }
 
 // Helper function to draw rectangles
-function drawRect(doc: jsPDF, x: number, y: number, width: number, height: number, color: string = "#F8FAFC", radius: number = 2) {
+function drawRect(doc: any, x: number, y: number, width: number, height: number, color: string = "#F8FAFC", radius: number = 2) {
   doc.setFillColor(color);
   doc.roundedRect(x, y, width, height, radius, radius, "F");
 }
@@ -109,6 +108,9 @@ export async function GET(request: NextRequest) {
     }
 
     try {
+      // Dynamically import jsPDF only when needed
+      const jsPDF = (await import('jspdf')).default;
+      
       // Create PDF document
       const doc = new jsPDF({
         orientation: 'portrait',
@@ -124,13 +126,13 @@ export async function GET(request: NextRequest) {
       let y = margin;
 
       // Header Section
-      writeText(doc, userData.businessName || '', margin + 2, y + 6, { 
+      await writeText(doc, userData.businessName || '', margin + 2, y + 6, { 
         fontSize: 20, 
         color: '#111827',
         isBold: true 
       });
 
-      writeText(doc, 'INVOICE', pageWidth - margin - 40, y + 6, { 
+      await writeText(doc, 'INVOICE', pageWidth - margin - 40, y + 6, { 
         fontSize: 16,
         color: '#111827',
         isBold: true,
@@ -138,7 +140,7 @@ export async function GET(request: NextRequest) {
       });
 
       y += 9;
-      writeText(doc, `#${invoiceData.number}`, pageWidth - margin, y + 4, { 
+      await writeText(doc, `#${invoiceData.number}`, pageWidth - margin, y + 4, { 
         fontSize: 12,
         color: '#4B5563',
         align: 'right'
@@ -146,7 +148,7 @@ export async function GET(request: NextRequest) {
 
       // Date information
       y += 9;
-      writeText(doc, `Date: ${new Date(invoiceData.date).toLocaleDateString()}`, pageWidth - margin, y + 2, { 
+      await writeText(doc, `Date: ${new Date(invoiceData.date).toLocaleDateString()}`, pageWidth - margin, y + 2, { 
         fontSize: 10,
         color: '#4B5563',
         align: 'right'
@@ -160,14 +162,14 @@ export async function GET(request: NextRequest) {
       const leftColX = margin + 10;
       const rightColX = pageWidth / 2 + 5;
 
-      writeText(doc, 'FROM', leftColX, y + 6, { 
+      await writeText(doc, 'FROM', leftColX, y + 6, { 
         fontSize: 10,
         color: '#6B7280',
         isBold: true
       });
 
       y += 10;
-      writeText(doc, userData.businessName || '', leftColX, y + 6, { 
+      await writeText(doc, userData.businessName || '', leftColX, y + 6, { 
         fontSize: 12,
         color: '#111827',
         isBold: true
@@ -175,7 +177,7 @@ export async function GET(request: NextRequest) {
 
       if (userData.address) {
         y += 7;
-        writeText(doc, userData.address, leftColX, y + 6, { 
+        await writeText(doc, userData.address, leftColX, y + 6, { 
           color: '#4B5563',
           fontSize: 10,
           maxWidth: contentWidth / 2 - 20
@@ -184,14 +186,14 @@ export async function GET(request: NextRequest) {
 
       // Bill To section
       let billToY = margin + 35;
-      writeText(doc, 'BILL TO', rightColX, billToY + 6, { 
+      await writeText(doc, 'BILL TO', rightColX, billToY + 6, { 
         fontSize: 10,
         color: '#6B7280',
         isBold: true
       });
 
       billToY += 10;
-      writeText(doc, invoiceClient.name, rightColX, billToY + 6, { 
+      await writeText(doc, invoiceClient.name, rightColX, billToY + 6, { 
         fontSize: 12,
         isBold: true,
         color: '#111827'
@@ -199,7 +201,7 @@ export async function GET(request: NextRequest) {
 
       if (invoiceClient.email) {
         billToY += 7;
-        writeText(doc, invoiceClient.email, rightColX, billToY + 6, { 
+        await writeText(doc, invoiceClient.email, rightColX, billToY + 6, { 
           fontSize: 10,
           color: '#4B5563'
         });
@@ -215,27 +217,27 @@ export async function GET(request: NextRequest) {
       const col3Width = contentWidth * 0.20;
       const col4Width = contentWidth * 0.20;
 
-      writeText(doc, 'Description', margin + 5, y + 7, {
+      await writeText(doc, 'Description', margin + 5, y + 7, {
         fontSize: 10,
         isBold: true,
         color: '#6B7280'
       });
 
-      writeText(doc, 'Hours', margin + col1Width + 15, y + 7, {
+      await writeText(doc, 'Hours', margin + col1Width + 15, y + 7, {
         fontSize: 10,
         isBold: true,
         color: '#6B7280',
         align: 'right'
       });
 
-      writeText(doc, 'Rate', margin + col1Width + col2Width + 15, y + 7, {
+      await writeText(doc, 'Rate', margin + col1Width + col2Width + 15, y + 7, {
         fontSize: 10,
         isBold: true,
         color: '#6B7280',
         align: 'right'
       });
 
-      writeText(doc, 'Amount', pageWidth - margin - 5, y + 7, {
+      await writeText(doc, 'Amount', pageWidth - margin - 5, y + 7, {
         fontSize: 10,
         isBold: true,
         color: '#6B7280',
@@ -245,39 +247,39 @@ export async function GET(request: NextRequest) {
       y += 15;
 
       // Task rows
-      tasks.forEach((task, index) => {
-        if (!task) return;
+      for (const task of tasks) {
+        if (!task) continue;
 
-        if (index % 2 === 0) {
+        if (tasks.indexOf(task) % 2 === 0) {
           drawRect(doc, margin, y - 3, contentWidth, 10, '#F9FAFB');
         }
 
-        writeText(doc, task.description || '', margin + 5, y + 3, {
+        await writeText(doc, task.description || '', margin + 5, y + 3, {
           fontSize: 10,
           color: '#111827',
           maxWidth: col1Width - 10
         });
 
-        writeText(doc, String(task.hours || '0'), margin + col1Width + 15, y + 3, {
+        await writeText(doc, String(task.hours || '0'), margin + col1Width + 15, y + 3, {
           fontSize: 10,
           color: '#111827',
           align: 'right'
         });
 
-        writeText(doc, formatCurrency(task.hourlyRate || 0), margin + col1Width + col2Width + 15, y + 3, {
+        await writeText(doc, formatCurrency(task.hourlyRate || 0), margin + col1Width + col2Width + 15, y + 3, {
           fontSize: 10,
           color: '#111827',
           align: 'right'
         });
 
-        writeText(doc, formatCurrency(task.amount || 0), pageWidth - margin - 5, y + 3, {
+        await writeText(doc, formatCurrency(task.amount || 0), pageWidth - margin - 5, y + 3, {
           fontSize: 10,
           color: '#111827',
           align: 'right'
         });
 
         y += 10;
-      });
+      }
 
       // Totals section
       y += 10;
@@ -286,11 +288,11 @@ export async function GET(request: NextRequest) {
 
       drawRect(doc, totalsX - 5, y - 2, totalsWidth + 5, 35, '#F8FAFC');
 
-      writeText(doc, 'Subtotal', totalsX + 5, y + 2, {
+      await writeText(doc, 'Subtotal', totalsX + 5, y + 2, {
         fontSize: 10,
         color: '#6B7280'
       });
-      writeText(doc, formatCurrency(invoiceData.subtotal || 0), pageWidth - margin - 5, y + 2, {
+      await writeText(doc, formatCurrency(invoiceData.subtotal || 0), pageWidth - margin - 5, y + 2, {
         fontSize: 10,
         align: 'right',
         color: '#111827'
@@ -298,11 +300,11 @@ export async function GET(request: NextRequest) {
 
       if (invoiceData.tax) {
         y += 8;
-        writeText(doc, `Tax (${invoiceData.tax}%)`, totalsX + 5, y + 2, {
+        await writeText(doc, `Tax (${invoiceData.tax}%)`, totalsX + 5, y + 2, {
           fontSize: 10,
           color: '#6B7280'
         });
-        writeText(
+        await writeText(
           doc,
           formatCurrency((invoiceData.subtotal || 0) * (invoiceData.tax / 100)),
           pageWidth - margin - 5,
@@ -317,12 +319,12 @@ export async function GET(request: NextRequest) {
 
       y += 10;
       drawRect(doc, totalsX - 5, y - 2, totalsWidth + 5, 12, '#EBF5FF');
-      writeText(doc, 'Total Due', totalsX + 5, y + 2, {
+      await writeText(doc, 'Total Due', totalsX + 5, y + 2, {
         fontSize: 12,
         isBold: true,
         color: '#2563EB'
       });
-      writeText(doc, formatCurrency(invoiceData.total || 0), pageWidth - margin - 5, y + 2, {
+      await writeText(doc, formatCurrency(invoiceData.total || 0), pageWidth - margin - 5, y + 2, {
         fontSize: 12,
         isBold: true,
         align: 'right',
@@ -334,13 +336,13 @@ export async function GET(request: NextRequest) {
         y += 30;
         drawRect(doc, margin, y, contentWidth, 30, '#F8FAFC');
         y += 7;
-        writeText(doc, 'PAYMENT INSTRUCTIONS', margin + 5, y, {
+        await writeText(doc, 'PAYMENT INSTRUCTIONS', margin + 5, y, {
           fontSize: 9,
           color: '#6B7280',
           isBold: true
         });
         y += 7;
-        writeText(doc, userData.paymentInstructions, margin + 5, y, {
+        await writeText(doc, userData.paymentInstructions, margin + 5, y, {
           fontSize: 9,
           color: '#4B5563',
           maxWidth: contentWidth - 10
@@ -353,11 +355,11 @@ export async function GET(request: NextRequest) {
       doc.setLineWidth(0.5);
       doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5);
       
-      writeText(doc, 'Thank you for your business', margin, footerY, {
+      await writeText(doc, 'Thank you for your business', margin, footerY, {
         fontSize: 8,
         color: '#6B7280'
       });
-      writeText(doc, `Generated on ${new Date().toLocaleDateString()}`, pageWidth - margin, footerY, {
+      await writeText(doc, `Generated on ${new Date().toLocaleDateString()}`, pageWidth - margin, footerY, {
         fontSize: 8,
         align: 'right',
         color: '#6B7280'
@@ -387,11 +389,10 @@ export async function GET(request: NextRequest) {
         }
       });
     } catch (pdfError) {
-      console.error('PDF rendering failed:', pdfError);
-      return new Response(JSON.stringify({ 
+      console.error('Error generating PDF:', pdfError);
+      return new Response(JSON.stringify({
         error: 'Failed to generate PDF',
-        message: (pdfError as Error).message,
-        code: 'PDF_GENERATION_ERROR'
+        message: pdfError instanceof Error ? pdfError.message : 'Unknown error occurred'
       }), { 
         status: 500,
         headers: {
@@ -400,11 +401,10 @@ export async function GET(request: NextRequest) {
       });
     }
   } catch (error) {
-    console.error('PDF generation failed:', error);
-    return new Response(JSON.stringify({ 
-      error: 'Internal server error',
-      message: (error as Error).message,
-      code: 'INTERNAL_SERVER_ERROR'
+    console.error('Error in PDF generation route:', error);
+    return new Response(JSON.stringify({
+      error: 'Internal Server Error',
+      message: error instanceof Error ? error.message : 'Unknown error occurred'
     }), { 
       status: 500,
       headers: {

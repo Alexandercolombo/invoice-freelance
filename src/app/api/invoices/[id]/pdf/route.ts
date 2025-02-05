@@ -1,10 +1,9 @@
 import { NextRequest } from "next/server";
 import { auth } from '@clerk/nextjs/server';
-import { ConvexHttpClient } from 'convex/browser';
 import { api } from 'convex/_generated/api';
 import { Id } from 'convex/_generated/dataModel';
-import { formatCurrency } from '@/lib/utils';
 import puppeteer from 'puppeteer';
+import { formatCurrency } from '@/lib/server-format-currency';
 
 // Remove Edge runtime as it might be incompatible with Convex
 export const dynamic = 'force-dynamic';
@@ -75,8 +74,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Create Convex client with the auth token
-    const client = new ConvexHttpClient(convexUrl);
-    client.setAuth(token);
+    const convexModule = await import('convex/server');
+    const client = convexModule.createServerClient(convexUrl, { token });
 
     // Fetch invoice and user data via the client
     const invoiceData = await client.query(api.invoices.getInvoice, { id: invoiceId });
@@ -112,6 +111,7 @@ export async function GET(request: NextRequest) {
     <h1>Invoice #${invoiceData.number}</h1>
     <p>Date: ${invoiceData.date}</p>
     <p>Business: ${userData.businessName}</p>
+    <p>Total: ${formatCurrency(invoiceData.total)}</p>
     <!-- Render additional invoice details, tasks, and formatting as needed -->
   </body>
 </html>`;

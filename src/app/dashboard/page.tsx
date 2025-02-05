@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/lib/client-utils";
 import { Plus, Receipt, ArrowRight } from "lucide-react";
 import { Task, Client } from "@/types";
 import { DashboardStats } from "@/components/dashboard/stats";

@@ -7,7 +7,7 @@ import { Id } from "convex/_generated/dataModel";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/lib/client-utils";
 import { Loader2 } from "lucide-react";
 import { TaskList } from "@/components/tasks/task-list";
 import { NewTaskModal } from "@/components/tasks/new-task-modal";

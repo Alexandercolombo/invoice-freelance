@@ -3,7 +3,7 @@
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Card } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/lib/client-utils";
 import { Clock, DollarSign, Users, FileText } from "lucide-react";
 
 export function DashboardStats() {

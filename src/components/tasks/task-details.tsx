@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/lib/client-utils";
 import { Task } from "@/types";
 
 interface TaskDetailsProps {

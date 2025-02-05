@@ -1,4 +1,6 @@
-import { formatCurrency } from "@/lib/utils";
+"use client";
+
+import { formatCurrency } from "@/lib/client-utils";
 
 type InvoiceTemplateProps = {
   invoice: {

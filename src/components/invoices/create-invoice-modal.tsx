@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/client-utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, Receipt, ArrowRight, ArrowLeft, Check, X } from "lucide-react";
 import { format } from "date-fns";
@@ -19,7 +19,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/pop
 import { EditInvoiceModal } from "./edit-invoice-modal";
 import { useToast } from "@/hooks/use-toast";
 import { InvoicePreviewModal } from "./invoice-preview-modal";
-import { cn } from "@/lib/utils";
 
 type CreateInvoiceModalProps = {
   isOpen: boolean;

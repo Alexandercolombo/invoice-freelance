@@ -2,9 +2,9 @@ export const runtime = 'nodejs';
 
 import { NextRequest } from "next/server";
 import { auth } from '@clerk/nextjs/server';
-import { ConvexHttpClient } from 'convex/browser';
 import { api } from 'convex/_generated/api';
 import { Id } from 'convex/_generated/dataModel';
+import { createServerConvexClient } from '@/lib/server-convex';
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,12 +22,6 @@ export async function GET(request: NextRequest) {
     if (!id) return new Response('Invalid invoice ID', { status: 400 });
     const invoiceId = id as unknown as Id<'invoices'>;
 
-    // Initialize Convex client
-    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-    if (!convexUrl) {
-      throw new Error('Missing NEXT_PUBLIC_CONVEX_URL environment variable');
-    }
-
     // Get Convex-specific JWT token from Clerk
     const token = await authRequest.getToken({ template: "convex" });
     if (!token) {
@@ -35,8 +29,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Create Convex client
-    const client = new ConvexHttpClient(convexUrl);
-    client.setAuth(token);
+    const client = await createServerConvexClient(token);
 
     // Fetch invoice and user data
     const invoiceData = await client.query(api.invoices.getInvoice, { id: invoiceId });

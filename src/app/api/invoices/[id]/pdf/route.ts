@@ -1,8 +1,11 @@
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { queryConvex } from '@/lib/server-convex';
 import { formatCurrency } from '@/lib/server-utils';
-import { generatePDF } from '@/lib/pdf-generator';
+import { generatePDF } from '@/lib/pdf-generator.server';
 
 export async function GET(
   request: Request,

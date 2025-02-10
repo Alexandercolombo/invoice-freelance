@@ -1,9 +1,9 @@
 /**
- * @fileoverview This is a server-only file and should not be imported by client components.
- * This file contains utilities for generating PDF documents on the server side.
+ * @fileoverview This is a server-only file for generating PDF documents.
  */
 
-import 'server-only';
+export const runtime = 'nodejs';
+
 import { formatCurrency, formatDate } from '@/lib/shared-utils';
 
 export function generateInvoiceHtml(invoice: any, user: any) {

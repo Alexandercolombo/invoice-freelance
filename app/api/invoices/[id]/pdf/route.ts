@@ -2,8 +2,6 @@
  * @fileoverview This is a server-only route handler for PDF generation.
  */
 
-import 'server-only';
-
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -27,24 +25,22 @@ export async function GET(
     const { userId } = authRequest;
     if (!userId) {
       console.log('[Debug] Unauthorized - No userId found');
-      return new NextResponse(JSON.stringify({ 
+      return NextResponse.json({ 
         error: 'Unauthorized',
         message: 'Authentication required'
-      }), { 
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
+      }, { 
+        status: 401
       });
     }
 
     const token = await authRequest.getToken({ template: 'convex' });
     if (!token) {
       console.error('[Error] Failed to get Convex token');
-      return new NextResponse(JSON.stringify({
+      return NextResponse.json({
         error: 'Authentication Error',
         message: 'Failed to get authentication token'
-      }), { 
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
+      }, { 
+        status: 500
       });
     }
 
@@ -53,44 +49,33 @@ export async function GET(
     const invoiceId = params.id;
     const invoice = await queryConvex(token, 'invoices/getInvoice', { id: invoiceId });
     if (!invoice) {
-      return new NextResponse(JSON.stringify({
+      return NextResponse.json({
         error: 'Not Found',
         message: 'Invoice not found'
-      }), { 
-        status: 404,
-        headers: { 'Content-Type': 'application/json' }
+      }, { 
+        status: 404
       });
     }
 
     if (invoice.userId !== userId) {
-      return new NextResponse(JSON.stringify({
+      return NextResponse.json({
         error: 'Unauthorized',
         message: 'You do not have permission to access this invoice'
-      }), { 
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
+      }, { 
+        status: 401
       });
     }
 
     const user = await queryConvex(token, 'users/get', {});
     if (!user) {
       console.error('[Error] User not found:', { userId });
-      return new NextResponse(JSON.stringify({
+      return NextResponse.json({
         error: 'Not Found',
         message: 'User data not found'
-      }), { 
-        status: 404,
-        headers: { 'Content-Type': 'application/json' }
+      }, { 
+        status: 404
       });
     }
-
-    console.log('[Debug] Starting PDF generation:', {
-      hasInvoice: !!invoice,
-      hasUser: !!user,
-      invoiceNumber: invoice?.number,
-      hasTasks: Array.isArray(invoice?.tasks),
-      tasksCount: Array.isArray(invoice?.tasks) ? invoice.tasks.length : 0
-    });
 
     // Validate required data
     if (!invoice || !user) {
@@ -154,13 +139,12 @@ export async function GET(
       stack: (error as Error)?.stack
     });
     
-    return new NextResponse(JSON.stringify({
+    return NextResponse.json({
       error: 'PDF Generation Failed',
       message: (error as Error)?.message || 'An error occurred while generating the PDF',
       details: 'Please try again or contact support if the issue persists'
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
+    }, {
+      status: 500
     });
   } finally {
     if (browser) {

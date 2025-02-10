@@ -7,12 +7,30 @@ export const get = query({
   args: {},
   handler: async (ctx) => {
     const identity = await getUser(ctx);
+    console.log("[Debug] users/get: Got user identity", {
+      subject: identity.subject,
+      tokenIdentifier: identity.tokenIdentifier,
+      email: identity.email,
+      issuer: identity.issuer
+    });
+
+    // Try to find user by either ID format
     const user = await ctx.db
       .query("users")
-      .withIndex("by_token", (q) => 
-        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      .filter(q => 
+        q.or(
+          q.eq(q.field("tokenIdentifier"), identity.tokenIdentifier),
+          q.eq(q.field("tokenIdentifier"), identity.subject)
+        )
       )
       .first();
+
+    console.log("[Debug] users/get: Query result", {
+      hasUser: !!user,
+      userTokenIdentifier: user?.tokenIdentifier,
+      matchesSubject: user?.tokenIdentifier === identity.subject,
+      matchesToken: user?.tokenIdentifier === identity.tokenIdentifier
+    });
 
     return user;
   },

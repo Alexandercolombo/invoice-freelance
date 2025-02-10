@@ -189,15 +189,43 @@ export const getInvoice = query({
   args: { id: v.id("invoices") },
   handler: async (ctx, args) => {
     const identity = await getUser(ctx);
+    console.log("[Debug] getInvoice: Got user identity", {
+      subject: identity.subject,
+      tokenIdentifier: identity.tokenIdentifier,
+      email: identity.email,
+      issuer: identity.issuer
+    });
 
     const invoice = await ctx.db.get(args.id);
-    if (!invoice || invoice.userId !== identity.tokenIdentifier) {
+    if (!invoice) {
+      console.log("[Debug] getInvoice: Invoice not found", { invoiceId: args.id });
+      return null;
+    }
+
+    // Check both ID formats
+    const isAuthorized = invoice.userId === identity.tokenIdentifier || invoice.userId === identity.subject;
+    console.log("[Debug] getInvoice: Authorization check", {
+      invoiceUserId: invoice.userId,
+      tokenIdentifier: identity.tokenIdentifier,
+      subject: identity.subject,
+      isAuthorized
+    });
+
+    if (!isAuthorized) {
+      console.log("[Debug] getInvoice: Unauthorized access", {
+        invoiceUserId: invoice.userId,
+        userIdentity: {
+          subject: identity.subject,
+          tokenIdentifier: identity.tokenIdentifier
+        }
+      });
       return null;
     }
 
     // Get client details
     const client = await ctx.db.get(invoice.clientId);
     if (!client) {
+      console.log("[Debug] getInvoice: Client not found", { clientId: invoice.clientId });
       return null;
     }
 
@@ -221,6 +249,12 @@ export const getInvoice = query({
 
     // Filter out any null tasks
     const validTasks = tasks.filter((task): task is NonNullable<typeof task> => task !== null);
+
+    console.log("[Debug] getInvoice: Successfully retrieved invoice", {
+      invoiceId: args.id,
+      hasClient: !!client,
+      taskCount: validTasks.length
+    });
 
     return {
       ...invoice,

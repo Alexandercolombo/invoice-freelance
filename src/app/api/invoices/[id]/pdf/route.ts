@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { queryConvex } from '@/lib/server-convex';
-import { formatCurrency } from '@/lib/shared-utils';
+import { formatCurrency } from '@/lib/server-utils';
 import { generatePDF } from './lib/pdf-generator';
 
 export async function GET(

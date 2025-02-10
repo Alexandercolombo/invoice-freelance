@@ -1,4 +1,6 @@
-import 'server-only';
+/**
+ * @fileoverview This is a server-only route handler for PDF generation.
+ */
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

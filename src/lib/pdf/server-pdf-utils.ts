@@ -1,4 +1,7 @@
-import 'server-only';
+/**
+ * @fileoverview This is a server-only file and should not be imported by client components.
+ */
+
 import { formatCurrency, formatDate } from '@/lib/shared-utils';
 
 export function generateInvoiceHtml(invoice: any, user: any) {

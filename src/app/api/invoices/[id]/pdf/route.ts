@@ -5,7 +5,7 @@ import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { queryConvex } from '@/lib/server-convex';
 import { formatCurrency } from '@/lib/shared-utils';
-import { generatePDF } from '@/lib/pdf-generator.server';
+import { generatePDF } from './lib/pdf-generator';
 
 export async function GET(
   request: Request,
@@ -66,7 +66,7 @@ export async function GET(
       });
     }
 
-    const user = await queryConvex(token, 'users/get', {});
+    const user = await queryConvex(token, 'users/get', { userId });
     if (!user) {
       console.error('[Error] User not found:', { userId, tokenIdentifier: user?.tokenIdentifier });
       return new NextResponse(JSON.stringify({

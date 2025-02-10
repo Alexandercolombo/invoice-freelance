@@ -8,7 +8,6 @@ export const dynamic = 'force-dynamic';
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { queryConvex } from '@/lib/server-convex';
-import puppeteer from 'puppeteer';
 import { generateInvoiceHtml } from '@/lib/pdf/server-pdf-utils';
 
 export async function GET(
@@ -100,7 +99,10 @@ export async function GET(
       throw new Error('Invoice has no tasks');
     }
 
-    browser = await puppeteer.launch({
+    // Dynamically import puppeteer
+    const puppeteer = await import('puppeteer');
+    
+    browser = await puppeteer.default.launch({
       headless: true,
       args: [
         '--no-sandbox',

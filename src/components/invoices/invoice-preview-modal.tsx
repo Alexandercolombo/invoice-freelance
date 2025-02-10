@@ -58,7 +58,7 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
   }, [session]);
 
   // Query user data and invoice data with proper token
-  const user = useQuery(api.users.get);
+  const user = useQuery(api.users.get, {});
   const invoice = useQuery(api.invoices.getInvoice, { id: invoiceId });
   const [showSendModal, setShowSendModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);

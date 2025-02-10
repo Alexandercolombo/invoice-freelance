@@ -1,4 +1,5 @@
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
@@ -75,12 +76,13 @@ export async function GET(
     const pdfBuffer = await generatePDF({ invoice, user, formatCurrency });
     console.log('[Debug] PDF generated successfully');
 
-    return new NextResponse(pdfBuffer, {
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="invoice-${invoice.invoiceNumber || 'unknown'}.pdf"`,
-      },
+    const headers = new Headers({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="invoice-${invoice.invoiceNumber || 'unknown'}.pdf"`,
+      'Cache-Control': 'no-store, must-revalidate',
     });
+
+    return new NextResponse(pdfBuffer, { headers });
   } catch (error) {
     console.error('[Error] PDF generation error:', {
       error,

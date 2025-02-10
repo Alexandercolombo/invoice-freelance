@@ -42,13 +42,22 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
   const [showSendModal, setShowSendModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
 
+  // Add debug logging
+  console.log('[Debug] Invoice Preview Modal:', {
+    hasInvoice: !!invoice,
+    invoiceId,
+    userId: user?.tokenIdentifier
+  });
+
   // Handle authentication loading state
   if (!isLoaded) {
+    console.log('[Debug] Auth loading');
     return <LoadingState message="Loading authentication..." fullScreen={true} />;
   }
 
   // Handle not authenticated state
   if (!isSignedIn) {
+    console.log('[Debug] Not signed in');
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
@@ -61,6 +70,7 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
 
   // Handle data loading state
   if (!invoice || !user) {
+    console.log('[Debug] Data loading:', { hasInvoice: !!invoice, hasUser: !!user });
     return (
       <LoadingState 
         message="Loading invoice data..."
@@ -71,6 +81,7 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
 
   // Validate required data
   if (!invoice.client) {
+    console.log('[Debug] Missing client data');
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">

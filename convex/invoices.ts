@@ -247,26 +247,40 @@ export const getAllInvoices = query({
       const identity = await getUser(ctx);
       console.log("[Debug] getAllInvoices: Got user identity", {
         subject: identity.subject,
-        tokenIdentifier: identity.tokenIdentifier
+        tokenIdentifier: identity.tokenIdentifier,
+        email: identity.email,
+        issuer: identity.issuer
       });
 
-      // Get invoices with proper index and filtering
-      console.log("[Debug] getAllInvoices: Querying invoices");
+      // Get invoices with proper index and filtering, checking both ID formats
+      console.log("[Debug] getAllInvoices: Querying invoices with both ID formats");
       const invoices = await ctx.db
         .query("invoices")
-        .withIndex("by_user_and_date", (q) => 
-          q.eq("userId", identity.tokenIdentifier)
+        .filter(q => 
+          q.or(
+            q.eq(q.field("userId"), identity.tokenIdentifier),
+            q.eq(q.field("userId"), identity.subject)
+          )
         )
         .order("desc")
         .collect();
       
-      console.log("[Debug] getAllInvoices: Raw query result", {
-        count: invoices.length,
+      // Log detailed information about found invoices
+      console.log("[Debug] getAllInvoices: Query results", {
+        totalCount: invoices.length,
         hasResults: invoices.length > 0,
-        firstInvoice: invoices[0] ? { 
-          id: invoices[0]._id,
-          userId: invoices[0].userId
-        } : null
+        userIdentity: {
+          subject: identity.subject,
+          tokenIdentifier: identity.tokenIdentifier
+        },
+        invoices: invoices.map(invoice => ({
+          id: invoice._id,
+          userId: invoice.userId,
+          matchesSubject: invoice.userId === identity.subject,
+          matchesToken: invoice.userId === identity.tokenIdentifier,
+          number: invoice.number,
+          date: invoice.date
+        }))
       });
 
       // Return empty array if no invoices found

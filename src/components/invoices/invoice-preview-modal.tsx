@@ -39,43 +39,50 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
   const { toast } = useToast();
   const { session } = useClerk();
   
+  // Get the session token for Convex
+  const [token, setToken] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const getToken = async () => {
+      if (session) {
+        try {
+          const token = await session.getToken();
+          setToken(token);
+          console.log('[Debug] Got session token:', { hasToken: !!token });
+        } catch (error) {
+          console.error('[Error] Failed to get session token:', error);
+        }
+      }
+    };
+    getToken();
+  }, [session]);
+
   // Query user data and invoice data
   const user = useQuery(api.users.get);
   const invoice = useQuery(api.invoices.getInvoice, { id: invoiceId });
   const [showSendModal, setShowSendModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
 
-  // Add debug logging for user data loading
+  // Add debug logging for token and user data loading
   useEffect(() => {
-    console.log('[Debug] User Data Loading State:', {
+    console.log('[Debug] Auth and User State:', {
       isSignedIn,
       userId,
       clerkUserId: clerkUser?.id,
+      hasToken: !!token,
       hasUser: !!user,
       userDetails: user ? {
         tokenIdentifier: user.tokenIdentifier,
         businessName: user.businessName,
         email: user.email
-      } : null
+      } : null,
+      session: !!session
     });
-  }, [isSignedIn, userId, user, clerkUser]);
-
-  // Add debug logging for invoice data loading
-  useEffect(() => {
-    console.log('[Debug] Invoice Data Loading State:', {
-      invoiceId,
-      hasInvoice: !!invoice,
-      invoiceDetails: invoice ? {
-        id: invoice._id,
-        number: invoice.number,
-        userId: invoice.userId
-      } : null
-    });
-  }, [invoiceId, invoice]);
+  }, [isSignedIn, userId, user, clerkUser, token, session]);
 
   // Handle authentication loading state
-  if (!isLoaded || !clerkUser) {
-    console.log('[Debug] Auth loading');
+  if (!isLoaded || !clerkUser || !token) {
+    console.log('[Debug] Auth loading:', { isLoaded, hasUser: !!clerkUser, hasToken: !!token });
     return <LoadingState message="Loading authentication..." fullScreen={true} />;
   }
 
@@ -151,65 +158,49 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
   const handleDownload = async () => {
     try {
       setIsDownloading(true);
-      toast({
-        title: "Starting download",
-        description: "Preparing your invoice PDF...",
-      });
-
-      // Get the auth token
-      const token = await session?.getToken({
-        template: "convex"  // Match the template used in the API
-      });
       
+      // Get the auth token for the request
+      const token = await session?.getToken();
       if (!token) {
-        throw new Error("Authentication required. Please sign in again.");
+        throw new Error('No authentication token available');
       }
 
+      // Use the API route for PDF generation
       const response = await fetch(`/api/invoices/${invoiceId}/pdf`, {
         headers: {
-          Authorization: `Bearer ${token}`,
-          'Cache-Control': 'no-cache'
-        },
+          'Authorization': `Bearer ${token}`
+        }
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ 
-          error: 'Failed to generate PDF',
-          message: 'An unexpected error occurred'
-        }));
-        throw new Error(errorData.message || errorData.error || 'Failed to generate PDF');
-      }
-
-      const blob = await response.blob();
-      if (blob.size === 0) {
-        throw new Error('Generated PDF is empty');
-      }
-
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `invoice-${invoice.number}.pdf`;
-      
-      // Use a try-finally to ensure cleanup
-      try {
-        document.body.appendChild(link);
-        link.click();
-        toast({
-          title: "Download complete",
-          description: `Invoice #${invoice.number} has been downloaded successfully.`,
-          variant: "default",
+        const errorData = await response.json().catch(() => null);
+        console.error('[Error] Failed to download invoice:', {
+          status: response.status,
+          error: errorData
         });
-      } finally {
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+        throw new Error(errorData?.message || 'Failed to download invoice');
       }
-    } catch (error) {
-      console.error("Error downloading invoice:", error);
+
+      // Create a blob from the PDF data
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `invoice-${invoice.number || 'download'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
       toast({
-        title: "Download failed",
-        description: error instanceof Error 
-          ? `Error: ${error.message}. Please try again.`
-          : "Failed to download invoice. Please try again.",
+        title: "Success",
+        description: "Invoice PDF downloaded successfully",
+      });
+    } catch (error) {
+      console.error('Error downloading invoice:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to download invoice",
         variant: "destructive",
       });
     } finally {

@@ -15,7 +15,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useState, useMemo, lazy, useEffect } from "react";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { useToast } from "@/hooks/use-toast";
 import { useClerk } from "@clerk/nextjs";
 import { Task } from "@/types";
@@ -35,6 +35,7 @@ interface InvoicePreviewModalProps {
 export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePreviewModalProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const { isSignedIn, isLoaded, userId } = useAuth();
+  const { user: clerkUser } = useUser();
   const { toast } = useToast();
   const { session } = useClerk();
   
@@ -49,6 +50,7 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
     console.log('[Debug] User Data Loading State:', {
       isSignedIn,
       userId,
+      clerkUserId: clerkUser?.id,
       hasUser: !!user,
       userDetails: user ? {
         tokenIdentifier: user.tokenIdentifier,
@@ -56,7 +58,7 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
         email: user.email
       } : null
     });
-  }, [isSignedIn, userId, user]);
+  }, [isSignedIn, userId, user, clerkUser]);
 
   // Add debug logging for invoice data loading
   useEffect(() => {
@@ -72,7 +74,7 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
   }, [invoiceId, invoice]);
 
   // Handle authentication loading state
-  if (!isLoaded) {
+  if (!isLoaded || !clerkUser) {
     console.log('[Debug] Auth loading');
     return <LoadingState message="Loading authentication..." fullScreen={true} />;
   }
@@ -96,6 +98,7 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
       hasInvoice: !!invoice, 
       hasUser: !!user,
       userId,
+      clerkUserId: clerkUser?.id,
       isSignedIn,
       invoiceId
     });
@@ -111,7 +114,8 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
   if (invoice.userId !== userId) {
     console.log('[Debug] Invoice ownership mismatch:', {
       invoiceUserId: invoice.userId,
-      currentUserId: userId
+      currentUserId: userId,
+      clerkUserId: clerkUser?.id
     });
     toast({
       title: "Access Denied",

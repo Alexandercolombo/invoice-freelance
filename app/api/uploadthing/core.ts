@@ -1,3 +1,8 @@
+/**
+ * @fileoverview This is a server-only file for handling file uploads.
+ */
+
+import 'server-only';
 import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { auth } from "@clerk/nextjs/server";
  

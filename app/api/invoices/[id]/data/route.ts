@@ -1,3 +1,8 @@
+/**
+ * @fileoverview This is a server-only route handler for invoice data.
+ */
+
+import 'server-only';
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { queryConvex } from '@/lib/server-convex';

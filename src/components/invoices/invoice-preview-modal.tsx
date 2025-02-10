@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { useState, useMemo, lazy } from "react";
+import { useState, useMemo, lazy, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useToast } from "@/hooks/use-toast";
 import { useClerk } from "@clerk/nextjs";
@@ -38,25 +38,38 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
   const { toast } = useToast();
   const { session } = useClerk();
   
-  // Query user data using the current user's ID
+  // Query user data and invoice data
   const user = useQuery(api.users.get);
   const invoice = useQuery(api.invoices.getInvoice, { id: invoiceId });
   const [showSendModal, setShowSendModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
 
-  // Add debug logging
-  console.log('[Debug] Invoice Preview Modal State:', {
-    hasInvoice: !!invoice,
-    invoiceId,
-    userId,
-    isSignedIn,
-    isLoaded,
-    hasUser: !!user,
-    userDetails: user ? {
-      hasBusinessName: !!user.businessName,
-      hasEmail: !!user.email
-    } : null
-  });
+  // Add debug logging for user data loading
+  useEffect(() => {
+    console.log('[Debug] User Data Loading State:', {
+      isSignedIn,
+      userId,
+      hasUser: !!user,
+      userDetails: user ? {
+        tokenIdentifier: user.tokenIdentifier,
+        businessName: user.businessName,
+        email: user.email
+      } : null
+    });
+  }, [isSignedIn, userId, user]);
+
+  // Add debug logging for invoice data loading
+  useEffect(() => {
+    console.log('[Debug] Invoice Data Loading State:', {
+      invoiceId,
+      hasInvoice: !!invoice,
+      invoiceDetails: invoice ? {
+        id: invoice._id,
+        number: invoice.number,
+        userId: invoice.userId
+      } : null
+    });
+  }, [invoiceId, invoice]);
 
   // Handle authentication loading state
   if (!isLoaded) {
@@ -66,7 +79,7 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
 
   // Handle not authenticated state
   if (!isSignedIn || !userId) {
-    console.log('[Debug] Not signed in or no userId');
+    console.log('[Debug] Not signed in or no userId:', { isSignedIn, userId });
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
@@ -83,14 +96,30 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
       hasInvoice: !!invoice, 
       hasUser: !!user,
       userId,
-      isSignedIn
+      isSignedIn,
+      invoiceId
     });
     return (
       <LoadingState 
-        message="Loading invoice data..."
+        message={`Loading invoice data... ${!invoice ? '(Invoice pending)' : ''} ${!user ? '(User data pending)' : ''}`}
         fullScreen={true}
       />
     );
+  }
+
+  // Verify invoice ownership
+  if (invoice.userId !== userId) {
+    console.log('[Debug] Invoice ownership mismatch:', {
+      invoiceUserId: invoice.userId,
+      currentUserId: userId
+    });
+    toast({
+      title: "Access Denied",
+      description: "You don't have permission to view this invoice.",
+      variant: "destructive",
+    });
+    onOpenChange(false);
+    return null;
   }
 
   // Validate required data

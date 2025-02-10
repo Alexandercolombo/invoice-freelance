@@ -92,9 +92,11 @@ export async function GET(
       stack: (error as Error)?.stack,
       params: params
     });
+    
     return new NextResponse(JSON.stringify({ 
       error: 'PDF Generation Failed',
-      message: (error as Error)?.message
+      message: (error as Error)?.message,
+      details: 'An error occurred while generating the PDF. Please try again.'
     }), { 
       status: 500,
       headers: {

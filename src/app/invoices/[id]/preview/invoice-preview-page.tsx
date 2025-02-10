@@ -59,8 +59,8 @@ export function InvoicePreviewPage({ params }: InvoicePreviewPageProps) {
     try {
       setIsDownloading(true);
 
-      // Get the auth token
-      const token = await session?.getToken();
+      // Get the Convex token
+      const token = await session?.getToken({ template: 'convex' });
       if (!token) {
         throw new Error("Not authenticated");
       }
@@ -71,13 +71,16 @@ export function InvoicePreviewPage({ params }: InvoicePreviewPageProps) {
         },
       });
 
-      if (!response.ok) throw new Error("Failed to generate PDF");
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to generate PDF");
+      }
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `invoice-${invoice.number}.pdf`;
+      link.download = invoice ? `invoice-${invoice.number}.pdf` : 'invoice.pdf';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -91,7 +94,7 @@ export function InvoicePreviewPage({ params }: InvoicePreviewPageProps) {
       console.error("Error downloading invoice:", error);
       toast({
         title: "Error",
-        description: "Failed to download invoice",
+        description: error instanceof Error ? error.message : "Failed to download invoice",
         variant: "destructive",
       });
     } finally {

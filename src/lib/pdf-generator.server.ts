@@ -1,5 +1,5 @@
 import puppeteer from 'puppeteer';
-import 'server-only';
+// import 'server-only';
 
 interface GeneratePDFParams {
   invoice: any;

@@ -1,5 +1,4 @@
 export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
@@ -12,15 +11,14 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const authRequest = await auth();
-    const { userId } = authRequest;
-    if (!userId) {
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const token = await authRequest.getToken({ template: 'convex' });
+    const token = authHeader.split(' ')[1];
     if (!token) {
-      return new NextResponse('Failed to get auth token', { status: 500 });
+      return new NextResponse('Invalid token', { status: 401 });
     }
 
     const invoiceId = params.id;
@@ -33,11 +31,7 @@ export async function GET(
       return new NextResponse('Invoice not found', { status: 404 });
     }
 
-    if (invoice.userId !== userId) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-
-    const user = await queryConvex(token, 'users/get', { id: userId });
+    const user = await queryConvex(token, 'users/get', { id: invoice.userId });
     if (!user) {
       return new NextResponse('User not found', { status: 404 });
     }

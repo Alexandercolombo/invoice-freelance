@@ -46,9 +46,9 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
     const getToken = async () => {
       if (session) {
         try {
-          const token = await session.getToken();
+          const token = await session.getToken({ template: "convex" });
           setToken(token);
-          console.log('[Debug] Got session token:', { hasToken: !!token });
+          console.log('[Debug] Got Convex token:', { hasToken: !!token });
         } catch (error) {
           console.error('[Error] Failed to get session token:', error);
         }
@@ -57,7 +57,7 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
     getToken();
   }, [session]);
 
-  // Query user data and invoice data
+  // Query user data and invoice data with proper token
   const user = useQuery(api.users.get);
   const invoice = useQuery(api.invoices.getInvoice, { id: invoiceId });
   const [showSendModal, setShowSendModal] = useState(false);
@@ -81,8 +81,8 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
   }, [isSignedIn, userId, user, clerkUser, token, session]);
 
   // Handle authentication loading state
-  if (!isLoaded || !clerkUser || !token) {
-    console.log('[Debug] Auth loading:', { isLoaded, hasUser: !!clerkUser, hasToken: !!token });
+  if (!isLoaded || !clerkUser) {
+    console.log('[Debug] Auth loading:', { isLoaded, hasUser: !!clerkUser });
     return <LoadingState message="Loading authentication..." fullScreen={true} />;
   }
 
@@ -107,7 +107,8 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
       userId,
       clerkUserId: clerkUser?.id,
       isSignedIn,
-      invoiceId
+      invoiceId,
+      token: !!token
     });
     return (
       <LoadingState 
@@ -160,7 +161,7 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
       setIsDownloading(true);
       
       // Get the auth token for the request
-      const token = await session?.getToken();
+      const token = await session?.getToken({ template: "convex" });
       if (!token) {
         throw new Error('No authentication token available');
       }

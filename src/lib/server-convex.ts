@@ -1,20 +1,6 @@
-import 'server-only';
-import { ConvexClient } from 'convex/browser';
-
-// Mark this file as server-only
+// Remove the server-only and browser imports
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-export async function createServerConvexClient(token: string) {
-  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-  if (!convexUrl) {
-    throw new Error('Missing NEXT_PUBLIC_CONVEX_URL environment variable');
-  }
-
-  const client = new ConvexClient(convexUrl);
-  await client.setAuth(() => Promise.resolve(token));
-  return client;
-}
 
 export async function queryConvex(token: string, functionPath: string, args: any) {
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;

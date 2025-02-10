@@ -1,5 +1,3 @@
-import 'server-only';
-
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +42,8 @@ export async function GET(
       });
     }
 
+    console.log('[Debug] Fetching data:', { userId, hasToken: !!token });
+
     const invoiceId = params.id;
     const invoice = await queryConvex(token, 'invoices/getInvoice', { id: invoiceId });
     if (!invoice) {
@@ -68,6 +68,7 @@ export async function GET(
 
     const user = await queryConvex(token, 'users/get', {});
     if (!user) {
+      console.error('[Error] User not found:', { userId, tokenIdentifier: user?.tokenIdentifier });
       return new NextResponse(JSON.stringify({
         error: 'Not Found',
         message: 'User data not found'
@@ -76,6 +77,13 @@ export async function GET(
         headers: { 'Content-Type': 'application/json' }
       });
     }
+
+    console.log('[Debug] Generating PDF with data:', {
+      hasInvoice: !!invoice,
+      hasUser: !!user,
+      userId,
+      userTokenIdentifier: user.tokenIdentifier
+    });
 
     const pdfBuffer = await generatePDF({ invoice, user, formatCurrency });
 

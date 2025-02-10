@@ -29,8 +29,11 @@ export const getAll = query({
     const identity = await getUser(ctx);
     const clients = await ctx.db
       .query("clients")
-      .withIndex("by_user", (q) => 
-        q.eq("userId", identity.tokenIdentifier)
+      .filter((q) => 
+        q.or(
+          q.eq(q.field("userId"), identity.tokenIdentifier),
+          q.eq(q.field("userId"), identity.subject)
+        )
       )
       .collect();
 

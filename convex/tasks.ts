@@ -8,7 +8,12 @@ export const list = query({
     const identity = await getUser(ctx);
     const tasks = await ctx.db
       .query("tasks_v2")
-      .withIndex("by_user", (q) => q.eq("userId", identity.tokenIdentifier))
+      .filter((q) => 
+        q.or(
+          q.eq(q.field("userId"), identity.tokenIdentifier),
+          q.eq(q.field("userId"), identity.subject)
+        )
+      )
       .collect();
 
     return tasks;

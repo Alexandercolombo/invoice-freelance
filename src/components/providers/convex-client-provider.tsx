@@ -1,10 +1,33 @@
 'use client';
 
-import { ReactNode, useMemo } from 'react';
+import { ReactNode, useMemo, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { ConvexProviderWithClerk } from 'convex/react-clerk';
 import { ConvexReactClient } from 'convex/react';
 import { LoadingState } from '@/components/loading-state';
+import { useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+
+// Separate component to handle ensuring user exists
+function UserEnsurer() {
+  const { isSignedIn } = useAuth();
+  const ensureUser = useMutation(api.users.ensureUser);
+
+  useEffect(() => {
+    if (isSignedIn) {
+      console.log('[Debug] Calling ensureUser');
+      ensureUser()
+        .then((user) => {
+          console.log('[Debug] ensureUser success:', { hasUser: !!user });
+        })
+        .catch((error) => {
+          console.error('[Error] ensureUser failed:', error);
+        });
+    }
+  }, [isSignedIn, ensureUser]);
+
+  return null;
+}
 
 interface Props {
   children: ReactNode;
@@ -37,6 +60,7 @@ export function ConvexClientProvider({ children }: Props) {
 
   return (
     <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+      <UserEnsurer />
       {children}
     </ConvexProviderWithClerk>
   );

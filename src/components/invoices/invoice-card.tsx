@@ -4,16 +4,16 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { formatCurrency } from '@/lib/shared-utils';
+import { formatCurrency, formatDate } from '@/lib/client-utils';
 import { Loader2, Download, Eye, Pencil, Trash2 } from 'lucide-react';
 import { Id } from '../../../convex/_generated/dataModel';
 import { useToast } from '@/hooks/use-toast';
 import { InvoicePreviewModal } from './invoice-preview-modal';
 import { EditInvoiceModal } from './edit-invoice-modal';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
-import { useClerk } from '@clerk/clerk-react';
+import { useClerk } from '@clerk/nextjs';
 
 interface InvoiceCardProps {
   invoice: {

@@ -1,19 +1,5 @@
 import 'server-only';
-
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount);
-}
-
-export function formatDate(date: string | Date): string {
-  return new Date(date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-}
+import { formatCurrency, formatDate } from '@/lib/shared-utils';
 
 export function generateInvoiceHtml(invoice: any, user: any) {
   return `

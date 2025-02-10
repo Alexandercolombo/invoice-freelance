@@ -1,3 +1,5 @@
+import 'server-only';
+
 // Remove the server-only and browser imports
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

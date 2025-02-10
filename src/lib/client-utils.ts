@@ -22,7 +22,4 @@ export function formatDate(date: string | Date): string {
   });
 }
 
-// Add any other client-side utility functions here
-export function cn(...classes: string[]) {
-  return classes.filter(Boolean).join(' ');
-} 
+// Add any other client-side utility functions here 

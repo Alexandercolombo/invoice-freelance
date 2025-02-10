@@ -2,7 +2,8 @@
  * @fileoverview This is a server-only file and should not be imported by client components.
  */
 
-// Remove the server-only import
+import 'server-only';
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 

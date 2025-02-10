@@ -3,6 +3,7 @@
  * This file contains utilities for generating PDF documents on the server side.
  */
 
+import 'server-only';
 import { formatCurrency, formatDate } from '@/lib/shared-utils';
 
 export function generateInvoiceHtml(invoice: any, user: any) {

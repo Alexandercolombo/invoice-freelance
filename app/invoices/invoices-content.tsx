@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { useAuth } from "@clerk/clerk-react";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 import { formatCurrency } from "@/lib/client-utils";
 import { cn } from "@/lib/shared-utils";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { CreateInvoiceModal } from "@/components/invoices/create-invoice-modal";
 import { EditInvoiceModal } from "@/components/invoices/edit-invoice-modal";
-import { Id } from "../../../convex/_generated/dataModel";
+import { Id } from "@convex/_generated/dataModel";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { motion } from "framer-motion";
 import { Client } from "@/types";

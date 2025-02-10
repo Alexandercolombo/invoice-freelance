@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useQuery, useConvexAuth } from 'convex/react';
 import { useAuth } from "@clerk/nextjs";
-import { api } from '../../../convex/_generated/api';
+import { api } from "@convex/_generated/api";
 import { OnboardingFlow } from '@/components/onboarding/onboarding-flow';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';

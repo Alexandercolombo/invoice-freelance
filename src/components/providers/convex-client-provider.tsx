@@ -6,7 +6,7 @@ import { ConvexProviderWithClerk } from 'convex/react-clerk';
 import { ConvexReactClient } from 'convex/react';
 import { LoadingState } from '@/components/loading-state';
 import { useMutation } from 'convex/react';
-import { api } from '../../../convex/_generated/api';
+import { api } from "@convex/_generated/api";
 
 // Separate component to handle ensuring user exists
 function UserEnsurer() {

@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Id } from "convex/_generated/dataModel";
+import { Id } from "@convex/_generated/dataModel";
 import { formatCurrency } from "@/lib/client-utils";
 import { Button } from "@/components/ui/button";
 import { Task } from "@/types";
 import { TaskModal } from "./task-modal";
 import { useMutation } from "convex/react";
-import { api } from "convex/_generated/api";
+import { api } from "@convex/_generated/api";
 
 interface TaskListProps {
   tasks: Task[];

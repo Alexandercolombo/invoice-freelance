@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Search, Users } from "lucide-react";
-import { Doc } from "../../../convex/_generated/dataModel";
+import { Doc } from "@convex/_generated/dataModel";
 
 interface ClientFiltersProps {
   clients: Doc<"clients">[];

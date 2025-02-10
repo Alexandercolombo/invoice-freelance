@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Id } from "convex/_generated/dataModel";
+import { Id } from "@convex/_generated/dataModel";
 import { formatCurrency } from "@/lib/client-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

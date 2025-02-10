@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "convex/react";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 import { Card } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/shared-utils";
 import { Clock, DollarSign, Users, FileText } from "lucide-react";

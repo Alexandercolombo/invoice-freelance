@@ -1,4 +1,4 @@
-import { Id } from "convex/_generated/dataModel";
+import { Id } from "@convex/_generated/dataModel";
 
 export interface Task {
   _id: Id<"tasks_v2">;

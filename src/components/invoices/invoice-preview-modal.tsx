@@ -34,19 +34,28 @@ interface InvoicePreviewModalProps {
 
 export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePreviewModalProps) {
   const [isDownloading, setIsDownloading] = useState(false);
-  const { isSignedIn, isLoaded } = useAuth();
+  const { isSignedIn, isLoaded, userId } = useAuth();
   const { toast } = useToast();
   const { session } = useClerk();
+  
+  // Query user data using the current user's ID
   const user = useQuery(api.users.get);
   const invoice = useQuery(api.invoices.getInvoice, { id: invoiceId });
   const [showSendModal, setShowSendModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
 
   // Add debug logging
-  console.log('[Debug] Invoice Preview Modal:', {
+  console.log('[Debug] Invoice Preview Modal State:', {
     hasInvoice: !!invoice,
     invoiceId,
-    userId: user?.tokenIdentifier
+    userId,
+    isSignedIn,
+    isLoaded,
+    hasUser: !!user,
+    userDetails: user ? {
+      hasBusinessName: !!user.businessName,
+      hasEmail: !!user.email
+    } : null
   });
 
   // Handle authentication loading state
@@ -56,8 +65,8 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
   }
 
   // Handle not authenticated state
-  if (!isSignedIn) {
-    console.log('[Debug] Not signed in');
+  if (!isSignedIn || !userId) {
+    console.log('[Debug] Not signed in or no userId');
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
@@ -70,7 +79,12 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
 
   // Handle data loading state
   if (!invoice || !user) {
-    console.log('[Debug] Data loading:', { hasInvoice: !!invoice, hasUser: !!user });
+    console.log('[Debug] Data loading:', { 
+      hasInvoice: !!invoice, 
+      hasUser: !!user,
+      userId,
+      isSignedIn
+    });
     return (
       <LoadingState 
         message="Loading invoice data..."

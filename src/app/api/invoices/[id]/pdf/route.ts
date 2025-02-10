@@ -80,6 +80,8 @@ export async function GET(
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="invoice-${invoice.invoiceNumber || 'unknown'}.pdf"`,
       'Cache-Control': 'no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
     });
 
     return new NextResponse(pdfBuffer, { headers });
@@ -90,6 +92,14 @@ export async function GET(
       stack: (error as Error)?.stack,
       params: params
     });
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return new NextResponse(JSON.stringify({ 
+      error: 'PDF Generation Failed',
+      message: (error as Error)?.message
+    }), { 
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
   }
 } 

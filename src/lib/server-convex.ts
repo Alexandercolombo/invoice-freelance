@@ -1,3 +1,4 @@
+import 'server-only';
 import { ConvexClient } from 'convex/browser';
 
 // Mark this file as server-only
@@ -27,30 +28,43 @@ export async function queryConvex(token: string, functionPath: string, args: any
     hasToken: !!token
   });
 
-  const response = await fetch(`${convexUrl}/api/${functionPath}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify(args),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('[Error] Convex query failed:', {
-      status: response.status,
-      statusText: response.statusText,
-      error: errorText
+  try {
+    const response = await fetch(`${convexUrl}/api/${functionPath}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(args),
     });
-    throw new Error(`Convex query failed: ${errorText}`);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Error] Convex query failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText,
+        functionPath,
+        args
+      });
+      throw new Error(`Convex query failed: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('[Debug] Convex query response:', {
+      functionPath,
+      hasData: !!data,
+      dataType: data ? typeof data : null
+    });
+
+    return data;
+  } catch (error) {
+    console.error('[Error] Convex query error:', {
+      error,
+      message: (error as Error)?.message,
+      functionPath,
+      args
+    });
+    throw error;
   }
-
-  const data = await response.json();
-  console.log('[Debug] Convex query response:', {
-    functionPath,
-    hasData: !!data
-  });
-
-  return data;
 } 

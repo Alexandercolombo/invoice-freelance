@@ -1,3 +1,4 @@
+import 'server-only';
 import puppeteer from 'puppeteer';
 
 interface GeneratePDFParams {
@@ -12,7 +13,7 @@ export async function generatePDF({ invoice, user, formatCurrency }: GeneratePDF
     console.log('[Debug] Starting PDF generation:', {
       hasInvoice: !!invoice,
       hasUser: !!user,
-      invoiceNumber: invoice?.invoiceNumber,
+      invoiceNumber: invoice?.number,
       hasTasks: Array.isArray(invoice?.tasks),
       tasksCount: Array.isArray(invoice?.tasks) ? invoice.tasks.length : 0
     });
@@ -46,7 +47,7 @@ export async function generatePDF({ invoice, user, formatCurrency }: GeneratePDF
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Invoice #${invoice.invoiceNumber || 'N/A'}</title>
+        <title>Invoice #${invoice.number || 'N/A'}</title>
         <style>
           body {
             font-family: Arial, sans-serif;
@@ -84,12 +85,14 @@ export async function generatePDF({ invoice, user, formatCurrency }: GeneratePDF
       </head>
       <body>
         <div class="header">
-          <h1>Invoice #${invoice.invoiceNumber || 'N/A'}</h1>
+          <h1>Invoice #${invoice.number || 'N/A'}</h1>
         </div>
 
         <div class="business-info">
           <h3>${user.businessName || 'Business Name Not Set'}</h3>
           <p>${user.email || 'Email Not Set'}</p>
+          ${user.address ? `<p>${user.address}</p>` : ''}
+          ${user.phone ? `<p>${user.phone}</p>` : ''}
         </div>
 
         <div class="invoice-details">
@@ -121,6 +124,20 @@ export async function generatePDF({ invoice, user, formatCurrency }: GeneratePDF
         <div class="total">
           <p>Total: ${formatCurrency(invoice.total || 0)}</p>
         </div>
+
+        ${invoice.notes ? `
+          <div class="notes">
+            <h4>Notes</h4>
+            <p>${invoice.notes}</p>
+          </div>
+        ` : ''}
+
+        ${user.paymentInstructions ? `
+          <div class="payment-instructions">
+            <h4>Payment Instructions</h4>
+            <p>${user.paymentInstructions}</p>
+          </div>
+        ` : ''}
       </body>
       </html>
     `;
@@ -151,7 +168,7 @@ export async function generatePDF({ invoice, user, formatCurrency }: GeneratePDF
       invoiceData: {
         hasInvoice: !!invoice,
         hasUser: !!user,
-        invoiceNumber: invoice?.invoiceNumber,
+        invoiceNumber: invoice?.number,
         hasTasks: Array.isArray(invoice?.tasks)
       }
     });

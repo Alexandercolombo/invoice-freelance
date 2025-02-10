@@ -66,9 +66,9 @@ export async function GET(
       });
     }
 
-    const user = await queryConvex(token, 'users/get', { userId });
+    const user = await queryConvex(token, 'users/get', {});
     if (!user) {
-      console.error('[Error] User not found:', { userId, tokenIdentifier: user?.tokenIdentifier });
+      console.error('[Error] User not found:', { userId });
       return new NextResponse(JSON.stringify({
         error: 'Not Found',
         message: 'User data not found'

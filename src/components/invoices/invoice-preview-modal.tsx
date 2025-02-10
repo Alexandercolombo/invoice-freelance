@@ -166,6 +166,11 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
         throw new Error('No authentication token available');
       }
 
+      console.log('[Debug] Starting download:', {
+        invoiceId,
+        hasToken: !!token
+      });
+
       // Use the API route for PDF generation
       const response = await fetch(`/api/invoices/${invoiceId}/pdf`, {
         headers: {

@@ -8,7 +8,7 @@ export const list = query({
     const identity = await getUser(ctx);
     const tasks = await ctx.db
       .query("tasks_v2")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .withIndex("by_user", (q) => q.eq("userId", identity.tokenIdentifier))
       .collect();
 
     return tasks;
@@ -38,7 +38,7 @@ export const create = mutation({
       hourlyRate: args.hourlyRate,
       amount,
       status: args.status,
-      userId: identity.subject,
+      userId: identity.tokenIdentifier,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       invoiced: args.invoiced ?? false
@@ -56,7 +56,7 @@ export const getTasksByIds = query({
     
     return tasks
       .filter((task): task is NonNullable<typeof task> => 
-        task !== null && task.userId === identity.subject
+        task !== null && (task.userId === identity.tokenIdentifier || task.userId === identity.subject)
       )
       .map(task => ({
         ...task,
@@ -77,7 +77,7 @@ export const update = mutation({
     const identity = await getUser(ctx);
     
     const task = await ctx.db.get(args.id);
-    if (!task || task.userId !== identity.subject) {
+    if (!task || (task.userId !== identity.tokenIdentifier && task.userId !== identity.subject)) {
       throw new Error("Task not found or access denied");
     }
 
@@ -105,7 +105,7 @@ export const getRecentTasks = query({
     return await ctx.db
       .query("tasks_v2")
       .withIndex("by_user_and_invoiced", (q) => 
-        q.eq("userId", identity.subject)
+        q.eq("userId", identity.tokenIdentifier)
          .eq("invoiced", false)
       )
       .order("desc")
@@ -131,7 +131,7 @@ export const getDashboardStats = query({
 
     const tasks = await ctx.db
       .query("tasks_v2")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .withIndex("by_user", (q) => q.eq("userId", identity.tokenIdentifier))
       .collect();
 
     const unbilledTasks = tasks.filter(task => !task.invoiced);
@@ -160,7 +160,7 @@ export const getByClient = query({
     return await ctx.db
       .query("tasks_v2")
       .withIndex("by_client", (q) => q.eq("clientId", args.clientId))
-      .filter((q) => q.eq(q.field("userId"), identity.subject))
+      .filter((q) => q.eq(q.field("userId"), identity.tokenIdentifier))
       .collect();
   },
 });
@@ -171,7 +171,7 @@ export const updateAllTasks = mutation({
     const identity = await getUser(ctx);
     const tasks = await ctx.db
       .query("tasks_v2")
-      .filter((q) => q.eq(q.field("userId"), identity.subject))
+      .filter((q) => q.eq(q.field("userId"), identity.tokenIdentifier))
       .collect();
     
     for (const task of tasks) {
@@ -197,7 +197,7 @@ export const deleteTask = mutation({
       throw new Error("Task not found");
     }
 
-    if (task.userId !== identity.subject) {
+    if (task.userId !== identity.tokenIdentifier) {
       throw new Error("Not authorized");
     }
 

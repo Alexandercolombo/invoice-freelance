@@ -13,7 +13,7 @@ export const get = query({
   handler: async (ctx, args) => {
     const identity = await getUser(ctx);
     const client = await ctx.db.get(args.id);
-    if (!client || client.userId !== identity.subject) {
+    if (!client || (client.userId !== identity.tokenIdentifier && client.userId !== identity.subject)) {
       throw new ConvexError("Client not found or access denied");
     }
     return client;
@@ -29,7 +29,9 @@ export const getAll = query({
     const identity = await getUser(ctx);
     const clients = await ctx.db
       .query("clients")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .withIndex("by_user", (q) => 
+        q.eq("userId", identity.tokenIdentifier)
+      )
       .collect();
 
     const { numToSkip = 0, numToTake = DEFAULT_PAGE_SIZE } = args.paginationOpts;
@@ -59,7 +61,12 @@ export const create = mutation({
     const existingClient = await ctx.db
       .query("clients")
       .withIndex("by_email", (q) => q.eq("email", args.email))
-      .filter((q) => q.eq(q.field("userId"), identity.subject))
+      .filter((q) => 
+        q.or(
+          q.eq(q.field("userId"), identity.tokenIdentifier),
+          q.eq(q.field("userId"), identity.subject)
+        )
+      )
       .first();
 
     if (existingClient) {
@@ -68,7 +75,7 @@ export const create = mutation({
 
     return await ctx.db.insert("clients", {
       ...args,
-      userId: identity.subject,
+      userId: identity.tokenIdentifier,
       status: "active",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

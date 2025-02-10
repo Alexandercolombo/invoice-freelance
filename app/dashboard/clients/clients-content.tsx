@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useQuery } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
-import { Id } from "convex/_generated/dataModel";
+import { api } from "@convex/_generated/api";
+import { Id } from "@convex/_generated/dataModel";
 import { ClientDialog } from "@/components/clients/client-dialog";
 import { ClientDetails } from "@/components/clients/client-details";
 import { ClientCard } from "@/components/clients/client-card";

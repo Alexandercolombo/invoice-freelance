@@ -1,12 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ['@clerk/nextjs'],
-  },
+  serverExternalPackages: ['@clerk/nextjs', 'puppeteer'],
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,
-      'convex/_generated': `${process.cwd()}/convex/_generated`,
+      '@convex': `${process.cwd()}/convex`,
+      '@/lib': `${process.cwd()}/src/lib`,
+      '@/components': `${process.cwd()}/src/components`,
+      '@/hooks': `${process.cwd()}/src/hooks`,
+      '@/types': `${process.cwd()}/src/types`,
     };
     config.externals = [...(config.externals || []), 'jspdf'];
     return config;

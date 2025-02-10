@@ -25,12 +25,12 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "src/*"
-      ],
-      "convex/_generated/*": [
-        "convex/_generated/*"
-      ]
+      "@/*": ["src/*"],
+      "@convex/*": ["convex/*"],
+      "@/lib/*": ["src/lib/*"],
+      "@/components/*": ["src/components/*"],
+      "@/hooks/*": ["src/hooks/*"],
+      "@/types/*": ["src/types/*"]
     }
   },
   "include": [

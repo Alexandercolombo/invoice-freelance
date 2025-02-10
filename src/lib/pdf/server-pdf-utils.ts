@@ -2,9 +2,25 @@
  * @fileoverview This is a server-only file for generating PDF documents.
  */
 
+import 'server-only';
+
 export const runtime = 'nodejs';
 
-import { formatCurrency, formatDate } from '@/lib/shared-utils';
+// Internal formatting functions to avoid client-side imports
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(amount);
+}
+
+function formatDate(date: string | Date): string {
+  return new Date(date).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+}
 
 export function generateInvoiceHtml(invoice: any, user: any) {
   return `

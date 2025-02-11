@@ -160,21 +160,16 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
     try {
       setIsDownloading(true);
       
-      // Get the auth token for the request
-      const token = await session?.getToken({ template: "convex" });
-      if (!token) {
-        throw new Error('No authentication token available');
-      }
-
       console.log('[Debug] Starting download:', {
         invoiceId,
-        hasToken: !!token
+        hasSession: !!session
       });
 
       // Use the API route for PDF generation
       const response = await fetch(`/api/invoices/${invoiceId}/pdf`, {
+        credentials: 'include', // Include cookies for authentication
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Accept': 'application/pdf'
         }
       });
 
@@ -203,7 +198,7 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
         description: "Invoice PDF downloaded successfully",
       });
     } catch (error) {
-      console.error('Error downloading invoice:', error);
+      console.error('[Error] Error downloading invoice:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to download invoice",

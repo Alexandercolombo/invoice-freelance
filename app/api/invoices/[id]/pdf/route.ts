@@ -2,13 +2,13 @@
  * @fileoverview This is a server-only route handler for PDF generation.
  */
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { queryConvex } from '@/lib/server-convex';
 import { generateInvoiceHtml } from '@/lib/pdf/server-pdf-utils';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: Request,
@@ -21,6 +21,7 @@ export async function GET(
       url: request.url
     });
 
+    // Get the auth session
     const authRequest = await auth();
     const { userId } = authRequest;
     if (!userId) {
@@ -33,6 +34,7 @@ export async function GET(
       });
     }
 
+    // Get the Convex token
     const token = await authRequest.getToken({ template: 'convex' });
     if (!token) {
       console.error('[Error] Failed to get Convex token');

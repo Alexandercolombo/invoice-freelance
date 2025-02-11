@@ -1,10 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverComponentsExternalPackages: [
-    'puppeteer-core',
-    'chrome-aws-lambda',
-    '@clerk/nextjs/server'
-  ],
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb'
@@ -30,7 +25,15 @@ const nextConfig = {
       };
     }
     
-    config.externals = [...(config.externals || []), 'chrome-aws-lambda', 'puppeteer-core'];
+    // Mark server-only packages as external
+    if (isServer) {
+      config.externals = [
+        ...config.externals || [],
+        'chrome-aws-lambda',
+        'puppeteer-core'
+      ];
+    }
+
     return config;
   },
   transpilePackages: ['convex', '@react-pdf/renderer'],

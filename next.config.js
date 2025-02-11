@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverComponentsExternalPackages: ['puppeteer', '@clerk/nextjs/server'],
+  serverComponentsExternalPackages: [
+    'puppeteer-core',
+    'chrome-aws-lambda',
+    '@clerk/nextjs/server'
+  ],
   experimental: {
     serverActions: true,
     serverComponents: true
@@ -19,12 +23,13 @@ const nextConfig = {
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
-        puppeteer: false,
+        'puppeteer-core': false,
+        'chrome-aws-lambda': false,
         'server-only': false
       };
     }
     
-    config.externals = [...(config.externals || []), 'jspdf'];
+    config.externals = [...(config.externals || []), 'chrome-aws-lambda', 'puppeteer-core'];
     return config;
   },
   transpilePackages: ['convex', '@react-pdf/renderer'],

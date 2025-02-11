@@ -5,6 +5,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { generateInvoiceHtml } from '@/lib/pdf/server-pdf-utils.server';
+import chromium from 'chrome-aws-lambda';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -70,8 +71,12 @@ export async function GET(
     console.log('[Debug] Fetching data:', { userId, hasToken: !!token });
 
     const invoiceId = params.id;
-    const invoice = await queryConvex(token, 'invoices/getInvoice', { id: invoiceId });
+    
+    // Get invoice data
+    console.log('[Debug] Fetching invoice data');
+    const invoice = await queryConvex(token, 'invoices/get', { id: invoiceId });
     if (!invoice) {
+      console.log('[Debug] Invoice not found:', { invoiceId });
       return NextResponse.json({
         error: 'Not Found',
         message: 'Invoice not found'
@@ -81,6 +86,7 @@ export async function GET(
     }
 
     if (invoice.userId !== userId) {
+      console.log('[Debug] Unauthorized access:', { invoiceUserId: invoice.userId, requestUserId: userId });
       return NextResponse.json({
         error: 'Unauthorized',
         message: 'You do not have permission to access this invoice'
@@ -89,6 +95,8 @@ export async function GET(
       });
     }
 
+    // Get user data
+    console.log('[Debug] Fetching user data');
     const user = await queryConvex(token, 'users/get', {});
     if (!user) {
       console.error('[Error] User not found:', { userId });
@@ -109,17 +117,14 @@ export async function GET(
       throw new Error('Invoice has no tasks');
     }
 
-    // Dynamically import puppeteer
-    const puppeteer = await import('puppeteer');
-    
-    browser = await puppeteer.default.launch({
+    // Launch browser with chrome-aws-lambda
+    console.log('[Debug] Launching browser');
+    browser = await chromium.puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath,
       headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu'
-      ]
+      ignoreHTTPSErrors: true,
     });
     console.log('[Debug] Browser launched successfully');
 

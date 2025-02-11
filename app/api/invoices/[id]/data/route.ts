@@ -5,7 +5,6 @@
 import 'server-only';
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { queryConvex } from '@/lib/server-convex';
 
 export async function GET(
   request: Request,
@@ -38,12 +37,28 @@ export async function GET(
       return new NextResponse('Invoice ID is required', { status: 400 });
     }
 
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+    if (!convexUrl) {
+      throw new Error('Missing NEXT_PUBLIC_CONVEX_URL environment variable');
+    }
+
+    // Fetch invoice data
     console.log('[Debug] Fetching invoice:', { invoiceId });
-    const invoice = await queryConvex(token, 'invoices/get', { id: invoiceId });
-    if (!invoice) {
-      console.log('[Debug] Invoice not found:', { invoiceId });
+    const invoiceResponse = await fetch(`${convexUrl}/api/invoices/get`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ id: invoiceId }),
+    });
+
+    if (!invoiceResponse.ok) {
+      console.log('[Debug] Invoice fetch failed:', { status: invoiceResponse.status });
       return new NextResponse('Invoice not found', { status: 404 });
     }
+
+    const invoice = await invoiceResponse.json();
     console.log('[Debug] Invoice found:', { 
       invoiceId, 
       invoiceUserId: invoice.userId,
@@ -58,12 +73,23 @@ export async function GET(
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
+    // Fetch user data
     console.log('[Debug] Fetching user data:', { userId });
-    const user = await queryConvex(token, 'users/get', { id: userId });
-    if (!user) {
-      console.error('[Error] User not found:', { userId });
+    const userResponse = await fetch(`${convexUrl}/api/users/get`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({}),
+    });
+
+    if (!userResponse.ok) {
+      console.error('[Error] User fetch failed:', { status: userResponse.status });
       return new NextResponse('User not found', { status: 404 });
     }
+
+    const user = await userResponse.json();
     console.log('[Debug] User data found');
 
     return NextResponse.json({ invoice, user });

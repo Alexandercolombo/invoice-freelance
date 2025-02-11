@@ -4,8 +4,6 @@
  * All PDF generation should happen on the server through API routes.
  */
 
-import 'server-only';
-
 // Internal formatting functions to avoid any imports
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', {

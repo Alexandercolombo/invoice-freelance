@@ -2,7 +2,6 @@
  * @fileoverview This is a server-only route handler for PDF generation.
  */
 
-import 'server-only';
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { generateInvoiceHtml } from '@/lib/pdf/server-pdf-utils.server';

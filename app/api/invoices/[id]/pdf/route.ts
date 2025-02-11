@@ -7,9 +7,12 @@ import { NextResponse } from 'next/server';
 import { generateInvoiceHtml } from '@/lib/pdf/server-pdf-utils.server';
 import chromium from 'chrome-aws-lambda';
 
+// Explicitly set runtime and dynamic configuration
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
+// Helper function to query Convex
 async function queryConvex(token: string, functionPath: string, args: any) {
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
   if (!convexUrl) {
@@ -23,6 +26,7 @@ async function queryConvex(token: string, functionPath: string, args: any) {
       'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify(args),
+    cache: 'no-store'
   });
 
   if (!response.ok) {
@@ -40,7 +44,8 @@ export async function GET(
   try {
     console.log('[Debug] PDF generation route called:', {
       invoiceId: params.id,
-      url: request.url
+      url: request.url,
+      runtime: process.env.NEXT_RUNTIME
     });
 
     // Get the auth session
@@ -72,7 +77,7 @@ export async function GET(
 
     const invoiceId = params.id;
     
-    // Get invoice data
+    // Get invoice data with no-cache option
     console.log('[Debug] Fetching invoice data');
     const invoice = await queryConvex(token, 'invoices/get', { id: invoiceId });
     if (!invoice) {
@@ -95,7 +100,7 @@ export async function GET(
       });
     }
 
-    // Get user data
+    // Get user data with no-cache option
     console.log('[Debug] Fetching user data');
     const user = await queryConvex(token, 'users/get', {});
     if (!user) {
@@ -120,11 +125,10 @@ export async function GET(
     // Launch browser with chrome-aws-lambda
     console.log('[Debug] Launching browser');
     browser = await chromium.puppeteer.launch({
-      args: chromium.args,
+      args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox'],
       defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath,
       headless: true,
-      ignoreHTTPSErrors: true,
     });
     console.log('[Debug] Browser launched successfully');
 
@@ -135,7 +139,10 @@ export async function GET(
     const html = generateInvoiceHtml(invoice, user);
 
     console.log('[Debug] Setting page content');
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.setContent(html, { 
+      waitUntil: ['load', 'networkidle0'],
+      timeout: 30000
+    });
     console.log('[Debug] Page content set successfully');
 
     console.log('[Debug] Generating PDF');
@@ -147,9 +154,16 @@ export async function GET(
         right: '20mm',
         bottom: '20mm',
         left: '20mm'
-      }
+      },
+      timeout: 30000
     });
     console.log('[Debug] PDF generated successfully');
+
+    // Close the browser before sending the response
+    if (browser) {
+      await browser.close();
+      console.log('[Debug] Browser closed successfully');
+    }
 
     return new NextResponse(pdfBuffer, {
       headers: {
@@ -164,9 +178,20 @@ export async function GET(
     console.error('[Error] PDF generation error:', {
       error,
       message: (error as Error)?.message,
-      stack: (error as Error)?.stack
+      stack: (error as Error)?.stack,
+      runtime: process.env.NEXT_RUNTIME
     });
     
+    // Ensure browser is closed in case of error
+    if (browser) {
+      try {
+        await browser.close();
+        console.log('[Debug] Browser closed after error');
+      } catch (closeError) {
+        console.error('[Error] Failed to close browser:', closeError);
+      }
+    }
+
     return NextResponse.json({
       error: 'PDF Generation Failed',
       message: (error as Error)?.message || 'An error occurred while generating the PDF',
@@ -174,14 +199,5 @@ export async function GET(
     }, {
       status: 500
     });
-  } finally {
-    if (browser) {
-      try {
-        await browser.close();
-        console.log('[Debug] Browser closed successfully');
-      } catch (error) {
-        console.error('[Error] Failed to close browser:', error);
-      }
-    }
   }
 } 

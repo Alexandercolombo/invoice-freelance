@@ -51,7 +51,6 @@
     "react-error-boundary": "^5.0.0",
     "react-hook-form": "^7.49.2",
     "resend": "^2.0.0",
-    "server-only": "^0.0.1",
     "swr": "^2.2.4",
     "tailwind-merge": "^2.2.0",
     "tailwindcss": "^3.4.0",

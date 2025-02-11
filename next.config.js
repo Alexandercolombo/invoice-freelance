@@ -2,9 +2,7 @@
 const nextConfig = {
   serverExternalPackages: ['@clerk/nextjs', 'puppeteer'],
   experimental: {
-    serverComponents: true,
-    serverActions: true,
-    serverComponentsExternalPackages: ['puppeteer', '@clerk/nextjs']
+    serverComponents: true
   },
   webpack: (config) => {
     config.resolve.alias = {

@@ -159,47 +159,72 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
     try {
       setIsDownloading(true);
       
+      // Get a fresh token
+      const token = await session?.getToken({
+        template: "convex"
+      });
+      
+      if (!token) {
+        throw new Error('Authentication required. Please sign in again.');
+      }
+      
       console.log('[Debug] Starting download:', {
         invoiceId,
-        hasSession: !!session
+        hasToken: !!token
       });
 
-      // Use the API route for PDF generation
+      // Use the API route for PDF generation with proper headers
       const response = await fetch(`/api/invoices/${invoiceId}/pdf`, {
-        credentials: 'include', // Include cookies for authentication
         headers: {
-          'Accept': 'application/pdf'
-        }
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache',
+        },
       });
-
+      
+      // Try to parse error response first
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        console.error('[Error] Failed to download invoice:', {
-          status: response.status,
-          error: errorData
-        });
-        throw new Error(errorData?.message || 'Failed to download invoice');
+        let errorMessage;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || `Failed to generate PDF (${response.status})`;
+        } catch {
+          errorMessage = `Failed to generate PDF (${response.status})`;
+        }
+        throw new Error(errorMessage);
+      }
+      
+      let blob;
+      try {
+        blob = await response.blob();
+      } catch (error) {
+        throw new Error('Failed to read PDF data from response');
+      }
+      
+      if (!blob || blob.size === 0) {
+        throw new Error('Generated PDF is empty');
       }
 
-      // Create a blob from the PDF data
-      const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `invoice-${invoice.number || 'download'}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast({
-        title: "Success",
-        description: "Invoice PDF downloaded successfully",
-      });
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `invoice-${invoice.number}.pdf`;
+      
+      try {
+        document.body.appendChild(link);
+        link.click();
+        toast({
+          title: "Download successful",
+          description: `Invoice #${invoice.number} has been downloaded to your device.`,
+          variant: "default",
+        });
+      } finally {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }
     } catch (error) {
       console.error('[Error] Error downloading invoice:', error);
       toast({
-        title: "Error",
+        title: "Download failed",
         description: error instanceof Error ? error.message : "Failed to download invoice",
         variant: "destructive",
       });

@@ -1,10 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ['@clerk/nextjs', 'puppeteer'],
+  serverComponentsExternalPackages: ['puppeteer', '@clerk/nextjs/server'],
   experimental: {
+    serverActions: true,
     serverComponents: true
   },
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.resolve.alias = {
       ...config.resolve.alias,
       '@convex': `${process.cwd()}/convex`,
@@ -13,6 +14,16 @@ const nextConfig = {
       '@/hooks': `${process.cwd()}/src/hooks`,
       '@/types': `${process.cwd()}/src/types`,
     };
+    
+    // Ensure server-only packages are not bundled on the client
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        puppeteer: false,
+        'server-only': false
+      };
+    }
+    
     config.externals = [...(config.externals || []), 'jspdf'];
     return config;
   },

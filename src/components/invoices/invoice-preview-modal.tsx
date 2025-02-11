@@ -15,9 +15,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useState, useMemo, lazy, useEffect } from "react";
-import { useAuth, useUser } from "@clerk/nextjs";
+import { useAuth, useUser, useClerk } from "@clerk/nextjs";
 import { useToast } from "@/hooks/use-toast";
-import { useClerk } from "@clerk/nextjs";
 import { Task } from "@/types";
 import { SendInvoiceModal } from "./send-invoice-modal";
 import { motion, AnimatePresence } from "framer-motion";

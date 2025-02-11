@@ -3,16 +3,37 @@
  * Minimal version for testing route functionality.
  */
 
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { authMiddleware } from "@clerk/nextjs";
 
-export function middleware(request: NextRequest) {
-  return NextResponse.next();
-}
+// See https://clerk.com/docs/references/nextjs/auth-middleware for more information about configuring your Middleware
+export default authMiddleware({
+  // Allow public access to specific routes
+  publicRoutes: [
+    "/",
+    "/sign-in(.*)",
+    "/sign-up(.*)",
+    "/api/webhooks(.*)",
+    "/api/uploadthing(.*)"
+  ],
+  // Routes that can be accessed while signed in or signed out
+  ignoredRoutes: [
+    "/api/webhooks(.*)",
+    "/api/uploadthing(.*)"
+  ],
+  debug: true
+});
 
+// Stop Middleware running on static files
 export const config = {
   matcher: [
-    // Only match non-api routes
-    "/((?!api|_next/static|_next/image|favicon.ico).*)"
-  ]
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next
+     * - static (static files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    "/((?!static|.*\\..*|_next|favicon.ico).*)",
+    "/"
+  ],
 }; 

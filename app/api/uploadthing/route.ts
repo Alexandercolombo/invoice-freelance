@@ -2,7 +2,6 @@
  * @fileoverview This is a server-only route handler for file uploads.
  */
 
-import 'server-only';
 import { createRouteHandler } from "uploadthing/next";
 import { ourFileRouter } from "./core";
 

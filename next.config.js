@@ -6,8 +6,9 @@ const nextConfig = {
     '@clerk/nextjs/server'
   ],
   experimental: {
-    serverActions: true,
-    serverComponents: true
+    serverActions: {
+      bodySizeLimit: '2mb'
+    }
   },
   webpack: (config, { isServer }) => {
     config.resolve.alias = {

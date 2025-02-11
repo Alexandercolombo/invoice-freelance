@@ -2,7 +2,7 @@
  * @fileoverview This is a server-only middleware for handling authentication and route protection.
  */
 
-import { authMiddleware } from "@clerk/nextjs";
+import { authMiddleware, clerkClient } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -21,7 +21,7 @@ export default authMiddleware({
     "/api/webhooks(.*)",
     "/api/uploadthing(.*)"
   ],
-  afterAuth(auth, req) {
+  async afterAuth(auth, req) {
     // Handle unauthorized access to private routes
     if (!auth.userId && !publicRoutes.some(pattern => {
       const regex = new RegExp(`^${pattern.replace(/\*/g, '.*')}$`);

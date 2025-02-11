@@ -4,11 +4,32 @@
 
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { queryConvex } from '@/lib/server-convex';
 import { generateInvoiceHtml } from '@/lib/pdf/server-pdf-utils';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+async function queryConvex(token: string, functionPath: string, args: any) {
+  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!convexUrl) {
+    throw new Error('Missing NEXT_PUBLIC_CONVEX_URL environment variable');
+  }
+
+  const response = await fetch(`${convexUrl}/api/${functionPath}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(args),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Convex query failed: ${await response.text()}`);
+  }
+
+  return response.json();
+}
 
 export async function GET(
   request: Request,

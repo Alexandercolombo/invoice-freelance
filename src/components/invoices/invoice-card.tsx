@@ -64,7 +64,9 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Cache-Control': 'no-cache',
+            'Accept': 'application/pdf',
           },
+          credentials: 'include',
         });
         
         // Try to parse error response first

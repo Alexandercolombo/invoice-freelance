@@ -1,11 +1,12 @@
+/**
+ * @fileoverview Client-side utility functions that are safe to use in client components.
+ */
+
 'use client';
 
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { cn } from './utils';
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+export { cn };
 
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', {

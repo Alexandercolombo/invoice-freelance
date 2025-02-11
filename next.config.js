@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   serverExternalPackages: ['@clerk/nextjs', 'puppeteer'],
+  experimental: {
+    serverComponents: true,
+    serverActions: true,
+    serverComponentsExternalPackages: ['puppeteer', '@clerk/nextjs']
+  },
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,

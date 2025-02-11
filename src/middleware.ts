@@ -2,7 +2,6 @@
  * @fileoverview This is a server-only middleware for handling authentication and route protection.
  */
 
-import 'server-only';
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 

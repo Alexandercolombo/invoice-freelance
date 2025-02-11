@@ -1,9 +1,11 @@
 /**
  * @fileoverview Client-side utility functions that are safe to use in client components.
+ * This file should NOT import any server-only modules or utilities.
  */
 
 'use client';
 
+// Only import shared utilities that are safe for client use
 import { cn } from './utils';
 
 export { cn };

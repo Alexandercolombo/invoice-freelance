@@ -1,5 +1,7 @@
 /**
  * @fileoverview This is a server-only file for generating PDF documents.
+ * This file should NOT be imported by any client-side code.
+ * All PDF generation should happen on the server through API routes.
  */
 
 import 'server-only';

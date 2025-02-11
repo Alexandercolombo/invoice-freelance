@@ -1,8 +1,12 @@
 /**
  * @fileoverview This is a server-only utility file.
+ * This file should NOT be imported by any client-side code.
  */
 
 import 'server-only';
+
+// Explicitly mark as server-only runtime
+export const runtime = 'nodejs';
 
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -17,4 +21,6 @@ export function formatDate(date: string | Date): string {
     month: 'long',
     day: 'numeric'
   });
-} 
+}
+
+// Add any other server-only utility functions here 

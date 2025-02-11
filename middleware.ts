@@ -4,7 +4,6 @@
 
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 
 // Define public routes that don't require authentication
 const publicPaths = [

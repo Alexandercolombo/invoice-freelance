@@ -1,19 +1,29 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
+import { authMiddleware } from '@clerk/nextjs';
 
-// Define routes that should be handled by Node.js runtime
-const nodeRoutes = createRouteMatcher(['/api/invoices/*/pdf']);
+export default async function middleware(request: Request) {
+  const url = new URL(request.url);
+  
+  // Skip Clerk middleware for PDF routes to avoid Edge runtime conflicts
+  if (url.pathname.match(/^\/api\/invoices\/[^/]+\/pdf/)) {
+    console.log('[Debug] Middleware: Skipping Clerk for PDF route:', {
+      pathname: url.pathname,
+      runtime: process.env.NEXT_RUNTIME
+    });
+    return NextResponse.next();
+  }
 
-export default clerkMiddleware((auth, req) => {
-  console.log('[Debug] Middleware called:', {
-    url: req.url,
-    method: req.method,
-    runtime: process.env.NEXT_RUNTIME,
-    isNodeRoute: nodeRoutes(req)
+  // Use Clerk middleware for all other routes
+  console.log('[Debug] Middleware: Using Clerk for route:', {
+    pathname: url.pathname,
+    runtime: process.env.NEXT_RUNTIME
   });
   
-  return NextResponse.next();
-});
+  // Use authMiddleware for Clerk authentication
+  return authMiddleware({
+    publicRoutes: ['/api/invoices/.*/pdf']
+  })(request);
+}
 
 export const config = {
   matcher: [

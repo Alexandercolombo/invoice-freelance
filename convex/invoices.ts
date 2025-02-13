@@ -202,12 +202,20 @@ export const getInvoice = query({
       return null;
     }
 
-    // Check both ID formats
-    const isAuthorized = invoice.userId === identity.tokenIdentifier || invoice.userId === identity.subject;
+    // Extract the user ID portion from the tokenIdentifier
+    const shortUserId = identity.tokenIdentifier.split('|').pop() || identity.tokenIdentifier;
+
+    // Check all ID formats
+    const isAuthorized = 
+      invoice.userId === identity.tokenIdentifier || 
+      invoice.userId === identity.subject ||
+      invoice.userId === shortUserId;
+
     console.log("[Debug] getInvoice: Authorization check", {
       invoiceUserId: invoice.userId,
       tokenIdentifier: identity.tokenIdentifier,
       subject: identity.subject,
+      shortUserId,
       isAuthorized
     });
 
@@ -216,7 +224,8 @@ export const getInvoice = query({
         invoiceUserId: invoice.userId,
         userIdentity: {
           subject: identity.subject,
-          tokenIdentifier: identity.tokenIdentifier
+          tokenIdentifier: identity.tokenIdentifier,
+          shortUserId
         }
       });
       return null;
@@ -286,6 +295,9 @@ export const getAllInvoices = query({
         issuer: identity.issuer
       });
 
+      // Extract the user ID portion from the tokenIdentifier
+      const shortUserId = identity.tokenIdentifier.split('|').pop() || identity.tokenIdentifier;
+      
       // Get invoices with proper index and filtering, checking both ID formats
       console.log("[Debug] getAllInvoices: Querying invoices with both ID formats");
       const invoices = await ctx.db
@@ -293,7 +305,8 @@ export const getAllInvoices = query({
         .filter(q => 
           q.or(
             q.eq(q.field("userId"), identity.tokenIdentifier),
-            q.eq(q.field("userId"), identity.subject)
+            q.eq(q.field("userId"), identity.subject),
+            q.eq(q.field("userId"), shortUserId)
           )
         )
         .order("desc")
@@ -305,13 +318,15 @@ export const getAllInvoices = query({
         hasResults: invoices.length > 0,
         userIdentity: {
           subject: identity.subject,
-          tokenIdentifier: identity.tokenIdentifier
+          tokenIdentifier: identity.tokenIdentifier,
+          shortUserId
         },
         invoices: invoices.map(invoice => ({
           id: invoice._id,
           userId: invoice.userId,
           matchesSubject: invoice.userId === identity.subject,
           matchesToken: invoice.userId === identity.tokenIdentifier,
+          matchesShort: invoice.userId === shortUserId,
           number: invoice.number,
           date: invoice.date
         }))

@@ -1,5 +1,6 @@
-import { authMiddleware } from '@clerk/nextjs';
+import { authMiddleware, clerkClient } from '@clerk/nextjs';
 import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 
 // Export Clerk's authMiddleware with configuration
 export default authMiddleware({
@@ -7,7 +8,7 @@ export default authMiddleware({
   publicRoutes: ['/api/invoices/.*/pdf'],
   ignoredRoutes: ['/api/invoices/.*/pdf'],
   // Optional: Add debug logging
-  beforeAuth: (req) => {
+  beforeAuth: (req: NextRequest) => {
     const url = new URL(req.url);
     console.log('[Debug] Middleware beforeAuth:', {
       pathname: url.pathname,
@@ -15,7 +16,7 @@ export default authMiddleware({
     });
     return NextResponse.next();
   },
-  afterAuth: (auth, req) => {
+  afterAuth: (auth, req: NextRequest) => {
     const url = new URL(req.url);
     console.log('[Debug] Middleware afterAuth:', {
       pathname: url.pathname,
@@ -26,16 +27,9 @@ export default authMiddleware({
   }
 });
 
-// Ensure middleware doesn't run on specific paths
+// Match all paths except static files and PDF routes
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - api/invoices/.*/pdf (PDF routes)
-     */
-    "/((?!api/invoices/[^/]+/pdf|_next/static|_next/image|favicon.ico).*)",
-  ],
+    "/((?!api/invoices/[^/]+/pdf|_next/static|_next/image|favicon.ico).*)"
+  ]
 }; 

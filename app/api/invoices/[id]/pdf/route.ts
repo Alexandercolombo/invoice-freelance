@@ -18,49 +18,33 @@ export async function GET(
       headers: Object.fromEntries(request.headers)
     });
 
-    // Get auth session using getAuth() instead of auth()
-    const { userId, sessionId, getToken } = getAuth(request);
+    // Try to get auth info from session cookie
+    const sessionToken = request.headers.get('cookie')?.match(/__session=([^;]+)/)?.[1];
     
-    if (!userId || !sessionId) {
-      console.log('[Debug] Unauthorized - No userId or sessionId found');
-      return NextResponse.json({ 
-        error: 'Unauthorized',
-        message: 'Authentication required'
-      }, { 
-        status: 401,
-        headers: {
-          'Cache-Control': 'no-store'
-        }
-      });
-    }
-
-    // Get the Convex token if needed
-    const token = await getToken({ template: 'convex' });
-    if (!token) {
-      console.error('[Error] Failed to get Convex token');
+    if (!sessionToken) {
+      console.log('[Debug] No session token found in cookies');
       return NextResponse.json({
-        error: 'Authentication Error',
-        message: 'Failed to get authentication token'
-      }, { 
-        status: 500,
+        message: 'PDF generation started (public access)',
+        id: params.id,
+        runtime: process.env.NEXT_RUNTIME
+      }, {
+        status: 200,
         headers: {
           'Cache-Control': 'no-store'
         }
       });
     }
 
-    console.log('[Debug] Auth successful:', { 
-      userId,
-      sessionId,
-      hasToken: !!token,
-      runtime: process.env.NEXT_RUNTIME
+    // Log session token for debugging
+    console.log('[Debug] Found session token:', {
+      hasToken: !!sessionToken,
+      tokenLength: sessionToken?.length
     });
 
     return NextResponse.json({
-      message: 'Hello PDF route with Clerk auth',
+      message: 'PDF generation started (with session)',
       id: params.id,
-      userId,
-      sessionId,
+      hasSession: true,
       runtime: process.env.NEXT_RUNTIME
     }, {
       status: 200,

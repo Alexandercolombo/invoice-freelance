@@ -1,29 +1,29 @@
+import { authMiddleware } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { authMiddleware } from '@clerk/nextjs';
 
-export default async function middleware(request: Request) {
-  const url = new URL(request.url);
-  
-  // Skip Clerk middleware for PDF routes to avoid Edge runtime conflicts
-  if (url.pathname.match(/^\/api\/invoices\/[^/]+\/pdf/)) {
-    console.log('[Debug] Middleware: Skipping Clerk for PDF route:', {
+// Export Clerk's authMiddleware with configuration
+export default authMiddleware({
+  // Add public routes that don't require authentication
+  publicRoutes: ['/api/invoices/.*/pdf'],
+  // Optional: Add debug logging
+  beforeAuth: (req) => {
+    const url = new URL(req.url);
+    console.log('[Debug] Middleware beforeAuth:', {
       pathname: url.pathname,
       runtime: process.env.NEXT_RUNTIME
     });
     return NextResponse.next();
+  },
+  afterAuth: (auth, req) => {
+    const url = new URL(req.url);
+    console.log('[Debug] Middleware afterAuth:', {
+      pathname: url.pathname,
+      runtime: process.env.NEXT_RUNTIME,
+      userId: auth.userId
+    });
+    return NextResponse.next();
   }
-
-  // Use Clerk middleware for all other routes
-  console.log('[Debug] Middleware: Using Clerk for route:', {
-    pathname: url.pathname,
-    runtime: process.env.NEXT_RUNTIME
-  });
-  
-  // Use authMiddleware for Clerk authentication
-  return authMiddleware({
-    publicRoutes: ['/api/invoices/.*/pdf']
-  })(request);
-}
+});
 
 export const config = {
   matcher: [

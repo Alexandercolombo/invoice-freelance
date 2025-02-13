@@ -1,24 +1,42 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { generateInvoiceHtml } from '@/lib/pdf/server-pdf-utils.server';
 import puppeteer from 'puppeteer-core';
 import chrome from '@sparticuz/chromium';
-import { ConvexHttpClient } from 'convex/browser';
+import { ConvexClient } from 'convex/browser';
 import { api } from '../../../../../convex/_generated/api';
 import { Id } from '../../../../../convex/_generated/dataModel';
+import { getAuth } from '@clerk/nextjs/server';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+// Create the Convex client
+const convex = new ConvexClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-async function getInvoiceData(id: string) {
+async function getInvoiceData(id: string, request: NextRequest) {
   try {
+    // Get the user's session from Clerk
+    const { userId, getToken } = getAuth(request);
+    if (!userId) {
+      throw new Error('You must be logged in to perform this action');
+    }
+
+    // Get the Convex auth token
+    const token = await getToken({ template: 'convex' });
+    if (!token) {
+      throw new Error('Failed to get authentication token');
+    }
+
+    // Set auth token for this request
+    convex.setAuth(async () => Promise.resolve(token));
+
     // Get invoice data from Convex
     const invoice = await convex.query(api.invoices.getInvoice, { 
       id: id as Id<"invoices"> 
     });
+
     if (!invoice) return null;
 
     // Tasks are already included in the invoice response from getInvoice
@@ -29,8 +47,18 @@ async function getInvoiceData(id: string) {
   }
 }
 
-async function getUserData(userId: string) {
+async function getUserData(userId: string, request: NextRequest) {
   try {
+    // Get the user's session from Clerk
+    const { getToken } = getAuth(request);
+    const token = await getToken({ template: 'convex' });
+    if (!token) {
+      throw new Error('Failed to get authentication token');
+    }
+
+    // Set auth token for this request
+    convex.setAuth(async () => Promise.resolve(token));
+
     // Get user profile from Convex
     const user = await convex.query(api.users.get, {});
     if (!user) return null;
@@ -82,7 +110,7 @@ async function generatePDF(html: string): Promise<Buffer> {
 }
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -94,8 +122,8 @@ export async function GET(
       runtime: process.env.NEXT_RUNTIME || 'nodejs'
     });
 
-    // Get invoice data
-    const invoiceData = await getInvoiceData(params.id);
+    // Get invoice data with auth
+    const invoiceData = await getInvoiceData(params.id, request);
     if (!invoiceData) {
       console.error('[Error] Invoice not found:', params.id);
       return NextResponse.json({ 
@@ -105,8 +133,8 @@ export async function GET(
       });
     }
 
-    // Get user data
-    const userData = await getUserData(invoiceData.userId);
+    // Get user data with auth
+    const userData = await getUserData(invoiceData.userId, request);
     if (!userData) {
       console.error('[Error] User data not found for invoice:', params.id);
       return NextResponse.json({ 

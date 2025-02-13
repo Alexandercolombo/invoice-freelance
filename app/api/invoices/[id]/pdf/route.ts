@@ -3,6 +3,7 @@ import { generateInvoiceHtml } from '@/lib/pdf/server-pdf-utils.server';
 import puppeteer from 'puppeteer-core';
 import chrome from '@sparticuz/chromium';
 import { ConvexHttpClient } from 'convex/browser';
+import { api } from '@/convex/_generated/api';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -14,11 +15,11 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 async function getInvoiceData(id: string) {
   try {
     // Get invoice data from Convex
-    const invoice = await convex.query('invoices:getById', { id });
+    const invoice = await convex.query(api.getInvoice, { id });
     if (!invoice) return null;
 
     // Get tasks for this invoice
-    const tasks = await convex.query('tasks:getByInvoiceId', { invoiceId: id });
+    const tasks = await convex.query(api.tasks.getTasksByIds, { ids: invoice.tasks });
     
     return {
       ...invoice,
@@ -33,7 +34,7 @@ async function getInvoiceData(id: string) {
 async function getUserData(userId: string) {
   try {
     // Get user profile from Convex
-    const profile = await convex.query('users:getProfile', { userId });
+    const profile = await convex.query(api.users.getProfile, { userId });
     if (!profile) return null;
 
     return {

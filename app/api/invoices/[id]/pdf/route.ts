@@ -4,6 +4,7 @@ import puppeteer from 'puppeteer-core';
 import chrome from '@sparticuz/chromium';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../../../../../convex/_generated/api';
+import { Id } from '../../../../../convex/_generated/dataModel';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -15,16 +16,13 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 async function getInvoiceData(id: string) {
   try {
     // Get invoice data from Convex
-    const invoice = await convex.query(api.getInvoice, { id });
+    const invoice = await convex.query(api.invoices.getInvoice, { 
+      id: id as Id<"invoices"> 
+    });
     if (!invoice) return null;
 
-    // Get tasks for this invoice
-    const tasks = await convex.query(api.tasks.getTasksByIds, { ids: invoice.tasks });
-    
-    return {
-      ...invoice,
-      tasks: tasks || []
-    };
+    // Tasks are already included in the invoice response from getInvoice
+    return invoice;
   } catch (err) {
     console.error('[Error] Failed to fetch invoice data:', err);
     return null;
@@ -34,15 +32,15 @@ async function getInvoiceData(id: string) {
 async function getUserData(userId: string) {
   try {
     // Get user profile from Convex
-    const profile = await convex.query(api.users.getProfile, { userId });
-    if (!profile) return null;
+    const user = await convex.query(api.users.get, {});
+    if (!user) return null;
 
     return {
-      businessName: profile.businessName,
-      email: profile.email,
-      address: profile.address,
-      phone: profile.phone,
-      paymentInstructions: profile.paymentInstructions
+      businessName: user.businessName,
+      email: user.email,
+      address: user.address,
+      phone: user.phone,
+      paymentInstructions: user.paymentInstructions
     };
   } catch (err) {
     console.error('[Error] Failed to fetch user data:', err);

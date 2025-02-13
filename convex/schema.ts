@@ -76,7 +76,7 @@ export default defineSchema({
     date: v.string(),
     dueDate: v.optional(v.string()),
     clientId: v.id("clients"),
-    tasks: v.array(v.id("tasks_v2")),
+    tasks: v.array(v.union(v.id("tasks"), v.id("tasks_v2"))),
     subtotal: v.float64(),
     tax: v.optional(v.float64()),
     total: v.float64(),

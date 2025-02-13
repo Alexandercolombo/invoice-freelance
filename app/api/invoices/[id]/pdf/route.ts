@@ -5,28 +5,14 @@ import chrome from '@sparticuz/chromium';
 import { ConvexClient } from 'convex/browser';
 import { api } from '@convex/_generated/api';
 import { Id } from '@convex/_generated/dataModel';
-import { getAuth } from '@clerk/nextjs/server';
-import { v } from 'convex/values';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
 
-async function getInvoiceData(id: string, request: NextRequest) {
+async function getInvoiceData(id: string, token: string) {
   try {
-    // Get the user's session from Clerk
-    const { userId, getToken } = getAuth(request);
-    if (!userId) {
-      throw new Error('You must be logged in to perform this action');
-    }
-
-    // Get the Convex auth token
-    const token = await getToken({ template: 'convex' });
-    if (!token) {
-      throw new Error('Failed to get authentication token');
-    }
-
     // Create a new Convex client instance for this request
     const convex = new ConvexClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
     await convex.setAuth(() => Promise.resolve(token));
@@ -54,15 +40,8 @@ async function getInvoiceData(id: string, request: NextRequest) {
   }
 }
 
-async function getUserData(userId: string, request: NextRequest) {
+async function getUserData(userId: string, token: string) {
   try {
-    // Get the user's session from Clerk
-    const { getToken } = getAuth(request);
-    const token = await getToken({ template: 'convex' });
-    if (!token) {
-      throw new Error('Failed to get authentication token');
-    }
-
     // Create a new Convex client instance for this request
     const convex = new ConvexClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
     await convex.setAuth(() => Promise.resolve(token));
@@ -132,11 +111,22 @@ export async function GET(
       runtime: process.env.NEXT_RUNTIME || 'nodejs'
     });
 
+    // Get token from Authorization header
+    const authHeader = request.headers.get('authorization') || '';
+    const token = authHeader.replace(/^Bearer\s+/, '');
+    
+    if (!token) {
+      return NextResponse.json(
+        { error: 'No authorization token provided' },
+        { status: 401 }
+      );
+    }
+
     // Get invoice data with auth
-    const invoiceData = await getInvoiceData(params.id, request);
+    const invoiceData = await getInvoiceData(params.id, token);
 
     // Get user data with auth
-    const userData = await getUserData(invoiceData.userId, request);
+    const userData = await getUserData(invoiceData.userId, token);
 
     // Generate HTML and PDF
     console.log('[Debug] Generating PDF for invoice:', params.id);
@@ -163,11 +153,8 @@ export async function GET(
       if (err.message.includes('User not found')) {
         return NextResponse.json({ error: err.message }, { status: 404 });
       }
-      if (err.message.includes('must be logged in')) {
-        return NextResponse.json({ error: err.message }, { status: 401 });
-      }
-      if (err.message.includes('Failed to get authentication token')) {
-        return NextResponse.json({ error: err.message }, { status: 401 });
+      if (err.message.includes('Invalid invoice ID')) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
       }
     }
     

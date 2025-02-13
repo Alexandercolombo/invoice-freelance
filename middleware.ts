@@ -1,10 +1,11 @@
-import { authMiddleware } from '@clerk/nextjs/server';
+import { authMiddleware } from '@clerk/nextjs';
 import { NextResponse } from 'next/server';
 
 // Export Clerk's authMiddleware with configuration
 export default authMiddleware({
   // Add public routes that don't require authentication
   publicRoutes: ['/api/invoices/.*/pdf'],
+  ignoredRoutes: ['/api/invoices/.*/pdf'],
   // Optional: Add debug logging
   beforeAuth: (req) => {
     const url = new URL(req.url);
@@ -25,11 +26,16 @@ export default authMiddleware({
   }
 });
 
+// Ensure middleware doesn't run on specific paths
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files
-    '/((?!_next/static|_next/image|favicon.ico).*)',
-    // Always run for API routes
-    '/api/:path*'
-  ]
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - api/invoices/.*/pdf (PDF routes)
+     */
+    "/((?!api/invoices/[^/]+/pdf|_next/static|_next/image|favicon.ico).*)",
+  ],
 }; 

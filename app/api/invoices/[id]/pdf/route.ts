@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getAuth } from '@clerk/nextjs/server';
 
+// Force Node.js runtime
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
@@ -10,46 +10,30 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Log request details
     console.log('[Debug] PDF route called:', {
       invoiceId: params.id,
       url: request.url,
       method: request.method,
-      runtime: process.env.NEXT_RUNTIME,
-      headers: Object.fromEntries(request.headers)
+      runtime: process.env.NEXT_RUNTIME || 'nodejs',
+      isEdge: process.env.NEXT_RUNTIME === 'edge',
+      headers: {
+        ...Object.fromEntries(request.headers),
+        cookie: '(redacted)'
+      }
     });
 
-    // Try to get auth info from session cookie
-    const sessionToken = request.headers.get('cookie')?.match(/__session=([^;]+)/)?.[1];
-    
-    if (!sessionToken) {
-      console.log('[Debug] No session token found in cookies');
-      return NextResponse.json({
-        message: 'PDF generation started (public access)',
-        id: params.id,
-        runtime: process.env.NEXT_RUNTIME
-      }, {
-        status: 200,
-        headers: {
-          'Cache-Control': 'no-store'
-        }
-      });
-    }
-
-    // Log session token for debugging
-    console.log('[Debug] Found session token:', {
-      hasToken: !!sessionToken,
-      tokenLength: sessionToken?.length
-    });
-
+    // Basic response for now
     return NextResponse.json({
-      message: 'PDF generation started (with session)',
+      message: 'PDF generation endpoint reached',
       id: params.id,
-      hasSession: true,
-      runtime: process.env.NEXT_RUNTIME
+      runtime: process.env.NEXT_RUNTIME || 'nodejs',
+      timestamp: new Date().toISOString()
     }, {
       status: 200,
       headers: {
-        'Cache-Control': 'no-store'
+        'Cache-Control': 'no-store',
+        'Content-Type': 'application/json'
       }
     });
   } catch (err) {
@@ -60,7 +44,8 @@ export async function GET(
     }, {
       status: 500,
       headers: {
-        'Cache-Control': 'no-store'
+        'Cache-Control': 'no-store',
+        'Content-Type': 'application/json'
       }
     });
   }

@@ -3,7 +3,6 @@ import { generateInvoiceHtml } from '@/lib/pdf/server-pdf-utils.server';
 import puppeteer from 'puppeteer-core';
 import chrome from '@sparticuz/chromium';
 import { ConvexHttpClient } from 'convex/browser';
-import { api } from '@/convex/_generated/api';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -15,11 +14,11 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 async function getInvoiceData(id: string) {
   try {
     // Get invoice data from Convex
-    const invoice = await convex.query(api.invoices.getById, { id });
+    const invoice = await convex.query('invoices:getById', { id });
     if (!invoice) return null;
 
     // Get tasks for this invoice
-    const tasks = await convex.query(api.tasks.getByInvoiceId, { invoiceId: id });
+    const tasks = await convex.query('tasks:getByInvoiceId', { invoiceId: id });
     
     return {
       ...invoice,
@@ -34,7 +33,7 @@ async function getInvoiceData(id: string) {
 async function getUserData(userId: string) {
   try {
     // Get user profile from Convex
-    const profile = await convex.query(api.users.getProfile, { userId });
+    const profile = await convex.query('users:getProfile', { userId });
     if (!profile) return null;
 
     return {
@@ -57,8 +56,7 @@ async function generatePDF(html: string): Promise<Buffer> {
     args: [...chrome.args, '--hide-scrollbars', '--disable-web-security'],
     defaultViewport: chrome.defaultViewport,
     executablePath: await chrome.executablePath(),
-    headless: true,
-    ignoreHTTPSErrors: true
+    headless: true
   });
   
   try {
@@ -78,7 +76,7 @@ async function generatePDF(html: string): Promise<Buffer> {
       }
     });
     
-    return pdf;
+    return Buffer.from(pdf);
   } finally {
     await browser.close();
   }

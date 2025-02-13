@@ -11,10 +11,18 @@ export const getInvoices = query({
   args: { clientId: v.id("clients") },
   async handler(ctx, args) {
     const identity = await getUser(ctx);
+    const shortUserId = identity.tokenIdentifier.split('|').pop() || identity.tokenIdentifier;
+    
     return await ctx.db
       .query("invoices")
       .withIndex("by_client", (q) => q.eq("clientId", args.clientId))
-      .filter((q) => q.eq(q.field("userId"), identity.tokenIdentifier))
+      .filter((q) => 
+        q.or(
+          q.eq(q.field("userId"), identity.tokenIdentifier),
+          q.eq(q.field("userId"), identity.subject),
+          q.eq(q.field("userId"), shortUserId)
+        )
+      )
       .collect();
   },
 });
@@ -25,13 +33,18 @@ export const getUnbilledTasksByClient = query({
   },
   handler: async (ctx, args) => {
     const identity = await getUser(ctx);
+    const shortUserId = identity.tokenIdentifier.split('|').pop() || identity.tokenIdentifier;
     
     return await ctx.db
       .query("tasks_v2")
       .withIndex("by_client", (q) => q.eq("clientId", args.clientId))
       .filter((q) => 
         q.and(
-          q.eq(q.field("userId"), identity.tokenIdentifier),
+          q.or(
+            q.eq(q.field("userId"), identity.tokenIdentifier),
+            q.eq(q.field("userId"), identity.subject),
+            q.eq(q.field("userId"), shortUserId)
+          ),
           q.eq(q.field("invoiced"), false)
         )
       )
@@ -51,6 +64,7 @@ export const createInvoice = mutation({
   },
   handler: async (ctx, args) => {
     const identity = await getUser(ctx);
+    const shortUserId = identity.tokenIdentifier.split('|').pop() || identity.tokenIdentifier;
 
     // Get tasks and calculate totals
     const tasks = await Promise.all(
@@ -58,7 +72,11 @@ export const createInvoice = mutation({
     );
 
     // Verify all tasks exist and belong to this user
-    if (tasks.some(task => !task || task.userId !== identity.tokenIdentifier)) {
+    if (tasks.some(task => !task || (
+      task.userId !== identity.tokenIdentifier &&
+      task.userId !== identity.subject &&
+      task.userId !== shortUserId
+    ))) {
       throw new ConvexError("One or more tasks not found or access denied");
     }
 
@@ -70,7 +88,13 @@ export const createInvoice = mutation({
     // Get the latest invoice number for this user
     const latestInvoice = await ctx.db
       .query("invoices")
-      .withIndex("by_user", (q) => q.eq("userId", identity.tokenIdentifier))
+      .filter(q => 
+        q.or(
+          q.eq(q.field("userId"), identity.tokenIdentifier),
+          q.eq(q.field("userId"), identity.subject),
+          q.eq(q.field("userId"), shortUserId)
+        )
+      )
       .order("desc")
       .first();
 
@@ -133,9 +157,14 @@ export const updateInvoiceStatus = mutation({
   },
   handler: async (ctx, args) => {
     const identity = await getUser(ctx);
+    const shortUserId = identity.tokenIdentifier.split('|').pop() || identity.tokenIdentifier;
 
     const invoice = await ctx.db.get(args.id);
-    if (!invoice || invoice.userId !== identity.tokenIdentifier) {
+    if (!invoice || (
+      invoice.userId !== identity.tokenIdentifier &&
+      invoice.userId !== identity.subject &&
+      invoice.userId !== shortUserId
+    )) {
       throw new ConvexError("Invoice not found or access denied");
     }
 
@@ -152,10 +181,15 @@ export const deleteInvoice = mutation({
   args: { id: v.id("invoices") },
   handler: async (ctx, args) => {
     const identity = await getUser(ctx);
+    const shortUserId = identity.tokenIdentifier.split('|').pop() || identity.tokenIdentifier;
 
     const invoice = await ctx.db.get(args.id);
-    if (!invoice || invoice.userId !== identity.tokenIdentifier) {
-      throw new ConvexError("Invoice not found");
+    if (!invoice || (
+      invoice.userId !== identity.tokenIdentifier &&
+      invoice.userId !== identity.subject &&
+      invoice.userId !== shortUserId
+    )) {
+      throw new ConvexError("Invoice not found or access denied");
     }
 
     // Mark tasks as not invoiced
@@ -446,9 +480,14 @@ export const updateInvoice = mutation({
   },
   handler: async (ctx, args) => {
     const identity = await getUser(ctx);
+    const shortUserId = identity.tokenIdentifier.split('|').pop() || identity.tokenIdentifier;
 
     const invoice = await ctx.db.get(args.id);
-    if (!invoice || invoice.userId !== identity.tokenIdentifier) {
+    if (!invoice || (
+      invoice.userId !== identity.tokenIdentifier &&
+      invoice.userId !== identity.subject &&
+      invoice.userId !== shortUserId
+    )) {
       throw new ConvexError("Invoice not found or access denied");
     }
 

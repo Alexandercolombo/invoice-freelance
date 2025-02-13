@@ -9,14 +9,21 @@ export const fixUserIds = mutation({
     let updated = 0;
     for (const invoice of invoices) {
       const userId = invoice.userId;
-      if (userId && userId.includes("|")) {
-        const shortId = userId.split("|").pop() || userId;
-        await ctx.db.patch(invoice._id, {
-          userId: shortId,
-          updatedAt: new Date().toISOString()
-        });
-        updated++;
-        console.log("[Fix] Updated invoice", invoice._id, "from", userId, "to", shortId);
+      // Handle both formats: URL|id and just URL format
+      if (userId && (userId.includes("|") || userId.includes("clerk.accounts.dev"))) {
+        // Extract the last part after | or the user_ part
+        const shortId = userId.includes("|") 
+          ? userId.split("|").pop() 
+          : userId.match(/user_[a-zA-Z0-9]+/)?.[0];
+          
+        if (shortId) {
+          await ctx.db.patch(invoice._id, {
+            userId: shortId,
+            updatedAt: new Date().toISOString()
+          });
+          updated++;
+          console.log("[Fix] Updated invoice", invoice._id, "from", userId, "to", shortId);
+        }
       }
     }
     

@@ -118,10 +118,16 @@ export function InvoicePreviewModal({ invoiceId, open, onOpenChange }: InvoicePr
   }
 
   // Verify invoice ownership
-  if (invoice.userId !== userId) {
+  const shortUserId = userId.includes("|") ? userId.split("|").pop() : userId;
+  const isOwner = invoice.userId === userId || 
+                 invoice.userId === shortUserId || 
+                 (invoice.userId.includes("|") && invoice.userId.split("|").pop() === shortUserId);
+                 
+  if (!isOwner) {
     console.log('[Debug] Invoice ownership mismatch:', {
       invoiceUserId: invoice.userId,
       currentUserId: userId,
+      shortUserId,
       clerkUserId: clerkUser?.id
     });
     toast({

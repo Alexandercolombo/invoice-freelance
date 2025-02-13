@@ -107,7 +107,7 @@ export const createInvoice = mutation({
       nextNumber = String(lastNumber + 1).padStart(3, '0');
     }
 
-    // Create invoice
+    // Create invoice with short user ID only
     const invoiceId = await ctx.db.insert("invoices", {
       number: nextNumber,
       date: args.date,
@@ -119,7 +119,7 @@ export const createInvoice = mutation({
       total,
       notes: args.notes,
       status: "draft",
-      userId: identity.tokenIdentifier,
+      userId: shortUserId, // Store only the short user ID
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
@@ -227,7 +227,8 @@ export const getInvoice = query({
       subject: identity.subject,
       tokenIdentifier: identity.tokenIdentifier,
       email: identity.email,
-      issuer: identity.issuer
+      issuer: identity.issuer,
+      invoiceId: args.id
     });
 
     const invoice = await ctx.db.get(args.id);
@@ -250,7 +251,13 @@ export const getInvoice = query({
       tokenIdentifier: identity.tokenIdentifier,
       subject: identity.subject,
       shortUserId,
-      isAuthorized
+      isAuthorized,
+      invoiceId: args.id,
+      matches: {
+        fullMatch: invoice.userId === identity.tokenIdentifier,
+        subjectMatch: invoice.userId === identity.subject,
+        shortMatch: invoice.userId === shortUserId
+      }
     });
 
     if (!isAuthorized) {
@@ -260,7 +267,8 @@ export const getInvoice = query({
           subject: identity.subject,
           tokenIdentifier: identity.tokenIdentifier,
           shortUserId
-        }
+        },
+        invoiceId: args.id
       });
       return null;
     }
@@ -268,7 +276,10 @@ export const getInvoice = query({
     // Get client details
     const client = await ctx.db.get(invoice.clientId);
     if (!client) {
-      console.log("[Debug] getInvoice: Client not found", { clientId: invoice.clientId });
+      console.log("[Debug] getInvoice: Client not found", { 
+        clientId: invoice.clientId,
+        invoiceId: args.id 
+      });
       return null;
     }
 
@@ -276,7 +287,13 @@ export const getInvoice = query({
     const tasks = await Promise.all(
       invoice.tasks.map(async (taskId) => {
         const task = await ctx.db.get(taskId);
-        if (!task) return null;
+        if (!task) {
+          console.log("[Debug] getInvoice: Task not found", {
+            taskId,
+            invoiceId: args.id
+          });
+          return null;
+        }
         
         // Use task's hourly rate if available, otherwise use client's rate
         const hourlyRate = task.hourlyRate ?? client.hourlyRate;
@@ -296,7 +313,8 @@ export const getInvoice = query({
     console.log("[Debug] getInvoice: Successfully retrieved invoice", {
       invoiceId: args.id,
       hasClient: !!client,
-      taskCount: validTasks.length
+      taskCount: validTasks.length,
+      userId: invoice.userId
     });
 
     return {

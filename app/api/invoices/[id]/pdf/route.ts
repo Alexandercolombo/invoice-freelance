@@ -2,54 +2,70 @@ import { NextResponse } from 'next/server';
 import { generateInvoiceHtml } from '@/lib/pdf/server-pdf-utils.server';
 import puppeteer from 'puppeteer-core';
 import chrome from '@sparticuz/chromium';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '@/convex/_generated/api';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
 
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+
 async function getInvoiceData(id: string) {
-  // TODO: Replace with actual invoice data fetching
-  return {
-    number: id,
-    date: new Date(),
-    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-    tasks: [
-      {
-        description: 'Test Task',
-        hourlyRate: 100,
-        hours: 2,
-      }
-    ],
-    total: 200,
-    notes: 'Test invoice for PDF generation'
-  };
+  try {
+    // Get invoice data from Convex
+    const invoice = await convex.query(api.invoices.getById, { id });
+    if (!invoice) return null;
+
+    // Get tasks for this invoice
+    const tasks = await convex.query(api.tasks.getByInvoiceId, { invoiceId: id });
+    
+    return {
+      ...invoice,
+      tasks: tasks || []
+    };
+  } catch (err) {
+    console.error('[Error] Failed to fetch invoice data:', err);
+    return null;
+  }
 }
 
-async function getUserData() {
-  // TODO: Replace with actual user data fetching
-  return {
-    businessName: 'Test Business',
-    email: 'test@example.com',
-    address: '123 Test St',
-    phone: '555-555-5555',
-    paymentInstructions: 'Please pay within 30 days'
-  };
+async function getUserData(userId: string) {
+  try {
+    // Get user profile from Convex
+    const profile = await convex.query(api.users.getProfile, { userId });
+    if (!profile) return null;
+
+    return {
+      businessName: profile.businessName,
+      email: profile.email,
+      address: profile.address,
+      phone: profile.phone,
+      paymentInstructions: profile.paymentInstructions
+    };
+  } catch (err) {
+    console.error('[Error] Failed to fetch user data:', err);
+    return null;
+  }
 }
 
 async function generatePDF(html: string): Promise<Buffer> {
   console.log('[Debug] Starting PDF generation');
   
   const browser = await puppeteer.launch({
-    args: chrome.args,
+    args: [...chrome.args, '--hide-scrollbars', '--disable-web-security'],
     defaultViewport: chrome.defaultViewport,
     executablePath: await chrome.executablePath(),
     headless: true,
+    ignoreHTTPSErrors: true
   });
   
   try {
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.setContent(html, { 
+      waitUntil: ['networkidle0', 'load', 'domcontentloaded']
+    });
     
     const pdf = await page.pdf({
       format: 'A4',
@@ -81,16 +97,23 @@ export async function GET(
       runtime: process.env.NEXT_RUNTIME || 'nodejs'
     });
 
-    // Get invoice and user data
-    const [invoiceData, userData] = await Promise.all([
-      getInvoiceData(params.id),
-      getUserData()
-    ]);
-
+    // Get invoice data
+    const invoiceData = await getInvoiceData(params.id);
     if (!invoiceData) {
       console.error('[Error] Invoice not found:', params.id);
       return NextResponse.json({ 
         error: 'Invoice not found' 
+      }, { 
+        status: 404 
+      });
+    }
+
+    // Get user data
+    const userData = await getUserData(invoiceData.userId);
+    if (!userData) {
+      console.error('[Error] User data not found for invoice:', params.id);
+      return NextResponse.json({ 
+        error: 'User data not found' 
       }, { 
         status: 404 
       });

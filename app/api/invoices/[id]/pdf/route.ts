@@ -3,7 +3,7 @@ import { generateInvoiceHtml } from '@/lib/pdf/server-pdf-utils.server';
 import puppeteer from 'puppeteer-core';
 import chrome from '@sparticuz/chromium';
 import { ConvexHttpClient } from 'convex/browser';
-import { api } from '@/convex/_generated/api';
+import { api } from '../../../../../convex/_generated/api';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';

@@ -10,6 +10,7 @@ import { Id } from '@convex/_generated/dataModel';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
+export const maxDuration = 300;
 
 async function getInvoiceData(id: string, token: string) {
   try {
@@ -87,10 +88,17 @@ async function generatePDF(html: string): Promise<Buffer> {
   console.log('[Debug] Starting PDF generation');
   
   const browser = await puppeteer.launch({
-    args: [...chrome.args, '--hide-scrollbars', '--disable-web-security'],
+    args: [
+      ...chrome.args,
+      '--hide-scrollbars',
+      '--disable-web-security',
+      '--no-sandbox',
+      '--disable-setuid-sandbox'
+    ],
     defaultViewport: chrome.defaultViewport,
     executablePath: await chrome.executablePath(),
-    headless: true
+    headless: true,
+    ignoreHTTPSErrors: true
   });
   
   try {
@@ -98,6 +106,8 @@ async function generatePDF(html: string): Promise<Buffer> {
     await page.setContent(html, { 
       waitUntil: ['networkidle0', 'load', 'domcontentloaded']
     });
+    
+    console.log('[Debug] HTML content set, generating PDF');
     
     const pdf = await page.pdf({
       format: 'A4',
@@ -110,9 +120,18 @@ async function generatePDF(html: string): Promise<Buffer> {
       }
     });
     
+    console.log('[Debug] PDF generated successfully');
     return Buffer.from(pdf);
+  } catch (error) {
+    console.error('[Error] Failed to generate PDF:', error);
+    throw error;
   } finally {
-    await browser.close();
+    try {
+      await browser.close();
+      console.log('[Debug] Browser closed successfully');
+    } catch (error) {
+      console.error('[Error] Failed to close browser:', error);
+    }
   }
 }
 
@@ -134,6 +153,7 @@ export async function GET(
     const token = authHeader.replace(/^Bearer\s+/, '');
     
     if (!token) {
+      console.error('[Error] No authorization token provided');
       return NextResponse.json(
         { error: 'No authorization token provided' },
         { status: 401 }
@@ -141,15 +161,19 @@ export async function GET(
     }
 
     // Get invoice data with auth
+    console.log('[Debug] Fetching invoice data');
     const invoiceData = await getInvoiceData(params.id, token);
 
     // Get user data with auth
+    console.log('[Debug] Fetching user data');
     const userData = await getUserData(invoiceData.userId, token);
 
     // Generate HTML and PDF
     console.log('[Debug] Generating PDF for invoice:', params.id);
     const html = generateInvoiceHtml(invoiceData, userData);
+    console.log('[Debug] HTML generated, creating PDF');
     const pdfBuffer = await generatePDF(html);
+    console.log('[Debug] PDF generated successfully');
     
     // Return PDF file
     return new Response(pdfBuffer, {

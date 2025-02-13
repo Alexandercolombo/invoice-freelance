@@ -27,6 +27,15 @@ async function getInvoiceData(id: string, token: string) {
         throw new Error(`Invoice not found with ID: ${id}`);
       }
 
+      // Log invoice data for debugging
+      console.log('[Debug] Invoice data:', {
+        invoice: {
+          id: invoice._id,
+          userId: invoice.userId,
+          number: invoice.number
+        }
+      });
+
       return invoice;
     } catch (err) {
       if (err instanceof Error && err.message.includes('Invalid ID')) {
@@ -51,6 +60,15 @@ async function getUserData(userId: string, token: string) {
     if (!user) {
       throw new Error(`User not found with ID: ${userId}`);
     }
+
+    // Log user data for debugging
+    console.log('[Debug] User data:', {
+      user: {
+        id: user._id,
+        userId: user.userId,
+        businessName: user.businessName
+      }
+    });
 
     return {
       businessName: user.businessName,

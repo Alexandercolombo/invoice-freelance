@@ -12,9 +12,6 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
 
-// Create the Convex client
-const convex = new ConvexClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
-
 async function getInvoiceData(id: string, request: NextRequest) {
   try {
     // Get the user's session from Clerk
@@ -29,21 +26,33 @@ async function getInvoiceData(id: string, request: NextRequest) {
       throw new Error('Failed to get authentication token');
     }
 
-    // Set auth token for this request
-    convex.setAuth(async () => Promise.resolve(token));
+    // Create a new Convex client instance for this request
+    const convex = new ConvexClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+    await convex.setAuth(() => Promise.resolve(token));
 
-    // Get invoice data from Convex
-    const invoice = await convex.query(api.invoices.getInvoice, { 
-      id: id as Id<"invoices"> 
-    });
+    try {
+      // Convert string ID to Convex ID
+      const invoiceId = Id.fromString(id) as Id<"invoices">;
+      
+      // Get invoice data from Convex
+      const invoice = await convex.query(api.invoices.getInvoice, { 
+        id: invoiceId
+      });
 
-    if (!invoice) return null;
+      if (!invoice) {
+        throw new Error(`Invoice not found with ID: ${id}`);
+      }
 
-    // Tasks are already included in the invoice response from getInvoice
-    return invoice;
+      return invoice;
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('Invalid ID')) {
+        throw new Error(`Invalid invoice ID format: ${id}`);
+      }
+      throw err;
+    }
   } catch (err) {
     console.error('[Error] Failed to fetch invoice data:', err);
-    return null;
+    throw err;
   }
 }
 
@@ -56,12 +65,15 @@ async function getUserData(userId: string, request: NextRequest) {
       throw new Error('Failed to get authentication token');
     }
 
-    // Set auth token for this request
-    convex.setAuth(async () => Promise.resolve(token));
+    // Create a new Convex client instance for this request
+    const convex = new ConvexClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+    await convex.setAuth(() => Promise.resolve(token));
 
     // Get user profile from Convex
     const user = await convex.query(api.users.get, {});
-    if (!user) return null;
+    if (!user) {
+      throw new Error(`User not found with ID: ${userId}`);
+    }
 
     return {
       businessName: user.businessName,
@@ -72,7 +84,7 @@ async function getUserData(userId: string, request: NextRequest) {
     };
   } catch (err) {
     console.error('[Error] Failed to fetch user data:', err);
-    return null;
+    throw err;
   }
 }
 
@@ -124,25 +136,9 @@ export async function GET(
 
     // Get invoice data with auth
     const invoiceData = await getInvoiceData(params.id, request);
-    if (!invoiceData) {
-      console.error('[Error] Invoice not found:', params.id);
-      return NextResponse.json({ 
-        error: 'Invoice not found' 
-      }, { 
-        status: 404 
-      });
-    }
 
     // Get user data with auth
     const userData = await getUserData(invoiceData.userId, request);
-    if (!userData) {
-      console.error('[Error] User data not found for invoice:', params.id);
-      return NextResponse.json({ 
-        error: 'User data not found' 
-      }, { 
-        status: 404 
-      });
-    }
 
     // Generate HTML and PDF
     console.log('[Debug] Generating PDF for invoice:', params.id);
@@ -160,9 +156,26 @@ export async function GET(
     });
   } catch (err) {
     console.error('[Error] PDF generation failed:', err);
+    
+    // Return appropriate error response
+    if (err instanceof Error) {
+      if (err.message.includes('Invoice not found')) {
+        return NextResponse.json({ error: err.message }, { status: 404 });
+      }
+      if (err.message.includes('User not found')) {
+        return NextResponse.json({ error: err.message }, { status: 404 });
+      }
+      if (err.message.includes('must be logged in')) {
+        return NextResponse.json({ error: err.message }, { status: 401 });
+      }
+      if (err.message.includes('Failed to get authentication token')) {
+        return NextResponse.json({ error: err.message }, { status: 401 });
+      }
+    }
+    
     return NextResponse.json({ 
       error: 'PDF generation failed',
-      details: (err as Error).message
+      details: err instanceof Error ? err.message : 'Unknown error'
     }, {
       status: 500,
       headers: {

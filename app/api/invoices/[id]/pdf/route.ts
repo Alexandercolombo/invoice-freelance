@@ -3,9 +3,10 @@ import { generateInvoiceHtml } from '@/lib/pdf/server-pdf-utils.server';
 import puppeteer from 'puppeteer-core';
 import chrome from '@sparticuz/chromium';
 import { ConvexClient } from 'convex/browser';
-import { api } from '../../../../../convex/_generated/api';
-import { Id } from '../../../../../convex/_generated/dataModel';
+import { api } from '@convex/_generated/api';
+import { Id } from '@convex/_generated/dataModel';
 import { getAuth } from '@clerk/nextjs/server';
+import { v } from 'convex/values';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -31,12 +32,9 @@ async function getInvoiceData(id: string, request: NextRequest) {
     await convex.setAuth(() => Promise.resolve(token));
 
     try {
-      // Convert string ID to Convex ID
-      const invoiceId = Id.fromString(id) as Id<"invoices">;
-      
       // Get invoice data from Convex
       const invoice = await convex.query(api.invoices.getInvoice, { 
-        id: invoiceId
+        id: id as unknown as Id<"invoices">
       });
 
       if (!invoice) {

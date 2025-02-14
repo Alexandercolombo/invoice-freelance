@@ -1,3 +1,10 @@
+// Force Node.js runtime and disable response caching
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+export const revalidate = 0;
+export const maxDuration = 60;
+
 import { NextResponse, NextRequest } from 'next/server';
 import { generateInvoiceHtml } from '@/lib/pdf/server-pdf-utils.server';
 import puppeteer from 'puppeteer-core';
@@ -6,14 +13,10 @@ import { ConvexClient } from 'convex/browser';
 import { api } from '@convex/_generated/api';
 import { Id } from '@convex/_generated/dataModel';
 
-// Force Node.js runtime
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-export const fetchCache = 'force-no-store';
-export const maxDuration = 60;
-
 async function getInvoiceData(id: string, token: string) {
   try {
+    console.log('[Debug] Getting invoice data with token:', { id, hasToken: !!token });
+    
     // Create a new Convex client instance for this request
     const convex = new ConvexClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
     await convex.setAuth(() => Promise.resolve(token));
@@ -39,6 +42,7 @@ async function getInvoiceData(id: string, token: string) {
 
       return invoice;
     } catch (err) {
+      console.error('[Error] Failed to query invoice:', err);
       if (err instanceof Error && err.message.includes('Invalid ID')) {
         throw new Error(`Invalid invoice ID format: ${id}`);
       }
@@ -52,6 +56,8 @@ async function getInvoiceData(id: string, token: string) {
 
 async function getUserData(userId: string, token: string) {
   try {
+    console.log('[Debug] Getting user data with token:', { userId, hasToken: !!token });
+    
     // Create a new Convex client instance for this request
     const convex = new ConvexClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
     await convex.setAuth(() => Promise.resolve(token));
@@ -178,7 +184,7 @@ export async function GET(
     console.log('[Debug] PDF generated successfully');
     
     // Return PDF file
-    return new Response(pdfBuffer, {
+    return new NextResponse(pdfBuffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',

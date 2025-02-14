@@ -1,5 +1,5 @@
 // Configure route options
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 import { NextResponse, NextRequest } from 'next/server';
@@ -235,52 +235,46 @@ export async function GET(
     // Get invoice data with auth
     console.log('[Debug] Fetching invoice data');
     const invoiceData = await getInvoiceData(params.id, token);
+    if (!invoiceData) {
+      return NextResponse.json(
+        { error: 'Invoice not found' },
+        { status: 404 }
+      );
+    }
 
     // Get user data with auth
     console.log('[Debug] Fetching user data');
     const userData = await getUserData(invoiceData.userId, token);
+    if (!userData) {
+      return NextResponse.json(
+        { error: 'User data not found' },
+        { status: 404 }
+      );
+    }
 
     // Generate PDF
     console.log('[Debug] Generating PDF for invoice:', params.id);
     const pdfBuffer = generatePDF(invoiceData, userData);
     console.log('[Debug] PDF generated successfully');
     
-    // Return PDF file
+    // Return PDF file with proper headers
+    const headers = new Headers();
+    headers.set('Content-Type', 'application/pdf');
+    headers.set('Content-Disposition', `attachment; filename="invoice-${invoiceData.number}.pdf"`);
+    headers.set('Content-Length', pdfBuffer.length.toString());
+    
     return new NextResponse(pdfBuffer, {
       status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="invoice-${params.id}.pdf"`,
-        'Cache-Control': 'no-store, no-cache, must-revalidate',
-        'Pragma': 'no-cache'
-      }
+      headers
     });
-  } catch (err) {
-    console.error('[Error] PDF generation failed:', err);
+  } catch (error) {
+    console.error('[Error] Failed to generate PDF:', error);
     
     // Return appropriate error response
-    if (err instanceof Error) {
-      if (err.message.includes('Invoice not found')) {
-        return NextResponse.json({ error: err.message }, { status: 404 });
-      }
-      if (err.message.includes('User not found')) {
-        return NextResponse.json({ error: err.message }, { status: 404 });
-      }
-      if (err.message.includes('Invalid invoice ID')) {
-        return NextResponse.json({ error: err.message }, { status: 400 });
-      }
-    }
-    
-    return NextResponse.json({ 
-      error: 'PDF generation failed',
-      details: err instanceof Error ? err.message : 'Unknown error'
-    }, {
-      status: 500,
-      headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate',
-        'Pragma': 'no-cache',
-        'Content-Type': 'application/json'
-      }
-    });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    return NextResponse.json(
+      { error: `Failed to generate PDF: ${errorMessage}` },
+      { status: 500 }
+    );
   }
 } 

@@ -53,38 +53,63 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
         });
         
         const token = await session?.getToken({
-          template: "convex"  // Match the template used in the API
+          template: "convex"
         });
         
         if (!token) {
           throw new Error('Authentication required. Please sign in again.');
         }
         
+        console.log('[Debug] Starting download:', { invoiceId: invoice._id, hasToken: !!token });
+        
         const response = await fetch(`/api/invoices/${invoice._id}/pdf`, {
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Cache-Control': 'no-cache',
             'Accept': 'application/pdf',
           },
-          credentials: 'include',
+        });
+        
+        // Log response status for debugging
+        console.log('[Debug] Download response:', { 
+          status: response.status,
+          ok: response.ok,
+          contentType: response.headers.get('content-type')
         });
         
         // Try to parse error response first
         if (!response.ok) {
           let errorMessage;
-          try {
-            const errorData = await response.json();
-            errorMessage = errorData.message || errorData.error || `Failed to generate PDF (${response.status})`;
-          } catch {
+          const contentType = response.headers.get('content-type');
+          
+          if (contentType?.includes('application/json')) {
+            try {
+              const errorData = await response.json();
+              errorMessage = errorData.message || errorData.error || `Failed to generate PDF (${response.status})`;
+            } catch {
+              errorMessage = `Failed to generate PDF (${response.status})`;
+            }
+          } else {
             errorMessage = `Failed to generate PDF (${response.status})`;
           }
+          
           throw new Error(errorMessage);
+        }
+        
+        // Verify content type
+        const contentType = response.headers.get('content-type');
+        if (!contentType?.includes('application/pdf')) {
+          throw new Error('Invalid response format. Expected PDF.');
         }
         
         let blob;
         try {
           blob = await response.blob();
+          console.log('[Debug] Blob created:', { 
+            size: blob.size,
+            type: blob.type
+          });
         } catch (error) {
+          console.error('[Error] Failed to read PDF data:', error);
           throw new Error('Failed to read PDF data from response');
         }
         
@@ -110,7 +135,7 @@ export function InvoiceCard({ invoice }: InvoiceCardProps) {
           window.URL.revokeObjectURL(url);
         }
       } catch (error) {
-        console.error('Error downloading invoice:', error);
+        console.error('[Error] Error downloading invoice:', error);
         
         // Only retry on network or timeout errors
         if (retryCount < maxRetries && error instanceof Error && 

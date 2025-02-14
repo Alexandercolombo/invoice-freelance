@@ -13,6 +13,34 @@ import { ConvexClient } from 'convex/browser';
 import { api } from '@convex/_generated/api';
 import { Id } from '@convex/_generated/dataModel';
 
+// Initialize Chrome with specific configuration for serverless
+const getChrome = async () => {
+  const executablePath = await chrome.executablePath();
+  
+  if (!executablePath) {
+    throw new Error("Chrome executable path not found");
+  }
+
+  return await puppeteer.launch({
+    args: [
+      ...chrome.args,
+      '--hide-scrollbars',
+      '--disable-web-security',
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-gpu',
+      '--disable-dev-shm-usage'
+    ],
+    defaultViewport: {
+      width: 1200,
+      height: 1553 // A4 size at 96 DPI
+    },
+    executablePath,
+    headless: true,
+    ignoreHTTPSErrors: true
+  });
+};
+
 async function getInvoiceData(id: string, token: string) {
   try {
     console.log('[Debug] Getting invoice data with token:', { id, hasToken: !!token });
@@ -91,30 +119,19 @@ async function getUserData(userId: string, token: string) {
 
 async function generatePDF(html: string): Promise<Buffer> {
   console.log('[Debug] Starting PDF generation');
-  
-  const browser = await puppeteer.launch({
-    args: [
-      ...chrome.args,
-      '--hide-scrollbars',
-      '--disable-web-security',
-      '--no-sandbox',
-      '--disable-setuid-sandbox'
-    ],
-    defaultViewport: {
-      width: 1200,
-      height: 1553 // A4 size at 96 DPI
-    },
-    executablePath: await chrome.executablePath(),
-    headless: true
-  });
+  let browser;
   
   try {
-    const page = await browser.newPage();
-    await page.setContent(html, { 
-      waitUntil: ['domcontentloaded'] // Optimize by only waiting for DOM content
-    });
+    browser = await getChrome();
+    console.log('[Debug] Chrome launched successfully');
     
-    console.log('[Debug] HTML content set, generating PDF');
+    const page = await browser.newPage();
+    console.log('[Debug] New page created');
+    
+    await page.setContent(html, { 
+      waitUntil: ['domcontentloaded', 'networkidle0']
+    });
+    console.log('[Debug] HTML content set');
     
     const pdf = await page.pdf({
       format: 'A4',
@@ -134,11 +151,13 @@ async function generatePDF(html: string): Promise<Buffer> {
     console.error('[Error] Failed to generate PDF:', error);
     throw error;
   } finally {
-    try {
-      await browser.close();
-      console.log('[Debug] Browser closed successfully');
-    } catch (error) {
-      console.error('[Error] Failed to close browser:', error);
+    if (browser) {
+      try {
+        await browser.close();
+        console.log('[Debug] Browser closed successfully');
+      } catch (error) {
+        console.error('[Error] Failed to close browser:', error);
+      }
     }
   }
 }
@@ -205,6 +224,12 @@ export async function GET(
       }
       if (err.message.includes('Invalid invoice ID')) {
         return NextResponse.json({ error: err.message }, { status: 400 });
+      }
+      if (err.message.includes('Chrome executable path not found')) {
+        return NextResponse.json({ 
+          error: 'PDF generation failed',
+          details: 'Chrome initialization failed'
+        }, { status: 500 });
       }
     }
     

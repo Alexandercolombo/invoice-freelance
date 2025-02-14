@@ -20,19 +20,16 @@ export default authMiddleware({
   }
 });
 
-// Configure middleware matcher to exclude static files and include API routes
+// Configure middleware matcher
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     * Note: This is a custom matcher function that differs from the default
-     */
-    "/((?!_next/static|_next/image|favicon.ico).*)",
+    // Match all request paths except for the ones starting with:
+    // - _next/static (static files)
+    // - _next/image (image optimization files)
+    // - favicon.ico (favicon file)
+    // - public folder
+    // - api/invoices/[id]/pdf (PDF generation route)
+    "/((?!_next/static|_next/image|favicon.ico|api/invoices/[^/]+/pdf).*)",
     "/",
-    "/(api|trpc)(.*)"
   ],
 }; 

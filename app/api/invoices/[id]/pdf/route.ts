@@ -2,7 +2,7 @@
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-import { NextResponse, NextRequest } from 'next/server';
+import { NextRequest } from 'next/server';
 import { jsPDF } from 'jspdf';
 import { ConvexClient } from 'convex/browser';
 import { api } from '@convex/_generated/api';
@@ -208,10 +208,10 @@ function generatePDF(invoiceData: any, userData: any): Buffer {
   }
 }
 
-export async function GET(
+const handler = async (
   request: NextRequest,
   { params }: { params: { id: string } }
-) {
+) => {
   try {
     // Log request details
     console.log('[Debug] PDF route called:', {
@@ -226,7 +226,7 @@ export async function GET(
     
     if (!token) {
       console.error('[Error] No authorization token provided');
-      return new NextResponse(
+      return new Response(
         JSON.stringify({ error: 'No authorization token provided' }),
         { 
           status: 401,
@@ -241,7 +241,7 @@ export async function GET(
     console.log('[Debug] Fetching invoice data');
     const invoiceData = await getInvoiceData(params.id, token);
     if (!invoiceData) {
-      return new NextResponse(
+      return new Response(
         JSON.stringify({ error: 'Invoice not found' }),
         { 
           status: 404,
@@ -256,7 +256,7 @@ export async function GET(
     console.log('[Debug] Fetching user data');
     const userData = await getUserData(invoiceData.userId, token);
     if (!userData) {
-      return new NextResponse(
+      return new Response(
         JSON.stringify({ error: 'User data not found' }),
         { 
           status: 404,
@@ -273,7 +273,7 @@ export async function GET(
     console.log('[Debug] PDF generated successfully, size:', pdfBuffer.length);
     
     // Return PDF file with proper headers
-    return new NextResponse(pdfBuffer, {
+    return new Response(pdfBuffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
@@ -286,7 +286,7 @@ export async function GET(
     
     // Return appropriate error response
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    return new NextResponse(
+    return new Response(
       JSON.stringify({ error: `Failed to generate PDF: ${errorMessage}` }),
       { 
         status: 500,
@@ -296,4 +296,6 @@ export async function GET(
       }
     );
   }
-} 
+};
+
+export { handler as GET }; 

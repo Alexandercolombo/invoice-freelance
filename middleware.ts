@@ -1,22 +1,41 @@
-import { NextResponse } from 'next/server';
-import { NextRequest } from 'next/server';
-import { getAuth } from '@clerk/nextjs/server';
+import { authMiddleware } from "@clerk/nextjs/dist/server";
+import { NextRequest } from "next/server";
 
-export default async function middleware(req: NextRequest) {
-  const { userId } = getAuth(req);
+// Export Clerk's authMiddleware with configuration
+export default authMiddleware({
+  // Debug mode to help troubleshoot auth issues
+  debug: true,
   
-  // Debug logging
-  const url = new URL(req.url);
-  console.log('[Debug] Middleware:', {
-    pathname: url.pathname,
-    runtime: process.env.NEXT_RUNTIME,
-    userId
-  });
+  // Public routes that don't require authentication
+  publicRoutes: ["/", "/sign-in", "/sign-up"],
+  
+  // Optional: Add any custom beforeAuth or afterAuth logic
+  beforeAuth: (req: NextRequest) => {
+    const url = new URL(req.url);
+    console.log('[Debug] Clerk Middleware beforeAuth:', {
+      pathname: url.pathname,
+      runtime: process.env.NEXT_RUNTIME
+    });
+    return;
+  },
+  afterAuth: (auth, req: NextRequest) => {
+    const url = new URL(req.url);
+    console.log('[Debug] Clerk Middleware afterAuth:', {
+      pathname: url.pathname,
+      runtime: process.env.NEXT_RUNTIME,
+      userId: auth.userId
+    });
+    return;
+  }
+});
 
-  return NextResponse.next();
-}
-
-// Configure middleware to run on all routes
+// Configure middleware to run on all routes except specific paths
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)']
+  matcher: [
+    // Match all paths except:
+    "/((?!_next/static|_next/image|favicon.ico|api/invoices/[id]/pdf).*)",
+    // Optional: Add other paths that should be protected but aren't caught by the negative lookahead above
+    "/dashboard/:path*",
+    "/invoices/:path*"
+  ]
 }; 

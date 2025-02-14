@@ -226,9 +226,14 @@ export async function GET(
     
     if (!token) {
       console.error('[Error] No authorization token provided');
-      return NextResponse.json(
-        { error: 'No authorization token provided' },
-        { status: 401 }
+      return new NextResponse(
+        JSON.stringify({ error: 'No authorization token provided' }),
+        { 
+          status: 401,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
       );
     }
 
@@ -236,9 +241,14 @@ export async function GET(
     console.log('[Debug] Fetching invoice data');
     const invoiceData = await getInvoiceData(params.id, token);
     if (!invoiceData) {
-      return NextResponse.json(
-        { error: 'Invoice not found' },
-        { status: 404 }
+      return new NextResponse(
+        JSON.stringify({ error: 'Invoice not found' }),
+        { 
+          status: 404,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
       );
     }
 
@@ -246,35 +256,44 @@ export async function GET(
     console.log('[Debug] Fetching user data');
     const userData = await getUserData(invoiceData.userId, token);
     if (!userData) {
-      return NextResponse.json(
-        { error: 'User data not found' },
-        { status: 404 }
+      return new NextResponse(
+        JSON.stringify({ error: 'User data not found' }),
+        { 
+          status: 404,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
       );
     }
 
     // Generate PDF
     console.log('[Debug] Generating PDF for invoice:', params.id);
     const pdfBuffer = generatePDF(invoiceData, userData);
-    console.log('[Debug] PDF generated successfully');
+    console.log('[Debug] PDF generated successfully, size:', pdfBuffer.length);
     
     // Return PDF file with proper headers
-    const headers = new Headers();
-    headers.set('Content-Type', 'application/pdf');
-    headers.set('Content-Disposition', `attachment; filename="invoice-${invoiceData.number}.pdf"`);
-    headers.set('Content-Length', pdfBuffer.length.toString());
-    
     return new NextResponse(pdfBuffer, {
       status: 200,
-      headers
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="invoice-${invoiceData.number}.pdf"`,
+        'Content-Length': pdfBuffer.length.toString()
+      }
     });
   } catch (error) {
     console.error('[Error] Failed to generate PDF:', error);
     
     // Return appropriate error response
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    return NextResponse.json(
-      { error: `Failed to generate PDF: ${errorMessage}` },
-      { status: 500 }
+    return new NextResponse(
+      JSON.stringify({ error: `Failed to generate PDF: ${errorMessage}` }),
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
     );
   }
 } 

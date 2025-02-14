@@ -1,5 +1,5 @@
 import { authMiddleware } from "@clerk/nextjs";
-import { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 // Export Clerk's authMiddleware with configuration
 export default authMiddleware({
@@ -9,33 +9,30 @@ export default authMiddleware({
   // Public routes that don't require authentication
   publicRoutes: ["/", "/sign-in", "/sign-up"],
   
-  // Optional: Add any custom beforeAuth or afterAuth logic
-  beforeAuth: (req: NextRequest) => {
+  afterAuth(auth, req) {
+    // Handle authenticated requests
     const url = new URL(req.url);
-    console.log('[Debug] Clerk Middleware beforeAuth:', {
+    console.log('[Debug] Clerk Middleware:', {
       pathname: url.pathname,
+      isAuthenticated: !!auth.userId,
       runtime: process.env.NEXT_RUNTIME
     });
-    return;
-  },
-  afterAuth: (auth, req: NextRequest) => {
-    const url = new URL(req.url);
-    console.log('[Debug] Clerk Middleware afterAuth:', {
-      pathname: url.pathname,
-      runtime: process.env.NEXT_RUNTIME,
-      userId: auth.userId
-    });
-    return;
   }
 });
 
-// Configure middleware to run on all routes except specific paths
+// Configure middleware matcher to exclude static files and include API routes
 export const config = {
   matcher: [
-    // Match all paths except:
-    "/((?!_next/static|_next/image|favicon.ico|api/invoices/[id]/pdf).*)",
-    // Optional: Add other paths that should be protected but aren't caught by the negative lookahead above
-    "/dashboard/:path*",
-    "/invoices/:path*"
-  ]
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     * Note: This is a custom matcher function that differs from the default
+     */
+    "/((?!_next/static|_next/image|favicon.ico).*)",
+    "/",
+    "/(api|trpc)(.*)"
+  ],
 }; 

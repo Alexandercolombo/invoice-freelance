@@ -88,116 +88,212 @@ function generatePDF(invoiceData: any, userData: any): Buffer {
   console.log('[Debug] Starting PDF generation with jsPDF');
   
   try {
-    const doc = new jsPDF();
+    // Create PDF with better default styling
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    // Set default font
+    doc.setFont('helvetica');
+    
+    // Define colors with proper typing
+    const primaryColor: [number, number, number] = [41, 71, 226];  // #2947e2
+    const textColor: [number, number, number] = [51, 51, 51];     // #333333
+    const secondaryColor: [number, number, number] = [128, 128, 128]; // #808080
+    
+    // Page dimensions
     const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    const contentWidth = pageWidth - (margin * 2);
     
-    // Add business info
+    // Add business logo space (if implemented later)
+    let yPos = margin;
+    
+    // Business Information Section
+    doc.setFontSize(24);
+    doc.setTextColor(...primaryColor);
     if (userData.businessName) {
-      doc.setFontSize(20);
-      doc.text(userData.businessName, 20, 20);
+      doc.text(userData.businessName, margin, yPos);
     }
     
-    // Add invoice number
-    doc.setFontSize(16);
-    doc.text(`Invoice #${invoiceData.number}`, 20, 40);
-    
-    // Add dates
-    doc.setFontSize(12);
-    doc.text(`Date: ${new Date(invoiceData.date).toLocaleDateString()}`, 20, 50);
-    if (invoiceData.dueDate) {
-      doc.text(`Due Date: ${new Date(invoiceData.dueDate).toLocaleDateString()}`, 20, 60);
-    }
-    
-    // Add business details
+    // Business Details
+    yPos += 15;
     doc.setFontSize(10);
-    let yPos = 80;
+    doc.setTextColor(...secondaryColor);
     if (userData.address) {
       const addressLines = userData.address.split('\n');
       addressLines.forEach((line: string) => {
-        doc.text(line, 20, yPos);
-        yPos += 10;
+        doc.text(line.trim(), margin, yPos);
+        yPos += 5;
       });
     }
     if (userData.email) {
-      doc.text(`Email: ${userData.email}`, 20, yPos);
-      yPos += 10;
+      doc.text(userData.email, margin, yPos);
+      yPos += 5;
     }
     if (userData.phone) {
-      doc.text(`Phone: ${userData.phone}`, 20, yPos);
-      yPos += 10;
+      doc.text(userData.phone, margin, yPos);
+      yPos += 5;
     }
     
-    // Add client info
+    // Invoice Details Section
     yPos += 10;
+    doc.setFontSize(28);
+    doc.setTextColor(...primaryColor);
+    doc.text('INVOICE', margin, yPos);
+    
+    // Invoice Number and Dates
+    yPos += 15;
     doc.setFontSize(12);
-    doc.text('Bill To:', 20, yPos);
-    yPos += 10;
-    doc.text(invoiceData.client.name, 20, yPos);
-    yPos += 10;
-    if (invoiceData.client.email) {
-      doc.text(invoiceData.client.email, 20, yPos);
-      yPos += 10;
+    doc.setTextColor(...textColor);
+    doc.text(`Invoice Number: #${invoiceData.number}`, margin, yPos);
+    yPos += 8;
+    doc.text(`Date: ${new Date(invoiceData.date).toLocaleDateString()}`, margin, yPos);
+    if (invoiceData.dueDate) {
+      yPos += 8;
+      doc.text(`Due Date: ${new Date(invoiceData.dueDate).toLocaleDateString()}`, margin, yPos);
     }
     
-    // Add tasks table
+    // Client Information Section
     yPos += 20;
-    const columns = ['Description', 'Hours', 'Rate', 'Amount'];
-    const columnWidths = [100, 20, 30, 30];
-    const startX = 20;
-    let currentX = startX;
+    doc.setFontSize(14);
+    doc.setTextColor(...primaryColor);
+    doc.text('Bill To:', margin, yPos);
     
-    // Table header
+    yPos += 8;
+    doc.setFontSize(12);
+    doc.setTextColor(...textColor);
+    doc.text(invoiceData.client.name, margin, yPos);
+    if (invoiceData.client.email) {
+      yPos += 6;
+      doc.setFontSize(10);
+      doc.text(invoiceData.client.email, margin, yPos);
+    }
+    
+    // Tasks Table
+    yPos += 20;
+    
+    // Table Headers
+    const columns = ['Description', 'Hours', 'Rate', 'Amount'];
+    const columnWidths = [contentWidth * 0.5, contentWidth * 0.15, contentWidth * 0.15, contentWidth * 0.2];
+    
+    // Draw table header background
+    doc.setFillColor(...primaryColor);
+    doc.rect(margin, yPos - 5, contentWidth, 8, 'F');
+    
+    // Draw header text
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 255, 255);
+    let xPos = margin;
     columns.forEach((column, index) => {
-      doc.text(column, currentX, yPos);
-      currentX += columnWidths[index];
+      doc.text(column, xPos + 2, yPos);
+      xPos += columnWidths[index];
     });
     
-    // Table content
-    doc.setFont('helvetica', 'normal');
+    // Table Content
+    yPos += 8;
+    doc.setTextColor(...textColor);
+    let totalAmount = 0;
+    
     invoiceData.tasks.forEach((task: any) => {
-      yPos += 10;
-      if (yPos > 270) {
+      // Check if we need a new page
+      if (yPos > doc.internal.pageSize.getHeight() - 60) {
         doc.addPage();
-        yPos = 20;
+        yPos = margin + 10;
       }
       
-      currentX = startX;
-      doc.text(task.description, currentX, yPos);
-      currentX += columnWidths[0];
-      doc.text(task.hours.toString(), currentX, yPos);
-      currentX += columnWidths[1];
-      doc.text(`$${task.hourlyRate}`, currentX, yPos);
-      currentX += columnWidths[2];
-      doc.text(`$${(task.hours * task.hourlyRate).toFixed(2)}`, currentX, yPos);
+      // Calculate row values
+      const amount = task.hours * task.hourlyRate;
+      totalAmount += amount;
+      
+      // Draw alternating row background
+      if (invoiceData.tasks.indexOf(task) % 2 === 0) {
+        doc.setFillColor(247, 247, 247);
+        doc.rect(margin, yPos - 5, contentWidth, 8, 'F');
+      }
+      
+      // Draw row content
+      xPos = margin;
+      doc.setFontSize(9);
+      
+      // Description (with word wrap if needed)
+      const descriptionWidth = columnWidths[0] - 4;
+      const descriptionLines = doc.splitTextToSize(task.description, descriptionWidth);
+      doc.text(descriptionLines, xPos + 2, yPos);
+      
+      // Hours
+      xPos += columnWidths[0];
+      doc.text(task.hours.toString(), xPos + 2, yPos);
+      
+      // Rate
+      xPos += columnWidths[1];
+      doc.text(`$${task.hourlyRate.toFixed(2)}`, xPos + 2, yPos);
+      
+      // Amount
+      xPos += columnWidths[2];
+      doc.text(`$${amount.toFixed(2)}`, xPos + 2, yPos);
+      
+      yPos += 10;
     });
     
-    // Add totals
-    yPos += 20;
-    doc.text(`Subtotal: $${invoiceData.subtotal.toFixed(2)}`, pageWidth - 60, yPos);
+    // Totals Section
     yPos += 10;
-    doc.text(`Tax (${invoiceData.tax}%): $${(invoiceData.subtotal * invoiceData.tax / 100).toFixed(2)}`, pageWidth - 60, yPos);
-    yPos += 10;
-    doc.setFont('helvetica', 'bold');
-    doc.text(`Total: $${invoiceData.total.toFixed(2)}`, pageWidth - 60, yPos);
+    const totalsWidth = columnWidths[2] + columnWidths[3];
+    const totalsX = pageWidth - margin - totalsWidth;
     
-    // Add payment instructions
+    // Draw totals box
+    doc.setFillColor(250, 250, 250);
+    doc.rect(totalsX, yPos - 5, totalsWidth, 35, 'F');
+    doc.setDrawColor(...primaryColor);
+    doc.rect(totalsX, yPos - 5, totalsWidth, 35, 'S');
+    
+    // Subtotal
+    doc.setFontSize(10);
+    doc.setTextColor(...textColor);
+    doc.text('Subtotal:', totalsX + 5, yPos);
+    doc.text(`$${invoiceData.subtotal.toFixed(2)}`, totalsX + totalsWidth - 25, yPos);
+    
+    // Tax
+    yPos += 10;
+    doc.text(`Tax (${invoiceData.tax}%):`, totalsX + 5, yPos);
+    const taxAmount = (invoiceData.subtotal * invoiceData.tax / 100);
+    doc.text(`$${taxAmount.toFixed(2)}`, totalsX + totalsWidth - 25, yPos);
+    
+    // Total
+    yPos += 10;
+    doc.setFontSize(12);
+    doc.setTextColor(...primaryColor);
+    doc.text('Total:', totalsX + 5, yPos);
+    doc.text(`$${invoiceData.total.toFixed(2)}`, totalsX + totalsWidth - 25, yPos);
+    
+    // Payment Instructions
     if (userData.paymentInstructions) {
       yPos += 30;
-      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(11);
+      doc.setTextColor(...primaryColor);
+      doc.text('Payment Instructions', margin, yPos);
+      
+      yPos += 8;
       doc.setFontSize(10);
-      doc.text('Payment Instructions:', 20, yPos);
-      yPos += 10;
-      const instructionLines = userData.paymentInstructions.split('\n');
-      instructionLines.forEach((line: string) => {
-        if (yPos > 270) {
-          doc.addPage();
-          yPos = 20;
-        }
-        doc.text(line, 20, yPos);
-        yPos += 10;
-      });
+      doc.setTextColor(...textColor);
+      const instructionLines = doc.splitTextToSize(userData.paymentInstructions, contentWidth);
+      doc.text(instructionLines, margin, yPos);
+    }
+    
+    // Add footer with page numbers
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(...secondaryColor);
+      doc.text(
+        `Page ${i} of ${totalPages}`,
+        pageWidth / 2,
+        doc.internal.pageSize.getHeight() - 10,
+        { align: 'center' }
+      );
     }
     
     console.log('[Debug] PDF generated successfully with jsPDF');

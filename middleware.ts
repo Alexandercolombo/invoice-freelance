@@ -1,4 +1,4 @@
-import { authMiddleware } from "@clerk/nextjs/dist/server";
+import { authMiddleware } from "@clerk/nextjs";
 import { NextRequest } from "next/server";
 
 // Export Clerk's authMiddleware with configuration

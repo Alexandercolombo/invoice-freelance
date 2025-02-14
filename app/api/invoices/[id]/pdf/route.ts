@@ -10,7 +10,7 @@ import { Id } from '@convex/_generated/dataModel';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 async function getInvoiceData(id: string, token: string) {
   try {
@@ -66,7 +66,6 @@ async function getUserData(userId: string, token: string) {
     console.log('[Debug] User data:', {
       user: {
         id: user._id,
-        userId: user.userId,
         businessName: user.businessName
       }
     });
@@ -95,16 +94,18 @@ async function generatePDF(html: string): Promise<Buffer> {
       '--no-sandbox',
       '--disable-setuid-sandbox'
     ],
-    defaultViewport: chrome.defaultViewport,
+    defaultViewport: {
+      width: 1200,
+      height: 1553 // A4 size at 96 DPI
+    },
     executablePath: await chrome.executablePath(),
-    headless: true,
-    ignoreHTTPSErrors: true
+    headless: true
   });
   
   try {
     const page = await browser.newPage();
     await page.setContent(html, { 
-      waitUntil: ['networkidle0', 'load', 'domcontentloaded']
+      waitUntil: ['domcontentloaded'] // Optimize by only waiting for DOM content
     });
     
     console.log('[Debug] HTML content set, generating PDF');
@@ -117,7 +118,8 @@ async function generatePDF(html: string): Promise<Buffer> {
         right: '20px',
         bottom: '20px',
         left: '20px'
-      }
+      },
+      preferCSSPageSize: true
     });
     
     console.log('[Debug] PDF generated successfully');

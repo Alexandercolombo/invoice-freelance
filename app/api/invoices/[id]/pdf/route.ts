@@ -1,9 +1,6 @@
-// Force Node.js runtime and disable response caching
-export const runtime = 'nodejs';
+// Configure route options
+export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
-export const fetchCache = 'force-no-store';
-export const revalidate = 0;
-export const maxDuration = 60;
 
 import { NextResponse, NextRequest } from 'next/server';
 import { jsPDF } from 'jspdf';
@@ -220,8 +217,7 @@ export async function GET(
     console.log('[Debug] PDF route called:', {
       invoiceId: params.id,
       url: request.url,
-      method: request.method,
-      runtime: process.env.NEXT_RUNTIME || 'nodejs'
+      method: request.method
     });
 
     // Get token from Authorization header
@@ -255,7 +251,8 @@ export async function GET(
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="invoice-${params.id}.pdf"`,
-        'Cache-Control': 'no-store'
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache'
       }
     });
   } catch (err) {
@@ -280,7 +277,8 @@ export async function GET(
     }, {
       status: 500,
       headers: {
-        'Cache-Control': 'no-store',
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
         'Content-Type': 'application/json'
       }
     });

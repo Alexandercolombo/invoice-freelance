@@ -6,40 +6,10 @@ export const revalidate = 0;
 export const maxDuration = 60;
 
 import { NextResponse, NextRequest } from 'next/server';
-import { generateInvoiceHtml } from '@/lib/pdf/server-pdf-utils.server';
-import puppeteer from 'puppeteer-core';
-import chrome from '@sparticuz/chromium';
+import { jsPDF } from 'jspdf';
 import { ConvexClient } from 'convex/browser';
 import { api } from '@convex/_generated/api';
 import { Id } from '@convex/_generated/dataModel';
-
-// Initialize Chrome with specific configuration for serverless
-const getChrome = async () => {
-  const executablePath = await chrome.executablePath();
-  
-  if (!executablePath) {
-    throw new Error("Chrome executable path not found");
-  }
-
-  return await puppeteer.launch({
-    args: [
-      ...chrome.args,
-      '--hide-scrollbars',
-      '--disable-web-security',
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-gpu',
-      '--disable-dev-shm-usage'
-    ],
-    defaultViewport: {
-      width: 1200,
-      height: 1553 // A4 size at 96 DPI
-    },
-    executablePath,
-    headless: true,
-    ignoreHTTPSErrors: true
-  });
-};
 
 async function getInvoiceData(id: string, token: string) {
   try {
@@ -117,48 +87,127 @@ async function getUserData(userId: string, token: string) {
   }
 }
 
-async function generatePDF(html: string): Promise<Buffer> {
-  console.log('[Debug] Starting PDF generation');
-  let browser;
+function generatePDF(invoiceData: any, userData: any): Buffer {
+  console.log('[Debug] Starting PDF generation with jsPDF');
   
   try {
-    browser = await getChrome();
-    console.log('[Debug] Chrome launched successfully');
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
     
-    const page = await browser.newPage();
-    console.log('[Debug] New page created');
-    
-    await page.setContent(html, { 
-      waitUntil: ['domcontentloaded', 'networkidle0']
-    });
-    console.log('[Debug] HTML content set');
-    
-    const pdf = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '20px',
-        right: '20px',
-        bottom: '20px',
-        left: '20px'
-      },
-      preferCSSPageSize: true
-    });
-    
-    console.log('[Debug] PDF generated successfully');
-    return Buffer.from(pdf);
-  } catch (error) {
-    console.error('[Error] Failed to generate PDF:', error);
-    throw error;
-  } finally {
-    if (browser) {
-      try {
-        await browser.close();
-        console.log('[Debug] Browser closed successfully');
-      } catch (error) {
-        console.error('[Error] Failed to close browser:', error);
-      }
+    // Add business info
+    if (userData.businessName) {
+      doc.setFontSize(20);
+      doc.text(userData.businessName, 20, 20);
     }
+    
+    // Add invoice number
+    doc.setFontSize(16);
+    doc.text(`Invoice #${invoiceData.number}`, 20, 40);
+    
+    // Add dates
+    doc.setFontSize(12);
+    doc.text(`Date: ${new Date(invoiceData.date).toLocaleDateString()}`, 20, 50);
+    if (invoiceData.dueDate) {
+      doc.text(`Due Date: ${new Date(invoiceData.dueDate).toLocaleDateString()}`, 20, 60);
+    }
+    
+    // Add business details
+    doc.setFontSize(10);
+    let yPos = 80;
+    if (userData.address) {
+      const addressLines = userData.address.split('\n');
+      addressLines.forEach((line: string) => {
+        doc.text(line, 20, yPos);
+        yPos += 10;
+      });
+    }
+    if (userData.email) {
+      doc.text(`Email: ${userData.email}`, 20, yPos);
+      yPos += 10;
+    }
+    if (userData.phone) {
+      doc.text(`Phone: ${userData.phone}`, 20, yPos);
+      yPos += 10;
+    }
+    
+    // Add client info
+    yPos += 10;
+    doc.setFontSize(12);
+    doc.text('Bill To:', 20, yPos);
+    yPos += 10;
+    doc.text(invoiceData.client.name, 20, yPos);
+    yPos += 10;
+    if (invoiceData.client.email) {
+      doc.text(invoiceData.client.email, 20, yPos);
+      yPos += 10;
+    }
+    
+    // Add tasks table
+    yPos += 20;
+    const columns = ['Description', 'Hours', 'Rate', 'Amount'];
+    const columnWidths = [100, 20, 30, 30];
+    const startX = 20;
+    let currentX = startX;
+    
+    // Table header
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    columns.forEach((column, index) => {
+      doc.text(column, currentX, yPos);
+      currentX += columnWidths[index];
+    });
+    
+    // Table content
+    doc.setFont('helvetica', 'normal');
+    invoiceData.tasks.forEach((task: any) => {
+      yPos += 10;
+      if (yPos > 270) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      currentX = startX;
+      doc.text(task.description, currentX, yPos);
+      currentX += columnWidths[0];
+      doc.text(task.hours.toString(), currentX, yPos);
+      currentX += columnWidths[1];
+      doc.text(`$${task.hourlyRate}`, currentX, yPos);
+      currentX += columnWidths[2];
+      doc.text(`$${(task.hours * task.hourlyRate).toFixed(2)}`, currentX, yPos);
+    });
+    
+    // Add totals
+    yPos += 20;
+    doc.text(`Subtotal: $${invoiceData.subtotal.toFixed(2)}`, pageWidth - 60, yPos);
+    yPos += 10;
+    doc.text(`Tax (${invoiceData.tax}%): $${(invoiceData.subtotal * invoiceData.tax / 100).toFixed(2)}`, pageWidth - 60, yPos);
+    yPos += 10;
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Total: $${invoiceData.total.toFixed(2)}`, pageWidth - 60, yPos);
+    
+    // Add payment instructions
+    if (userData.paymentInstructions) {
+      yPos += 30;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text('Payment Instructions:', 20, yPos);
+      yPos += 10;
+      const instructionLines = userData.paymentInstructions.split('\n');
+      instructionLines.forEach((line: string) => {
+        if (yPos > 270) {
+          doc.addPage();
+          yPos = 20;
+        }
+        doc.text(line, 20, yPos);
+        yPos += 10;
+      });
+    }
+    
+    console.log('[Debug] PDF generated successfully with jsPDF');
+    return Buffer.from(doc.output('arraybuffer'));
+  } catch (error) {
+    console.error('[Error] Failed to generate PDF with jsPDF:', error);
+    throw error;
   }
 }
 
@@ -195,11 +244,9 @@ export async function GET(
     console.log('[Debug] Fetching user data');
     const userData = await getUserData(invoiceData.userId, token);
 
-    // Generate HTML and PDF
+    // Generate PDF
     console.log('[Debug] Generating PDF for invoice:', params.id);
-    const html = generateInvoiceHtml(invoiceData, userData);
-    console.log('[Debug] HTML generated, creating PDF');
-    const pdfBuffer = await generatePDF(html);
+    const pdfBuffer = generatePDF(invoiceData, userData);
     console.log('[Debug] PDF generated successfully');
     
     // Return PDF file
@@ -224,12 +271,6 @@ export async function GET(
       }
       if (err.message.includes('Invalid invoice ID')) {
         return NextResponse.json({ error: err.message }, { status: 400 });
-      }
-      if (err.message.includes('Chrome executable path not found')) {
-        return NextResponse.json({ 
-          error: 'PDF generation failed',
-          details: 'Chrome initialization failed'
-        }, { status: 500 });
       }
     }
     

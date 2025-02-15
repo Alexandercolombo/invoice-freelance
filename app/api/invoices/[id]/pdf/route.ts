@@ -95,7 +95,6 @@ function generatePDF(invoiceData: any, userData: any): Buffer {
       format: 'a4'
     });
 
-    // Set default font
     doc.setFont('helvetica');
     
     // Define colors with proper typing
@@ -105,76 +104,98 @@ function generatePDF(invoiceData: any, userData: any): Buffer {
     
     // Page dimensions
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 20;
     const contentWidth = pageWidth - (margin * 2);
+    const columnWidth = contentWidth / 2;
     
-    // Add business logo space (if implemented later)
     let yPos = margin;
     
-    // Business Information Section
+    // Add logo if available
+    if (userData.logoUrl) {
+      try {
+        doc.addImage(userData.logoUrl, 'PNG', margin, yPos, 40, 20, undefined, 'FAST');
+        yPos += 25; // Space after logo
+      } catch (error) {
+        console.error('[Error] Failed to add logo:', error);
+        // Continue without logo if there's an error
+        yPos += 5;
+      }
+    }
+
+    // Header with two columns
+    // Left column - Business Information
+    let leftYPos = yPos;
     doc.setFontSize(24);
     doc.setTextColor(...primaryColor);
     if (userData.businessName) {
-      doc.text(userData.businessName, margin, yPos);
+      doc.text(userData.businessName, margin, leftYPos);
+      leftYPos += 10;
     }
     
     // Business Details
-    yPos += 15;
     doc.setFontSize(10);
     doc.setTextColor(...secondaryColor);
     if (userData.address) {
-      const addressLines = userData.address.split('\n');
+      const addressLines = doc.splitTextToSize(userData.address, columnWidth - 10);
       addressLines.forEach((line: string) => {
-        doc.text(line.trim(), margin, yPos);
-        yPos += 5;
+        doc.text(line.trim(), margin, leftYPos);
+        leftYPos += 5;
       });
     }
     if (userData.email) {
-      doc.text(userData.email, margin, yPos);
-      yPos += 5;
+      doc.text(userData.email, margin, leftYPos);
+      leftYPos += 5;
     }
     if (userData.phone) {
-      doc.text(userData.phone, margin, yPos);
-      yPos += 5;
+      doc.text(userData.phone, margin, leftYPos);
+      leftYPos += 5;
     }
     
-    // Invoice Details Section
-    yPos += 10;
+    // Right column - Invoice Details & Client Information
+    let rightYPos = yPos;
+    const rightColumnX = margin + columnWidth + 10;
+    
+    // Invoice Title and Number
     doc.setFontSize(28);
     doc.setTextColor(...primaryColor);
-    doc.text('INVOICE', margin, yPos);
+    doc.text('INVOICE', rightColumnX, rightYPos);
+    rightYPos += 10;
     
-    // Invoice Number and Dates
-    yPos += 15;
     doc.setFontSize(12);
     doc.setTextColor(...textColor);
-    doc.text(`Invoice Number: #${invoiceData.number}`, margin, yPos);
-    yPos += 8;
-    doc.text(`Date: ${new Date(invoiceData.date).toLocaleDateString()}`, margin, yPos);
-    if (invoiceData.dueDate) {
-      yPos += 8;
-      doc.text(`Due Date: ${new Date(invoiceData.dueDate).toLocaleDateString()}`, margin, yPos);
-    }
+    doc.text(`#${invoiceData.number}`, rightColumnX, rightYPos);
+    rightYPos += 15;
     
-    // Client Information Section
-    yPos += 20;
+    // Client Information
     doc.setFontSize(14);
     doc.setTextColor(...primaryColor);
-    doc.text('Bill To:', margin, yPos);
+    doc.text('Bill To:', rightColumnX, rightYPos);
+    rightYPos += 8;
     
-    yPos += 8;
     doc.setFontSize(12);
     doc.setTextColor(...textColor);
-    doc.text(invoiceData.client.name, margin, yPos);
+    doc.text(invoiceData.client.name, rightColumnX, rightYPos);
     if (invoiceData.client.email) {
-      yPos += 6;
+      rightYPos += 6;
       doc.setFontSize(10);
-      doc.text(invoiceData.client.email, margin, yPos);
+      doc.text(invoiceData.client.email, rightColumnX, rightYPos);
+    }
+    rightYPos += 15;
+    
+    // Dates
+    doc.setFontSize(10);
+    doc.text(`Issue Date: ${new Date(invoiceData.date).toLocaleDateString()}`, rightColumnX, rightYPos);
+    rightYPos += 6;
+    if (invoiceData.dueDate) {
+      doc.text(`Due Date: ${new Date(invoiceData.dueDate).toLocaleDateString()}`, rightColumnX, rightYPos);
+      rightYPos += 6;
     }
     
-    // Tasks Table
-    yPos += 20;
+    // Set yPos to the lower of the two columns
+    yPos = Math.max(leftYPos, rightYPos) + 20;
     
+    // Tasks Table - Full Width
     // Table Headers
     const columns = ['Description', 'Hours', 'Rate', 'Amount'];
     const columnWidths = [contentWidth * 0.5, contentWidth * 0.15, contentWidth * 0.15, contentWidth * 0.2];
@@ -199,7 +220,7 @@ function generatePDF(invoiceData: any, userData: any): Buffer {
     
     invoiceData.tasks.forEach((task: any) => {
       // Check if we need a new page
-      if (yPos > doc.internal.pageSize.getHeight() - 60) {
+      if (yPos > pageHeight - 100) {
         doc.addPage();
         yPos = margin + 10;
       }
@@ -238,12 +259,12 @@ function generatePDF(invoiceData: any, userData: any): Buffer {
       yPos += 10;
     });
     
-    // Totals Section
+    // Totals Section - Aligned to right
     yPos += 10;
     const totalsWidth = columnWidths[2] + columnWidths[3];
     const totalsX = pageWidth - margin - totalsWidth;
     
-    // Draw totals box
+    // Draw totals box with subtle styling
     doc.setFillColor(250, 250, 250);
     doc.rect(totalsX, yPos - 5, totalsWidth, 35, 'F');
     doc.setDrawColor(...primaryColor);
@@ -268,7 +289,7 @@ function generatePDF(invoiceData: any, userData: any): Buffer {
     doc.text('Total:', totalsX + 5, yPos);
     doc.text(`$${invoiceData.total.toFixed(2)}`, totalsX + totalsWidth - 25, yPos);
     
-    // Payment Instructions
+    // Payment Instructions - Full width at bottom
     if (userData.paymentInstructions) {
       yPos += 30;
       doc.setFontSize(11);
@@ -291,7 +312,7 @@ function generatePDF(invoiceData: any, userData: any): Buffer {
       doc.text(
         `Page ${i} of ${totalPages}`,
         pageWidth / 2,
-        doc.internal.pageSize.getHeight() - 10,
+        pageHeight - 10,
         { align: 'center' }
       );
     }

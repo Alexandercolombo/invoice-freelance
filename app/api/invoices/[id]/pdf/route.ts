@@ -88,7 +88,6 @@ function generatePDF(invoiceData: any, userData: any): Buffer {
   console.log('[Debug] Starting PDF generation with jsPDF');
   
   try {
-    // Create PDF with better default styling
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
@@ -101,6 +100,7 @@ function generatePDF(invoiceData: any, userData: any): Buffer {
     const primaryColor: [number, number, number] = [41, 71, 226];  // #2947e2
     const textColor: [number, number, number] = [51, 51, 51];     // #333333
     const secondaryColor: [number, number, number] = [128, 128, 128]; // #808080
+    const borderColor: [number, number, number] = [230, 230, 230]; // #e6e6e6
     
     // Page dimensions
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -111,202 +111,282 @@ function generatePDF(invoiceData: any, userData: any): Buffer {
     
     let yPos = margin;
     
+    // Add decorative header line
+    doc.setDrawColor(...primaryColor);
+    doc.setLineWidth(0.5);
+    doc.line(margin, 15, pageWidth - margin, 15);
+    
     // Add logo if available
     if (userData.logoUrl) {
       try {
         doc.addImage(userData.logoUrl, 'PNG', margin, yPos, 40, 20, undefined, 'FAST');
-        yPos += 25; // Space after logo
+        yPos += 25;
       } catch (error) {
         console.error('[Error] Failed to add logo:', error);
-        // Continue without logo if there's an error
         yPos += 5;
       }
     }
 
     // Header with two columns
     // Left column - Business Information
-    let leftYPos = yPos;
+    let leftYPos = yPos + 10; // Add padding after header line
     doc.setFontSize(24);
     doc.setTextColor(...primaryColor);
     if (userData.businessName) {
       doc.text(userData.businessName, margin, leftYPos);
-      leftYPos += 10;
+      leftYPos += 12;
     }
     
-    // Business Details
+    // Business Details with icons or bullet points
     doc.setFontSize(10);
-    doc.setTextColor(...secondaryColor);
+    doc.setTextColor(...textColor);
     if (userData.address) {
+      doc.setTextColor(...secondaryColor);
+      doc.text('ADDRESS', margin, leftYPos);
+      leftYPos += 5;
+      doc.setTextColor(...textColor);
       const addressLines = doc.splitTextToSize(userData.address, columnWidth - 10);
       addressLines.forEach((line: string) => {
         doc.text(line.trim(), margin, leftYPos);
         leftYPos += 5;
       });
-    }
-    if (userData.email) {
-      doc.text(userData.email, margin, leftYPos);
-      leftYPos += 5;
-    }
-    if (userData.phone) {
-      doc.text(userData.phone, margin, leftYPos);
-      leftYPos += 5;
+      leftYPos += 3;
     }
     
-    // Right column - Invoice Details & Client Information
-    let rightYPos = yPos;
+    if (userData.email) {
+      doc.setTextColor(...secondaryColor);
+      doc.text('EMAIL', margin, leftYPos);
+      leftYPos += 5;
+      doc.setTextColor(...textColor);
+      doc.text(userData.email, margin, leftYPos);
+      leftYPos += 8;
+    }
+    
+    if (userData.phone) {
+      doc.setTextColor(...secondaryColor);
+      doc.text('PHONE', margin, leftYPos);
+      leftYPos += 5;
+      doc.setTextColor(...textColor);
+      doc.text(userData.phone, margin, leftYPos);
+      leftYPos += 8;
+    }
+    
+    // Right column with invoice details
+    let rightYPos = yPos + 10;
     const rightColumnX = margin + columnWidth + 10;
     
-    // Invoice Title and Number
-    doc.setFontSize(28);
-    doc.setTextColor(...primaryColor);
+    // Large "INVOICE" text with background
+    doc.setFillColor(...primaryColor);
+    doc.rect(rightColumnX - 5, rightYPos - 8, 80, 12, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
     doc.text('INVOICE', rightColumnX, rightYPos);
-    rightYPos += 10;
+    rightYPos += 20;
     
-    doc.setFontSize(12);
-    doc.setTextColor(...textColor);
-    doc.text(`#${invoiceData.number}`, rightColumnX, rightYPos);
-    rightYPos += 15;
-    
-    // Client Information
-    doc.setFontSize(14);
+    // Invoice number with larger, bold styling
     doc.setTextColor(...primaryColor);
-    doc.text('Bill To:', rightColumnX, rightYPos);
-    rightYPos += 8;
+    doc.setFontSize(24);
+    doc.text(`#${invoiceData.number}`, rightColumnX, rightYPos);
+    rightYPos += 25;
     
+    // Client Information in a box
+    doc.setDrawColor(...borderColor);
+    doc.setFillColor(250, 250, 250);
+    doc.rect(rightColumnX - 5, rightYPos - 5, columnWidth - 15, 40, 'F');
+    doc.rect(rightColumnX - 5, rightYPos - 5, columnWidth - 15, 40, 'S');
+    
+    doc.setTextColor(...primaryColor);
     doc.setFontSize(12);
-    doc.setTextColor(...textColor);
-    doc.text(invoiceData.client.name, rightColumnX, rightYPos);
-    if (invoiceData.client.email) {
-      rightYPos += 6;
-      doc.setFontSize(10);
-      doc.text(invoiceData.client.email, rightColumnX, rightYPos);
-    }
-    rightYPos += 15;
+    doc.text('BILL TO', rightColumnX, rightYPos + 5);
     
-    // Dates
-    doc.setFontSize(10);
-    doc.text(`Issue Date: ${new Date(invoiceData.date).toLocaleDateString()}`, rightColumnX, rightYPos);
-    rightYPos += 6;
-    if (invoiceData.dueDate) {
-      doc.text(`Due Date: ${new Date(invoiceData.dueDate).toLocaleDateString()}`, rightColumnX, rightYPos);
-      rightYPos += 6;
+    doc.setTextColor(...textColor);
+    doc.setFontSize(11);
+    doc.text(invoiceData.client.name, rightColumnX, rightYPos + 15);
+    if (invoiceData.client.email) {
+      doc.setFontSize(10);
+      doc.setTextColor(...secondaryColor);
+      doc.text(invoiceData.client.email, rightColumnX, rightYPos + 25);
     }
+    rightYPos += 50;
+    
+    // Dates section with better formatting
+    doc.setFillColor(250, 250, 250);
+    doc.rect(rightColumnX - 5, rightYPos - 5, columnWidth - 15, 35, 'F');
+    
+    // Issue Date
+    doc.setTextColor(...secondaryColor);
+    doc.setFontSize(9);
+    doc.text('ISSUE DATE', rightColumnX, rightYPos + 5);
+    doc.setTextColor(...textColor);
+    doc.setFontSize(10);
+    doc.text(new Date(invoiceData.date).toLocaleDateString(), rightColumnX + 70, rightYPos + 5);
+    
+    // Due Date
+    if (invoiceData.dueDate) {
+      doc.setTextColor(...secondaryColor);
+      doc.setFontSize(9);
+      doc.text('DUE DATE', rightColumnX, rightYPos + 20);
+      doc.setTextColor(...textColor);
+      doc.setFontSize(10);
+      doc.text(new Date(invoiceData.dueDate).toLocaleDateString(), rightColumnX + 70, rightYPos + 20);
+    }
+    rightYPos += 45;
     
     // Set yPos to the lower of the two columns
-    yPos = Math.max(leftYPos, rightYPos) + 20;
+    yPos = Math.max(leftYPos, rightYPos) + 10;
     
-    // Tasks Table - Full Width
-    // Table Headers
+    // Tasks Table with enhanced styling
+    // Table Headers with gradient-like effect
     const columns = ['Description', 'Hours', 'Rate', 'Amount'];
     const columnWidths = [contentWidth * 0.5, contentWidth * 0.15, contentWidth * 0.15, contentWidth * 0.2];
     
-    // Draw table header background
+    // Draw table header with gradient effect
     doc.setFillColor(...primaryColor);
-    doc.rect(margin, yPos - 5, contentWidth, 8, 'F');
+    doc.rect(margin, yPos - 5, contentWidth, 12, 'F');
     
-    // Draw header text
+    // Header text
     doc.setFontSize(10);
     doc.setTextColor(255, 255, 255);
     let xPos = margin;
     columns.forEach((column, index) => {
-      doc.text(column, xPos + 2, yPos);
+      doc.text(column.toUpperCase(), xPos + 5, yPos + 2);
       xPos += columnWidths[index];
     });
     
-    // Table Content
-    yPos += 8;
+    // Table Content with improved styling
+    yPos += 15;
     doc.setTextColor(...textColor);
     let totalAmount = 0;
     
-    invoiceData.tasks.forEach((task: any) => {
-      // Check if we need a new page
+    // Add subtle table border
+    doc.setDrawColor(...borderColor);
+    doc.setLineWidth(0.1);
+    doc.rect(margin, yPos - 8, contentWidth, 0.1, 'S');
+    
+    invoiceData.tasks.forEach((task: any, index: number) => {
+      // Check for page break
       if (yPos > pageHeight - 100) {
         doc.addPage();
-        yPos = margin + 10;
+        yPos = margin + 20;
+        
+        // Repeat header on new page
+        doc.setFillColor(...primaryColor);
+        doc.rect(margin, yPos - 5, contentWidth, 12, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(10);
+        let headerX = margin;
+        columns.forEach((column, i) => {
+          doc.text(column.toUpperCase(), headerX + 5, yPos + 2);
+          headerX += columnWidths[i];
+        });
+        yPos += 15;
       }
       
       // Calculate row values
       const amount = task.hours * task.hourlyRate;
       totalAmount += amount;
       
-      // Draw alternating row background
-      if (invoiceData.tasks.indexOf(task) % 2 === 0) {
-        doc.setFillColor(247, 247, 247);
-        doc.rect(margin, yPos - 5, contentWidth, 8, 'F');
+      // Alternating row backgrounds
+      if (index % 2 === 0) {
+        doc.setFillColor(250, 250, 250);
+        doc.rect(margin, yPos - 5, contentWidth, 10, 'F');
       }
       
       // Draw row content
       xPos = margin;
       doc.setFontSize(9);
+      doc.setTextColor(...textColor);
       
-      // Description (with word wrap if needed)
-      const descriptionWidth = columnWidths[0] - 4;
+      // Description with word wrap
+      const descriptionWidth = columnWidths[0] - 10;
       const descriptionLines = doc.splitTextToSize(task.description, descriptionWidth);
-      doc.text(descriptionLines, xPos + 2, yPos);
+      doc.text(descriptionLines, xPos + 5, yPos);
       
-      // Hours
+      // Hours (right-aligned)
       xPos += columnWidths[0];
-      doc.text(task.hours.toString(), xPos + 2, yPos);
+      doc.text(task.hours.toString(), xPos + columnWidths[1] - 5, yPos, { align: 'right' });
       
-      // Rate
+      // Rate (right-aligned with currency)
       xPos += columnWidths[1];
-      doc.text(`$${task.hourlyRate.toFixed(2)}`, xPos + 2, yPos);
+      doc.text(`$${task.hourlyRate.toFixed(2)}`, xPos + columnWidths[2] - 5, yPos, { align: 'right' });
       
-      // Amount
+      // Amount (right-aligned with currency)
       xPos += columnWidths[2];
-      doc.text(`$${amount.toFixed(2)}`, xPos + 2, yPos);
+      doc.text(`$${amount.toFixed(2)}`, xPos + columnWidths[3] - 5, yPos, { align: 'right' });
       
+      // Add subtle row border
+      doc.setDrawColor(...borderColor);
       yPos += 10;
+      doc.line(margin, yPos - 2, margin + contentWidth, yPos - 2);
     });
     
-    // Totals Section - Aligned to right
-    yPos += 10;
+    // Totals Section with enhanced styling
+    yPos += 15;
     const totalsWidth = columnWidths[2] + columnWidths[3];
     const totalsX = pageWidth - margin - totalsWidth;
     
-    // Draw totals box with subtle styling
+    // Draw totals box with subtle gradient
     doc.setFillColor(250, 250, 250);
-    doc.rect(totalsX, yPos - 5, totalsWidth, 35, 'F');
-    doc.setDrawColor(...primaryColor);
-    doc.rect(totalsX, yPos - 5, totalsWidth, 35, 'S');
+    doc.rect(totalsX - 5, yPos - 8, totalsWidth + 10, 50, 'F');
+    doc.setDrawColor(...borderColor);
+    doc.rect(totalsX - 5, yPos - 8, totalsWidth + 10, 50, 'S');
     
     // Subtotal
     doc.setFontSize(10);
+    doc.setTextColor(...secondaryColor);
+    doc.text('SUBTOTAL', totalsX, yPos);
     doc.setTextColor(...textColor);
-    doc.text('Subtotal:', totalsX + 5, yPos);
-    doc.text(`$${invoiceData.subtotal.toFixed(2)}`, totalsX + totalsWidth - 25, yPos);
+    doc.text(`$${invoiceData.subtotal.toFixed(2)}`, totalsX + totalsWidth, yPos, { align: 'right' });
     
     // Tax
-    yPos += 10;
-    doc.text(`Tax (${invoiceData.tax}%):`, totalsX + 5, yPos);
+    yPos += 12;
+    doc.setTextColor(...secondaryColor);
+    doc.text(`TAX (${invoiceData.tax}%)`, totalsX, yPos);
+    doc.setTextColor(...textColor);
     const taxAmount = (invoiceData.subtotal * invoiceData.tax / 100);
-    doc.text(`$${taxAmount.toFixed(2)}`, totalsX + totalsWidth - 25, yPos);
+    doc.text(`$${taxAmount.toFixed(2)}`, totalsX + totalsWidth, yPos, { align: 'right' });
     
-    // Total
-    yPos += 10;
-    doc.setFontSize(12);
-    doc.setTextColor(...primaryColor);
-    doc.text('Total:', totalsX + 5, yPos);
-    doc.text(`$${invoiceData.total.toFixed(2)}`, totalsX + totalsWidth - 25, yPos);
+    // Total with highlighted background
+    yPos += 15;
+    doc.setFillColor(...primaryColor);
+    doc.rect(totalsX - 5, yPos - 5, totalsWidth + 10, 15, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(11);
+    doc.text('TOTAL', totalsX, yPos + 4);
+    doc.text(`$${invoiceData.total.toFixed(2)}`, totalsX + totalsWidth, yPos + 4, { align: 'right' });
     
-    // Payment Instructions - Full width at bottom
+    // Payment Instructions with styled box
     if (userData.paymentInstructions) {
-      yPos += 30;
-      doc.setFontSize(11);
-      doc.setTextColor(...primaryColor);
-      doc.text('Payment Instructions', margin, yPos);
+      yPos += 40;
       
-      yPos += 8;
-      doc.setFontSize(10);
+      // Add payment instructions box
+      doc.setFillColor(250, 250, 250);
+      doc.setDrawColor(...borderColor);
+      doc.rect(margin, yPos - 5, contentWidth, 40, 'F');
+      doc.rect(margin, yPos - 5, contentWidth, 40, 'S');
+      
+      // Payment Instructions header
+      doc.setTextColor(...primaryColor);
+      doc.setFontSize(11);
+      doc.text('PAYMENT INSTRUCTIONS', margin + 5, yPos + 5);
+      
+      // Instructions content
+      doc.setFontSize(9);
       doc.setTextColor(...textColor);
-      const instructionLines = doc.splitTextToSize(userData.paymentInstructions, contentWidth);
-      doc.text(instructionLines, margin, yPos);
+      const instructionLines = doc.splitTextToSize(userData.paymentInstructions, contentWidth - 15);
+      doc.text(instructionLines, margin + 5, yPos + 15);
     }
     
-    // Add footer with page numbers
+    // Add footer with page numbers and border
     const totalPages = doc.internal.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
+      
+      // Add footer border
+      doc.setDrawColor(...borderColor);
+      doc.line(margin, pageHeight - 20, pageWidth - margin, pageHeight - 20);
+      
+      // Add page numbers
       doc.setFontSize(8);
       doc.setTextColor(...secondaryColor);
       doc.text(

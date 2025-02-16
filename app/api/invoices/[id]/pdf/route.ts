@@ -175,65 +175,44 @@ function generatePDF(invoiceData: any, userData: any): Buffer {
     let rightYPos = yPos + 10;
     const rightColumnX = margin + columnWidth + 10;
     
-    // Large "INVOICE" text with background
-    doc.setFillColor(...primaryColor);
-    doc.rect(rightColumnX - 5, rightYPos - 8, 80, 12, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(16);
+    // More subtle invoice header
+    doc.setTextColor(...primaryColor);
+    doc.setFontSize(14);
     doc.text('INVOICE', rightColumnX, rightYPos);
-    rightYPos += 20;
-    
-    // Invoice number with larger, bold styling
-    doc.setTextColor(...primaryColor);
-    doc.setFontSize(24);
-    doc.text(`#${invoiceData.number}`, rightColumnX, rightYPos);
-    rightYPos += 25;
-    
-    // Client Information in a box
-    doc.setDrawColor(...borderColor);
-    doc.setFillColor(250, 250, 250);
-    doc.rect(rightColumnX - 5, rightYPos - 5, columnWidth - 15, 40, 'F');
-    doc.rect(rightColumnX - 5, rightYPos - 5, columnWidth - 15, 40, 'S');
-    
-    doc.setTextColor(...primaryColor);
     doc.setFontSize(12);
-    doc.text('BILL TO', rightColumnX, rightYPos + 5);
+    doc.text(`#${invoiceData.number}`, rightColumnX + 45, rightYPos);
+    rightYPos += 8;
+    
+    // Date information more compact
+    doc.setFontSize(10);
+    doc.setTextColor(...secondaryColor);
+    const invoiceDate = new Date(invoiceData.date).toLocaleDateString();
+    doc.text(`Date: ${invoiceDate}`, rightColumnX, rightYPos + 8);
+    
+    if (invoiceData.dueDate) {
+      doc.text(`Due Date: ${new Date(invoiceData.dueDate).toLocaleDateString()}`, rightColumnX, rightYPos + 16);
+      rightYPos += 24;
+    } else {
+      rightYPos += 16;
+    }
+    
+    // Client Information aligned with business info
+    doc.setTextColor(...secondaryColor);
+    doc.text('BILL TO', rightColumnX, rightYPos);
+    rightYPos += 5;
     
     doc.setTextColor(...textColor);
     doc.setFontSize(11);
-    doc.text(invoiceData.client.name, rightColumnX, rightYPos + 15);
+    doc.text(invoiceData.client.name, rightColumnX, rightYPos + 8);
     if (invoiceData.client.email) {
       doc.setFontSize(10);
       doc.setTextColor(...secondaryColor);
-      doc.text(invoiceData.client.email, rightColumnX, rightYPos + 25);
+      doc.text(invoiceData.client.email, rightColumnX, rightYPos + 16);
     }
-    rightYPos += 50;
+    rightYPos += 25;
     
-    // Dates section with better formatting
-    doc.setFillColor(250, 250, 250);
-    doc.rect(rightColumnX - 5, rightYPos - 5, columnWidth - 15, 35, 'F');
-    
-    // Issue Date
-    doc.setTextColor(...secondaryColor);
-    doc.setFontSize(9);
-    doc.text('ISSUE DATE', rightColumnX, rightYPos + 5);
-    doc.setTextColor(...textColor);
-    doc.setFontSize(10);
-    doc.text(new Date(invoiceData.date).toLocaleDateString(), rightColumnX + 70, rightYPos + 5);
-    
-    // Due Date
-    if (invoiceData.dueDate) {
-      doc.setTextColor(...secondaryColor);
-      doc.setFontSize(9);
-      doc.text('DUE DATE', rightColumnX, rightYPos + 20);
-      doc.setTextColor(...textColor);
-      doc.setFontSize(10);
-      doc.text(new Date(invoiceData.dueDate).toLocaleDateString(), rightColumnX + 70, rightYPos + 20);
-    }
-    rightYPos += 45;
-    
-    // Set yPos to the lower of the two columns
-    yPos = Math.max(leftYPos, rightYPos) + 10;
+    // Set yPos to the lower of the two columns with less padding
+    yPos = Math.max(leftYPos, rightYPos) + 15;
     
     // Tasks Table with enhanced styling
     // Table Headers with gradient-like effect
